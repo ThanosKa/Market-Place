@@ -5,6 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useTranslation } from "react-i18next";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { colors } from "../../colors/colors";
 
 type SearchBarProps = {
   onHeartPress: () => void;
@@ -27,7 +28,7 @@ const DummySearchBar: React.FC<SearchBarProps> = ({
         <Ionicons
           name="search"
           size={24}
-          color="#888"
+          color={colors.primary}
           style={styles.searchIcon}
         />
         <Text style={styles.placeholder}>{t("search-products")}</Text>

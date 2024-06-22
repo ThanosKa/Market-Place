@@ -4,15 +4,17 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
 };
 
+export type RootStackParamList = {
+  Auth: undefined;
+  Main: undefined;
+};
+
 export type MainStackParamList = {
+  MainTabs: undefined;
   Home: undefined;
   Search: undefined;
   Sell: undefined;
   Activity: undefined;
   Profile: undefined;
-};
-
-export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
+  UserProfile: { userId: string };
 };

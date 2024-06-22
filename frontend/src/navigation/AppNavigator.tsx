@@ -18,10 +18,11 @@ import LoginScreen from "../screens/auth/login/login";
 import RegisterScreen from "../screens/auth/register/register";
 import ForgotPasswordScreen from "../screens/auth/forgotPass/forgotPass";
 import { colors } from "../colors/colors";
+import UserProfile from "../components/UserProfile/userProfiler";
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const RootStack = createStackNavigator<RootStackParamList>();
-
+const MainStack = createStackNavigator<MainStackParamList>();
 const Tab = createBottomTabNavigator<MainStackParamList>();
 
 const MainTabs = () => (
@@ -90,6 +91,13 @@ const MainTabs = () => (
   </Tab.Navigator>
 );
 
+const MainNavigator = () => (
+  <MainStack.Navigator screenOptions={{ headerShown: false }}>
+    <MainStack.Screen name="MainTabs" component={MainTabs} />
+    <MainStack.Screen name="UserProfile" component={UserProfile} />
+  </MainStack.Navigator>
+);
+
 const AuthNavigator = () => (
   <AuthStack.Navigator screenOptions={{ headerShown: false }}>
     <AuthStack.Screen name="Login" component={LoginScreen} />
@@ -103,7 +111,7 @@ const AppNavigator = () => {
     <NavigationContainer>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         <RootStack.Screen name="Auth" component={AuthNavigator} />
-        <RootStack.Screen name="Main" component={MainTabs} />
+        <RootStack.Screen name="Main" component={MainNavigator} />
       </RootStack.Navigator>
     </NavigationContainer>
   );

@@ -4,9 +4,14 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
 
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
+
 type ProductCardProps = {
   userImage: string;
   userName: string;
+  userId: string;
   productImage: string;
   title: string;
   price: string;
@@ -18,6 +23,7 @@ type ProductCardProps = {
 const ProductCard: React.FC<ProductCardProps> = ({
   userImage,
   userName,
+  userId,
   productImage,
   title,
   price,
@@ -25,12 +31,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isLiked,
   onLikeToggle,
 }) => {
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+
+  const handleUserPress = () => {
+    navigation.navigate("UserProfile", { userId: userId });
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.userInfo}>
+      <TouchableOpacity onPress={handleUserPress} style={styles.userInfo}>
         <Image source={{ uri: userImage }} style={styles.userImage} />
         <Text style={styles.userName}>{userName}</Text>
-      </View>
+      </TouchableOpacity>
       <Image source={{ uri: productImage }} style={styles.productImage} />
       <View style={styles.productContainer}>
         <Text style={styles.title} numberOfLines={2}>

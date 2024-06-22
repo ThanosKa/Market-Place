@@ -17,6 +17,8 @@
     "registerLink": "Don't have an account? Register",
     "loginLink": "Already have an account? Login",
     "forgotPasswordLink": "Forgot Password?",
-    "backToLogin": "Back to Login"
+    "backToLogin": "Back to Login",
+    "show": "Show",
+    "hide": "Hide"
   }
 }

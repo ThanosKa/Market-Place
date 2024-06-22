@@ -13,6 +13,7 @@ import {
   AuthStackParamList,
   RootStackParamList,
 } from "../../../interfaces/auth/navigation";
+import { colors } from "../../../colors/colors";
 
 type ForgotPasswordScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 5,
     width: "100%",
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   link: {
-    color: "#007AFF",
+    color: colors.primary,
     marginTop: 20,
     fontSize: 16,
   },

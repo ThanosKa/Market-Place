@@ -1,0 +1,17 @@
+{
+  "home": {
+    "title": "Home"
+  },
+  "search": {
+    "title": "Search"
+  },
+  "sell": {
+    "title": "Sell"
+  },
+  "activity": {
+    "title": "Activity"
+  },
+  "profile": {
+    "title": "Profile"
+  }
+}

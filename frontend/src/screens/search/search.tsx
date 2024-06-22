@@ -7,7 +7,7 @@ const SearchScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{t("search.title")}</Text>
+      <Text style={styles.text}>{t("search")}</Text>
     </View>
   );
 };

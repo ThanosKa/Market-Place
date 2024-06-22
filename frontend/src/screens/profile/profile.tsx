@@ -7,7 +7,7 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{t("profile.title")}</Text>
+      <Text style={styles.text}>{t("profile")}</Text>
     </View>
   );
 };

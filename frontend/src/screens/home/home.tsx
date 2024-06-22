@@ -7,7 +7,7 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{t("home.title")}</Text>
+      <Text style={styles.text}>{t("home")}</Text>
     </View>
   );
 };

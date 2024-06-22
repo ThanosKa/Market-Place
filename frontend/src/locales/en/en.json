@@ -1,17 +1,22 @@
 {
-  "home": {
-    "title": "Home"
-  },
-  "search": {
-    "title": "Search"
-  },
-  "sell": {
-    "title": "Sell"
-  },
-  "activity": {
-    "title": "Activity"
-  },
-  "profile": {
-    "title": "Profile"
+  "home": "Home",
+  "search": "Search",
+  "sell": "Sell",
+  "activity": "Activity",
+  "profile": "Profile",
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "forgotPassword": "Forgot Password",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "loginButton": "Login",
+    "registerButton": "Register",
+    "resetPasswordButton": "Reset Password",
+    "registerLink": "Don't have an account? Register",
+    "loginLink": "Already have an account? Login",
+    "forgotPasswordLink": "Forgot Password?",
+    "backToLogin": "Back to Login"
   }
 }

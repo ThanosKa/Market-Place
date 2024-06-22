@@ -7,7 +7,7 @@ const SellScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{t("sell.title")}</Text>
+      <Text style={styles.text}>{t("sell")}</Text>
     </View>
   );
 };

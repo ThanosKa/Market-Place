@@ -7,7 +7,7 @@ const ActivityScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{t("activity.title")}</Text>
+      <Text style={styles.text}>{t("activity")}</Text>
     </View>
   );
 };

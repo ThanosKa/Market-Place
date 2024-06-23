@@ -24,7 +24,7 @@ const Header: React.FC<Props> = ({
         <Feather name="share" size={24} color={colors.primary} />
       </TouchableOpacity>
       <TouchableOpacity onPress={onLikePress} style={styles.iconButton}>
-        <AntDesign name="heart" size={24} color={colors.primary} />
+        <AntDesign name="hearto" size={24} color={colors.primary} />
       </TouchableOpacity>
     </View>
   </View>
@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
+    marginTop: 35,
   },
   headerIcons: {
     flexDirection: "row",

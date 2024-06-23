@@ -4,42 +4,34 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
 
-type Props = {
-  activeTab: "listings" | "reviews";
-  setActiveTab: (tab: "listings" | "reviews") => void;
+type Props<T extends string> = {
+  tabs: T[];
+  activeTab: T;
+  setActiveTab: (tab: T) => void;
 };
 
-const TabSelector: React.FC<Props> = ({ activeTab, setActiveTab }) => {
+const TabSelector = <T extends string>({
+  tabs,
+  activeTab,
+  setActiveTab,
+}: Props<T>) => {
   const { t } = useTranslation();
 
   return (
     <View style={styles.tabContainer}>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === "listings" && styles.activeTab]}
-        onPress={() => setActiveTab("listings")}
-      >
-        <Text
-          style={[
-            styles.tabText,
-            activeTab === "listings" && styles.activeTabText,
-          ]}
+      {tabs.map((tab) => (
+        <TouchableOpacity
+          key={tab}
+          style={[styles.tab, activeTab === tab && styles.activeTab]}
+          onPress={() => setActiveTab(tab)}
         >
-          {t("Listings")}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === "reviews" && styles.activeTab]}
-        onPress={() => setActiveTab("reviews")}
-      >
-        <Text
-          style={[
-            styles.tabText,
-            activeTab === "reviews" && styles.activeTabText,
-          ]}
-        >
-          {t("Reviews")}
-        </Text>
-      </TouchableOpacity>
+          <Text
+            style={[styles.tabText, activeTab === tab && styles.activeTabText]}
+          >
+            {t(tab)}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };

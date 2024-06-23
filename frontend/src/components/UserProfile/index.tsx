@@ -1,6 +1,12 @@
 // UserProfile.tsx
 import React, { useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -45,26 +51,41 @@ const UserProfile: React.FC<Props> = ({ route, navigation }) => {
   const handleLikeUserPress = () => {
     // Implement like user functionality
   };
-
+  const handleMessagePress = () => {
+    navigation.navigate("Chat", { userId: userId });
+  };
   return (
-    <ScrollView style={styles.container}>
-      <Header
-        onBackPress={handleBackPress}
-        onSharePress={handleSharePress}
-        onLikePress={handleLikeUserPress}
-      />
-      <UserInfo user={user} />
-      <TabSelector activeTab={activeTab} setActiveTab={setActiveTab} />
-      {activeTab === "listings" ? (
-        <ListingsTab
-          products={products}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+    <View style={styles.container}>
+      <ScrollView>
+        <Header
+          onBackPress={handleBackPress}
+          onSharePress={handleSharePress}
+          onLikePress={handleLikeUserPress}
         />
-      ) : (
-        <ReviewsTab reviews={reviews} />
-      )}
-    </ScrollView>
+        <UserInfo user={user} />
+        <TabSelector
+          tabs={["listings", "reviews"]}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab as (tab: string) => void}
+        />
+        {/* <TabSelector activeTab={activeTab} setActiveTab={setActiveTab} /> */}
+        {activeTab === "listings" ? (
+          <ListingsTab
+            products={products}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+          />
+        ) : (
+          <ReviewsTab reviews={reviews} />
+        )}
+      </ScrollView>
+      <TouchableOpacity
+        style={styles.messageButton}
+        onPress={handleMessagePress}
+      >
+        <Text style={styles.messageButtonText}>Message</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -72,6 +93,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  messageButton: {
+    position: "absolute",
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    padding: 15,
+    borderRadius: 25,
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  messageButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

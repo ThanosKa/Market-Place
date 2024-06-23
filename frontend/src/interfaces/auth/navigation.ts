@@ -17,4 +17,5 @@ export type MainStackParamList = {
   Activity: undefined;
   Profile: undefined;
   UserProfile: { userId: string };
+  Chat: { userId: string };
 };

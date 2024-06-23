@@ -18,7 +18,8 @@ import LoginScreen from "../screens/auth/login/login";
 import RegisterScreen from "../screens/auth/register/register";
 import ForgotPasswordScreen from "../screens/auth/forgotPass/forgotPass";
 import { colors } from "../colors/colors";
-import UserProfile from "../components/UserProfile/userProfiler";
+import UserProfile from "../components/UserProfile/index";
+import ChatScreen from "../components/Chat/chat";
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -95,6 +96,7 @@ const MainNavigator = () => (
   <MainStack.Navigator screenOptions={{ headerShown: false }}>
     <MainStack.Screen name="MainTabs" component={MainTabs} />
     <MainStack.Screen name="UserProfile" component={UserProfile} />
+    <MainStack.Screen name="Chat" component={ChatScreen} />
   </MainStack.Navigator>
 );
 

@@ -8,7 +8,6 @@ export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
 };
-
 export type MainStackParamList = {
   MainTabs: undefined;
   Home: undefined;
@@ -18,4 +17,5 @@ export type MainStackParamList = {
   Profile: undefined;
   UserProfile: { userId: string };
   Chat: { userId: string };
+  Likes: undefined;
 };

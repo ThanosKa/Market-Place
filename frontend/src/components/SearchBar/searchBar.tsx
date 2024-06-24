@@ -8,16 +8,16 @@ import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
 
 type SearchBarProps = {
-  onHeartPress: () => void;
   onChatPress: () => void;
 };
 
-const DummySearchBar: React.FC<SearchBarProps> = ({
-  onHeartPress,
-  onChatPress,
-}) => {
+const DummySearchBar: React.FC<SearchBarProps> = ({ onChatPress }) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
   const { t } = useTranslation();
+
+  const handleHeartPress = () => {
+    navigation.navigate("Likes");
+  };
 
   return (
     <View style={styles.container}>
@@ -33,11 +33,11 @@ const DummySearchBar: React.FC<SearchBarProps> = ({
         />
         <Text style={styles.placeholder}>{t("search-products")}</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={onHeartPress} style={styles.iconButton}>
-        <Ionicons name="heart-outline" size={26} />
+      <TouchableOpacity onPress={handleHeartPress} style={styles.iconButton}>
+        <Ionicons name="heart-outline" size={26} color={colors.primary} />
       </TouchableOpacity>
       <TouchableOpacity onPress={onChatPress} style={styles.iconButton}>
-        <Ionicons name="chatbubble-outline" size={26} />
+        <Ionicons name="chatbubble-outline" size={26} color={colors.primary} />
       </TouchableOpacity>
     </View>
   );

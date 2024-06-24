@@ -13,6 +13,7 @@ import DummySearchBar from "../../components/SearchBar/searchBar";
 import CategoryIcon from "../../components/CategoryIcons/categoryIcons";
 import { categories } from "../../interfaces/exploreCategories/iconsCategory";
 import ProductGrid from "../../components/ProductGrid/productGrid";
+import { colors } from "../../colors/colors";
 
 const HomeScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -62,7 +63,7 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
   },
   sectionTitle: {
     fontSize: 18,

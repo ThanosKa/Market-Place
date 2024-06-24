@@ -1,5 +1,6 @@
 // types.ts
 export interface User {
+  products: any;
   firstName: string;
   lastName: string;
   profileImage: string;

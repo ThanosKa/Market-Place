@@ -20,6 +20,7 @@ import ForgotPasswordScreen from "../screens/auth/forgotPass/forgotPass";
 import { colors } from "../colors/colors";
 import UserProfile from "../components/UserProfile/index";
 import ChatScreen from "../components/Chat/chat";
+import LikesPage from "../components/LikePage/likePage";
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -85,6 +86,7 @@ const MainTabs = () => (
     })}
   >
     <Tab.Screen name="Home" component={HomeScreen} />
+
     <Tab.Screen name="Search" component={SearchScreen} />
     <Tab.Screen name="Sell" component={SellScreen} />
     <Tab.Screen name="Activity" component={ActivityScreen} />
@@ -97,6 +99,7 @@ const MainNavigator = () => (
     <MainStack.Screen name="MainTabs" component={MainTabs} />
     <MainStack.Screen name="UserProfile" component={UserProfile} />
     <MainStack.Screen name="Chat" component={ChatScreen} />
+    <MainStack.Screen name="Likes" component={LikesPage} />
   </MainStack.Navigator>
 );
 

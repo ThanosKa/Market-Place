@@ -5,9 +5,9 @@ import { Ionicons, Feather, AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
 
 type Props = {
-  onBackPress: () => void;
-  onSharePress: () => void;
-  onLikePress: () => void;
+  onBackPress?: () => void;
+  onSharePress?: () => void;
+  onLikePress?: () => void;
 };
 
 const Header: React.FC<Props> = ({
@@ -16,16 +16,22 @@ const Header: React.FC<Props> = ({
   onLikePress,
 }) => (
   <View style={styles.header}>
-    <TouchableOpacity onPress={onBackPress}>
-      <Ionicons name="chevron-back" size={24} color={colors.primary} />
-    </TouchableOpacity>
+    {onBackPress && (
+      <TouchableOpacity onPress={onBackPress}>
+        <Ionicons name="chevron-back" size={24} color={colors.primary} />
+      </TouchableOpacity>
+    )}
     <View style={styles.headerIcons}>
-      <TouchableOpacity onPress={onSharePress} style={styles.iconButton}>
-        <Feather name="share" size={24} color={colors.primary} />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onLikePress} style={styles.iconButton}>
-        <AntDesign name="hearto" size={24} color={colors.primary} />
-      </TouchableOpacity>
+      {onSharePress && (
+        <TouchableOpacity onPress={onSharePress} style={styles.iconButton}>
+          <Feather name="share" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      )}
+      {onLikePress && (
+        <TouchableOpacity onPress={onLikePress} style={styles.iconButton}>
+          <AntDesign name="hearto" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      )}
     </View>
   </View>
 );

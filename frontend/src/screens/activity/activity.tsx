@@ -35,6 +35,7 @@ const initialMockActivityData: ActivityItem[] = [
       sales: 5,
       purchases: 3,
       location: "New York",
+      products: undefined,
     },
     product: {
       id: 1,
@@ -56,6 +57,7 @@ const initialMockActivityData: ActivityItem[] = [
       sales: 3,
       purchases: 7,
       location: "Los Angeles",
+      products: undefined,
     },
     timestamp: new Date(2024, 5, 23, 15, 45),
   },
@@ -70,6 +72,7 @@ const initialMockActivityData: ActivityItem[] = [
       sales: 2,
       purchases: 4,
       location: "Chicago",
+      products: undefined,
     },
     timestamp: new Date(2024, 5, 20, 9, 15),
   },

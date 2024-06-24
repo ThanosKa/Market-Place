@@ -19,14 +19,6 @@ const HomeScreen: React.FC = () => {
   const { t } = useTranslation();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  const handleHeartPress = () => {
-    // Handle heart icon press
-  };
-
-  const handleChatPress = () => {
-    // Handle chat icon press
-  };
-
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories((prev) =>
       prev.includes(categoryId)
@@ -38,10 +30,9 @@ const HomeScreen: React.FC = () => {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <ScrollView style={styles.container}>
-        <DummySearchBar
-          onHeartPress={handleHeartPress}
-          onChatPress={handleChatPress}
-        />
+        <DummySearchBar />
+
+        {/* <DummySearchBar onChatPress={handleChatPress} /> */}
         <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
         <View style={styles.categoriesContainer}>
           {categories.map((category, index) => (

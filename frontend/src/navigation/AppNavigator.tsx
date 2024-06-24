@@ -21,6 +21,7 @@ import { colors } from "../colors/colors";
 import UserProfile from "../components/UserProfile/index";
 import ChatScreen from "../components/Chat/chat";
 import LikesPage from "../components/LikePage/likePage";
+import MessageScreen from "../components/Messages/messageScreen";
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -100,6 +101,7 @@ const MainNavigator = () => (
     <MainStack.Screen name="UserProfile" component={UserProfile} />
     <MainStack.Screen name="Chat" component={ChatScreen} />
     <MainStack.Screen name="Likes" component={LikesPage} />
+    <MainStack.Screen name="Messages" component={MessageScreen} />
   </MainStack.Navigator>
 );
 

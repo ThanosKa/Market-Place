@@ -1,17 +1,16 @@
-import React, { useState, useRef } from "react";
+// SearchScreen.tsx
+import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
-  TextInput,
-  TouchableOpacity,
   FlatList,
   Image,
   Keyboard,
+  Text,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
+import SearchBar from "../../components/SearchBarComponenet";
 
 // Mock data for products
 const mockProducts = Array.from({ length: 20 }, (_, i) => ({
@@ -25,14 +24,11 @@ const mockProducts = Array.from({ length: 20 }, (_, i) => ({
 }));
 
 const SearchScreen = () => {
-  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    // Implement search logic here
   };
 
   const clearSearch = () => {
@@ -43,7 +39,6 @@ const SearchScreen = () => {
     setSearchQuery("");
     setIsFocused(false);
     Keyboard.dismiss();
-    inputRef.current?.blur();
   };
 
   const renderProductGrid = ({ item }: { item: (typeof mockProducts)[0] }) => (
@@ -65,34 +60,14 @@ const SearchScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchBarContainer}>
-        <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#999"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            ref={inputRef}
-            style={styles.searchInput}
-            placeholder={t("Search")}
-            value={searchQuery}
-            onChangeText={handleSearch}
-            onFocus={() => setIsFocused(true)}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-        </View>
-        {isFocused && (
-          <TouchableOpacity onPress={cancelSearch} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>{t("Cancel")}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <SearchBar
+        searchQuery={searchQuery}
+        setSearchQuery={handleSearch}
+        isFocused={isFocused}
+        setIsFocused={setIsFocused}
+        clearSearch={clearSearch}
+        cancelSearch={cancelSearch}
+      />
 
       {!isFocused && searchQuery.length === 0 && (
         <FlatList
@@ -126,48 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingTop: 10,
   },
-  searchBarContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 10,
-    marginBottom: 10,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 40,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    flex: 1,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 5,
-  },
-  cancelButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginLeft: 10,
-  },
-  cancelText: {
-    color: colors.primary,
-    fontSize: 16,
-  },
   productGrid: {
-    flex: 1,
-  },
-  // gridImage: {
-  //   width: "33.33%",
-  //   aspectRatio: 1,
-  // },
-  searchResults: {
     flex: 1,
   },
   gridItemContainer: {
@@ -179,6 +113,9 @@ const styles = StyleSheet.create({
   gridImage: {
     flex: 1,
     backgroundColor: "#e0e0e0",
+  },
+  searchResults: {
+    flex: 1,
   },
   searchResultItem: {
     flexDirection: "row",

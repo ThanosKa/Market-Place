@@ -7,16 +7,16 @@ import { useTranslation } from "react-i18next";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
 
-type SearchBarProps = {
-  onChatPress: () => void;
-};
-
-const DummySearchBar: React.FC<SearchBarProps> = ({ onChatPress }) => {
+const DummySearchBar: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
   const { t } = useTranslation();
 
   const handleHeartPress = () => {
     navigation.navigate("Likes");
+  };
+
+  const handleChatPress = () => {
+    navigation.navigate("Messages");
   };
 
   return (
@@ -36,7 +36,7 @@ const DummySearchBar: React.FC<SearchBarProps> = ({ onChatPress }) => {
       <TouchableOpacity onPress={handleHeartPress} style={styles.iconButton}>
         <Ionicons name="heart-outline" size={26} color={colors.primary} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={onChatPress} style={styles.iconButton}>
+      <TouchableOpacity onPress={handleChatPress} style={styles.iconButton}>
         <Ionicons name="chatbubble-outline" size={26} color={colors.primary} />
       </TouchableOpacity>
     </View>

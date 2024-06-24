@@ -9,6 +9,7 @@ import {
   Image,
   SafeAreaView,
   Platform,
+  GestureResponderEvent,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -16,6 +17,7 @@ import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
 import { Ionicons, Feather, FontAwesome } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import Swipeable from "react-native-gesture-handler/Swipeable";
 
 type ChatScreenRouteProp = RouteProp<MainStackParamList, "Chat">;
 type ChatScreenNavigationProp = StackNavigationProp<MainStackParamList, "Chat">;
@@ -30,6 +32,7 @@ type Message = {
   text: string;
   sender: "user" | "other";
   timestamp: Date;
+  seen?: boolean;
 };
 
 const mockMessages: Message[] = [
@@ -38,30 +41,35 @@ const mockMessages: Message[] = [
     text: "Hey, how are you?",
     sender: "other",
     timestamp: new Date(Date.now() - 3600000),
+    seen: true,
   },
   {
     id: "2",
     text: "I'm good, thanks! How about you?",
     sender: "user",
     timestamp: new Date(Date.now() - 3540000),
+    seen: true,
   },
   {
     id: "3",
     text: "Great! Did you see the new product I listed?",
     sender: "other",
     timestamp: new Date(Date.now() - 3480000),
+    seen: true,
   },
   {
     id: "4",
     text: "Yes, it looks amazing! I'm interested in buying it.",
     sender: "user",
     timestamp: new Date(Date.now() - 3420000),
+    seen: true,
   },
   {
     id: "5",
     text: "That's fantastic! When would you like to meet up?",
     sender: "other",
     timestamp: new Date(Date.now() - 3360000),
+    seen: false,
   },
 ];
 
@@ -69,6 +77,7 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
   const { userId } = route.params;
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [inputText, setInputText] = useState("");
+  const [replyMessage, setReplyMessage] = useState<Message | null>(null);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -82,37 +91,67 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
         text: inputText.trim(),
         sender: "user",
         timestamp: new Date(),
+        seen: false,
       };
       setMessages([newMessage, ...messages]);
       setInputText("");
+      setReplyMessage(null);
     }
   };
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <View
-      style={[
-        styles.messageBubble,
-        item.sender === "user" ? styles.userMessage : styles.otherMessage,
-      ]}
-    >
-      <Text
-        style={[
-          styles.messageText,
-          item.sender === "user"
-            ? styles.userMessageText
-            : styles.otherMessageText,
-        ]}
+  const renderMessage = ({ item }: { item: Message }) => {
+    const rightSwipe = () => (
+      <View style={styles.replySwipe}>
+        <Text style={styles.replyText}>{t("reply")}</Text>
+      </View>
+    );
+
+    const leftSwipe = () => (
+      <View style={styles.replySwipe}>
+        <Text style={styles.replyText}>{t("reply")}</Text>
+      </View>
+    );
+
+    return (
+      <Swipeable
+        renderLeftActions={item.sender === "other" ? rightSwipe : undefined}
+        onSwipeableLeftOpen={() =>
+          item.sender === "other" && setReplyMessage(item)
+        }
+        renderRightActions={item.sender === "user" ? leftSwipe : undefined}
+        onSwipeableRightOpen={() =>
+          item.sender === "user" && setReplyMessage(item)
+        }
       >
-        {item.text}
-      </Text>
-      <Text style={styles.timestamp}>
-        {item.timestamp.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </Text>
-    </View>
-  );
+        <View
+          style={[
+            styles.messageBubble,
+            item.sender === "user" ? styles.userMessage : styles.otherMessage,
+          ]}
+        >
+          <Text
+            style={[
+              styles.messageText,
+              item.sender === "user"
+                ? styles.userMessageText
+                : styles.otherMessageText,
+            ]}
+          >
+            {item.text}
+          </Text>
+          <Text style={styles.timestamp}>
+            {item.timestamp.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+          {item.sender === "user" && (
+            <Text style={styles.seenText}>{item.seen ? t("seen") : ""}</Text>
+          )}
+        </View>
+      </Swipeable>
+    );
+  };
 
   const renderInputIcons = () => {
     if (inputText.length > 0) {
@@ -133,6 +172,10 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
         </View>
       );
     }
+  };
+
+  const cancelReply = () => {
+    setReplyMessage(null);
   };
 
   return (
@@ -161,6 +204,18 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
           inverted
           contentContainerStyle={styles.messageList}
         />
+        {replyMessage && (
+          <View style={styles.replyContainer}>
+            <Text style={styles.replyLabel}>
+              {t("replyingTo")}{" "}
+              {replyMessage.sender === "user" ? "You" : "John Doe"}:{" "}
+              {replyMessage.text}
+            </Text>
+            <TouchableOpacity onPress={cancelReply}>
+              <Ionicons name="close-circle" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.inputContainer}>
           <TouchableOpacity style={styles.cameraButton}>
             <FontAwesome name="camera" size={18} color="white" />
@@ -250,6 +305,13 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginTop: 5,
   },
+  seenText: {
+    fontSize: 10,
+    color: "#888",
+    alignSelf: "flex-start",
+    marginTop: 5,
+    marginLeft: 5,
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -282,8 +344,30 @@ const styles = StyleSheet.create({
   sendButton: {
     padding: 5,
     color: colors.primary,
-    // backgroundColor: colors.primary,
-    // borderRadius: 25,
+    borderRadius: 25,
+  },
+  replyContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  replyLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.primary,
+  },
+  replySwipe: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#ddd",
+    width: 75,
+    height: "100%",
+  },
+  replyText: {
+    color: colors.primary,
+    fontWeight: "bold",
   },
 });
 

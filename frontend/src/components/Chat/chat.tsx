@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -9,13 +9,19 @@ import {
   Image,
   SafeAreaView,
   Platform,
-  GestureResponderEvent,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
-import { Ionicons, Feather, FontAwesome } from "@expo/vector-icons";
+import {
+  Ionicons,
+  Feather,
+  FontAwesome,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 
@@ -33,6 +39,7 @@ type Message = {
   sender: "user" | "other";
   timestamp: Date;
   seen?: boolean;
+  replyTo?: Message;
 };
 
 const mockMessages: Message[] = [
@@ -77,9 +84,36 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
   const { userId } = route.params;
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [inputText, setInputText] = useState("");
-  const [replyMessage, setReplyMessage] = useState<Message | null>(null);
   const { t } = useTranslation();
+  const [replyMessage, setReplyMessage] = useState<Message | undefined>(
+    undefined
+  );
+  const swipeableRefs = useRef<{ [key: string]: Swipeable | null }>({});
+  const [showTimestamps, setShowTimestamps] = useState(false);
 
+  const pan = useRef(new Animated.ValueXY()).current;
+
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dx) > 5;
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dx < 0) {
+        Animated.event([null, { dx: pan.x }], { useNativeDriver: false })(
+          _,
+          gestureState
+        );
+        setShowTimestamps(true);
+      }
+    },
+    onPanResponderRelease: () => {
+      Animated.spring(pan, {
+        toValue: { x: 0, y: 0 },
+        useNativeDriver: false,
+      }).start();
+      setShowTimestamps(false);
+    },
+  });
   useEffect(() => {
     // Fetch initial messages or set up real-time listener
   }, []);
@@ -92,62 +126,116 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
         sender: "user",
         timestamp: new Date(),
         seen: false,
+        replyTo: replyMessage,
       };
       setMessages([newMessage, ...messages]);
       setInputText("");
-      setReplyMessage(null);
+      setReplyMessage(undefined);
     }
   };
 
+  const cancelReply = () => {
+    setReplyMessage(undefined);
+  };
   const renderMessage = ({ item }: { item: Message }) => {
-    const rightSwipe = () => (
+    const swipeAction = () => (
       <View style={styles.replySwipe}>
-        <Text style={styles.replyText}>{t("reply")}</Text>
-      </View>
-    );
-
-    const leftSwipe = () => (
-      <View style={styles.replySwipe}>
-        <Text style={styles.replyText}>{t("reply")}</Text>
+        <MaterialCommunityIcons
+          name="arrow-left-top"
+          size={24}
+          color={colors.primary}
+        />
       </View>
     );
 
     return (
       <Swipeable
-        renderLeftActions={item.sender === "other" ? rightSwipe : undefined}
-        onSwipeableLeftOpen={() =>
-          item.sender === "other" && setReplyMessage(item)
-        }
-        renderRightActions={item.sender === "user" ? leftSwipe : undefined}
-        onSwipeableRightOpen={() =>
-          item.sender === "user" && setReplyMessage(item)
-        }
+        ref={(ref) => (swipeableRefs.current[item.id] = ref)}
+        renderLeftActions={swipeAction}
+        onSwipeableLeftOpen={() => {
+          setReplyMessage(item);
+          swipeableRefs.current[item.id]?.close();
+        }}
       >
-        <View
-          style={[
-            styles.messageBubble,
-            item.sender === "user" ? styles.userMessage : styles.otherMessage,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              item.sender === "user"
-                ? styles.userMessageText
-                : styles.otherMessageText,
-            ]}
-          >
-            {item.text}
-          </Text>
-          <Text style={styles.timestamp}>
-            {item.timestamp.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-          {item.sender === "user" && (
-            <Text style={styles.seenText}>{item.seen ? t("seen") : ""}</Text>
-          )}
+        <View style={styles.messageWrapper}>
+          <View style={styles.messageContentRow}>
+            <View style={styles.messageContent}>
+              {item.replyTo && (
+                <View
+                  style={[
+                    styles.replyContainer,
+                    item.sender === "user"
+                      ? styles.replyContainerUser
+                      : styles.replyContainerOther,
+                  ]}
+                >
+                  <Text style={styles.replyText}>
+                    {item.replyTo.sender === "user" ? "You" : "John Doe"}
+                  </Text>
+                  <Text style={styles.replyContent} numberOfLines={1}>
+                    {item.replyTo.text}
+                  </Text>
+                </View>
+              )}
+              <View
+                style={[
+                  styles.messageRow,
+                  item.sender === "user"
+                    ? styles.messageRowUser
+                    : styles.messageRowOther,
+                ]}
+              >
+                {item.sender === "other" && (
+                  <Image
+                    source={{ uri: "https://via.placeholder.com/40" }}
+                    style={styles.messageProfileImage}
+                  />
+                )}
+                <View
+                  style={[
+                    styles.messageBubble,
+                    item.sender === "user"
+                      ? styles.userMessage
+                      : styles.otherMessage,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.messageText,
+                      item.sender === "user"
+                        ? styles.userMessageText
+                        : styles.otherMessageText,
+                    ]}
+                  >
+                    {item.text}
+                  </Text>
+                </View>
+              </View>
+              {item.sender === "user" && item.seen && (
+                <Text style={styles.seenText}>{t("seen")}</Text>
+              )}
+            </View>
+            {showTimestamps && (
+              <View style={styles.timestampColumn}>
+                <Feather
+                  name={
+                    item.sender === "user"
+                      ? "arrow-right-circle"
+                      : "arrow-left-circle"
+                  }
+                  size={12}
+                  color="#888"
+                  style={styles.timestampIcon}
+                />
+                <Text style={styles.timestamp}>
+                  {item.timestamp.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </Swipeable>
     );
@@ -174,10 +262,6 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
-  const cancelReply = () => {
-    setReplyMessage(null);
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -197,22 +281,34 @@ const Chat: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.userStatus}>Online</Text>
           </View>
         </View>
-        <FlatList
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          inverted
-          contentContainerStyle={styles.messageList}
-        />
+        <Animated.View
+          style={[
+            styles.messageContainer,
+            { transform: [{ translateX: pan.x }] },
+          ]}
+          {...panResponder.panHandlers}
+        >
+          <FlatList
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            inverted
+            contentContainerStyle={styles.messageList}
+          />
+        </Animated.View>
         {replyMessage && (
-          <View style={styles.replyContainer}>
-            <Text style={styles.replyLabel}>
-              {t("replyingTo")}{" "}
-              {replyMessage.sender === "user" ? "You" : "John Doe"}:{" "}
-              {replyMessage.text}
-            </Text>
+          <View style={styles.replyInputContainer}>
+            <View style={styles.replyInputContent}>
+              <Text style={styles.replyInputLabel}>
+                {t("replying-to")}{" "}
+                {replyMessage.sender === "user" ? t("yourself") : "John Doe"}:{" "}
+              </Text>
+              <Text style={styles.replyInputText} numberOfLines={1}>
+                {replyMessage.text}
+              </Text>
+            </View>
             <TouchableOpacity onPress={cancelReply}>
-              <Ionicons name="close-circle" size={24} color={colors.primary} />
+              <Ionicons name="close" size={20} color={colors.secondary} />
             </TouchableOpacity>
           </View>
         )}
@@ -273,45 +369,7 @@ const styles = StyleSheet.create({
   messageList: {
     paddingVertical: 20,
   },
-  messageBubble: {
-    maxWidth: "70%",
-    padding: 12,
-    borderRadius: 20,
-    marginVertical: 5,
-    marginHorizontal: 10,
-  },
-  userMessage: {
-    alignSelf: "flex-end",
-    backgroundColor: colors.primary,
-    borderBottomRightRadius: 0,
-  },
-  otherMessage: {
-    alignSelf: "flex-start",
-    backgroundColor: "#f0f0f0",
-    borderBottomLeftRadius: 0,
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  userMessageText: {
-    color: "#fff",
-  },
-  otherMessageText: {
-    color: "#000",
-  },
-  timestamp: {
-    fontSize: 10,
-    color: "#888",
-    alignSelf: "flex-end",
-    marginTop: 5,
-  },
-  seenText: {
-    fontSize: 10,
-    color: "#888",
-    alignSelf: "flex-start",
-    marginTop: 5,
-    marginLeft: 5,
-  },
+
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -346,28 +404,139 @@ const styles = StyleSheet.create({
     color: colors.primary,
     borderRadius: 25,
   },
-  replyContainer: {
+
+  replyText: {
+    fontWeight: "bold",
+    color: colors.primary,
+    fontSize: 12,
+  },
+  replyContent: {
+    color: "#666",
+    fontSize: 12,
+  },
+  replyInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
     borderTopWidth: 1,
     borderTopColor: "#eee",
   },
-  replyLabel: {
+  replyInputContent: {
     flex: 1,
+    flexDirection: "column",
+  },
+  replyInputLabel: {
+    fontSize: 14,
+    color: colors.secondary,
+  },
+  replyInputText: {
     fontSize: 14,
     color: colors.primary,
   },
   replySwipe: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ddd",
     width: 75,
     height: "100%",
   },
-  replyText: {
-    color: colors.primary,
-    fontWeight: "bold",
+  messageBubble: {
+    maxWidth: "70%",
+    padding: 12,
+    borderRadius: 20,
+  },
+
+  messageContainer: {
+    flex: 1,
+  },
+
+  seenText: {
+    fontSize: 10,
+    color: colors.secondary,
+    alignSelf: "flex-end",
+    marginTop: 2,
+  },
+  messageWrapper: {
+    marginVertical: 5,
+    marginHorizontal: 10,
+  },
+
+  messageText: {
+    fontSize: 16,
+  },
+  userMessageText: {
+    color: "#fff",
+  },
+  otherMessageText: {
+    color: "#000",
+  },
+  messageProfileImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 8,
+  },
+  timestampContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 5,
+    marginBottom: 5,
+  },
+  timestampIcon: {
+    marginRight: 2,
+  },
+  timestamp: {
+    fontSize: 10,
+    color: "#888",
+  },
+  replyContainer: {
+    backgroundColor: "rgba(224, 224, 224, 0.5)",
+    padding: 5,
+    borderRadius: 10,
+    marginBottom: 2,
+    maxWidth: "70%",
+  },
+  replyContainerUser: {
+    alignSelf: "flex-end",
+  },
+  replyContainerOther: {
+    alignSelf: "flex-start",
+  },
+
+  messageRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginBottom: 2,
+  },
+  messageRowUser: {
+    justifyContent: "flex-end",
+  },
+  messageRowOther: {
+    justifyContent: "flex-start",
+  },
+  userMessage: {
+    alignSelf: "flex-end",
+    backgroundColor: colors.primary,
+    borderBottomRightRadius: 0,
+  },
+  otherMessage: {
+    alignSelf: "flex-start",
+    backgroundColor: "#f0f0f0",
+    borderBottomLeftRadius: 0,
+  },
+  messageContentRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  messageContent: {
+    flex: 1,
+  },
+
+  timestampColumn: {
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
+    marginLeft: 5,
+    marginBottom: 5,
   },
 });
 

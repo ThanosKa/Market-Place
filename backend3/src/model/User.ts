@@ -1,6 +1,6 @@
 // src/models/User.ts
 import mongoose, { Document, Schema } from "mongoose";
-import * as bcrypt from "bcrypt";
+import bcrypt from "bcrypt";
 
 export interface IUser extends Document {
   email: string;

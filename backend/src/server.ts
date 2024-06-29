@@ -1,25 +1,34 @@
-// src/server.ts
 import express from "express";
-import mongoose from "mongoose";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes";
+import userRoutes from "./routes/userRoutes";
+import chatRoutes from "./routes/chatRoutes";
+import likeRoutes from "./routes/likeRoutes";
+import productRoutes from "./routes/productRoutes";
+import { connectDatabase } from "./config/database";
+import path from "path";
+import reviewRoutes from "./routes/reviewRoutes";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Middleware
 app.use(express.json());
 
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
 // Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI as string)
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+connectDatabase();
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/chats", chatRoutes);
+app.use("/api/likes", likeRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

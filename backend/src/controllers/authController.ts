@@ -1,54 +1,148 @@
-// src/controllers/authController.ts
 import { Request, Response } from "express";
-import * as jwt from "jsonwebtoken";
-import User from "../model/User";
-
-const SECRET_KEY = process.env.SECRET_KEY as string;
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import User from "../models/User";
 
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, confirmPassword, firstName, lastName } = req.body;
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ message: "Passwords do not match" });
+      return res.status(400).json({
+        success: 0,
+        message: "Passwords do not match",
+        data: null,
+      });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({
+        success: 0,
+        message: "User already exists",
+        data: null,
+      });
     }
 
-    const user = new User({ email, password, firstName, lastName });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    user = new User({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+    });
+
     await user.save();
 
-    const token = jwt.sign({ userId: user._id }, SECRET_KEY, {
-      expiresIn: "1d",
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.SECRET_KEY as string,
+      { expiresIn: "1h" }
+    );
+
+    res.status(201).json({
+      success: 1,
+      message: "User registered successfully",
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      },
     });
-    res.status(201).json({ token });
-  } catch (error) {
-    res.status(500).json({ message: "Error registering user" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
   }
 };
 
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
 
+    let user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({
+        success: 0,
+        message: "Invalid credentials",
+        data: null,
+      });
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({
+        success: 0,
+        message: "Invalid credentials",
+        data: null,
+      });
     }
 
-    const token = jwt.sign({ userId: user._id }, SECRET_KEY, {
-      expiresIn: "1d",
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.SECRET_KEY as string,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      success: 1,
+      message: "Login successful",
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      },
     });
-    res.json({ token });
-  } catch (error) {
-    res.status(500).json({ message: "Error logging in" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    // Here you would typically generate a password reset token and send an email
+    // For this example, we'll just return a success message
+
+    res.json({
+      success: 1,
+      message: "Password reset instructions sent to email",
+      data: { email },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
   }
 };

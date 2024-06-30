@@ -1,0 +1,274 @@
+/api/products:
+  post:
+    summary: Create a new product
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - title
+              - price
+              - category
+              - condition
+              - images
+            properties:
+              title:
+                type: string
+              price:
+                type: number
+              category:
+                type: string
+                enum: [CATEGORY_TYPES]
+              condition:
+                type: string
+                enum: [CONDITION_TYPES]
+              images:
+                type: array
+                items:
+                  type: string
+                  format: binary
+    responses:
+      "201":
+        description: Product created successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductResponse"
+      "400":
+        description: Bad request (missing fields or invalid data)
+      "401":
+        description: Unauthorized
+      "500":
+        description: Server error
+
+  get:
+    summary: Get all products with filters
+    tags:
+      - Products
+    parameters:
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: condition
+        schema:
+          type: string
+      - in: query
+        name: minPrice
+        schema:
+          type: number
+      - in: query
+        name: maxPrice
+        schema:
+          type: number
+      - in: query
+        name: sort
+        schema:
+          type: string
+        default: createdAt
+      - in: query
+        name: order
+        schema:
+          type: string
+        default: desc
+      - in: query
+        name: page
+        schema:
+          type: integer
+        default: 1
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        default: 10
+    responses:
+      "200":
+        description: Products retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: number
+                message:
+                  type: string
+                data:
+                  type: object
+                  properties:
+                    products:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/Product"
+                    total:
+                      type: number
+                    page:
+                      type: number
+                    limit:
+                      type: number
+      "500":
+        description: Server error
+
+/api/products/{productId}:
+  get:
+    summary: Get a product by ID
+    tags:
+      - Products
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: Product retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductResponse"
+      "404":
+        description: Product not found
+      "500":
+        description: Server error
+
+  put:
+    summary: Update a product
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema:
+          type: string
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              title:
+                type: string
+              price:
+                type: number
+              category:
+                type: string
+                enum: [CATEGORY_TYPES]
+              condition:
+                type: string
+                enum: [CONDITION_TYPES]
+              images:
+                type: array
+                items:
+                  type: string
+                  format: binary
+    responses:
+      "200":
+        description: Product updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductResponse"
+      "400":
+        description: Bad request (invalid data)
+      "401":
+        description: Unauthorized
+      "404":
+        description: Product not found or not authorized to update
+      "500":
+        description: Server error
+
+  delete:
+    summary: Delete a product
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: Product deleted successfully
+      "401":
+        description: Unauthorized
+      "404":
+        description: Product not found or not authorized to delete
+      "500":
+        description: Server error
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        price:
+          type: number
+        images:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        condition:
+          type: string
+        seller:
+          $ref: "#/components/schemas/User"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductResponse:
+      type: object
+      properties:
+        success:
+          type: number
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            product:
+              $ref: "#/components/schemas/Product"
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

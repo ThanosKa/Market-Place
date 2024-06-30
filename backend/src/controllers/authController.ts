@@ -2,11 +2,22 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import { emailSchema } from "../utils/email";
 
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, confirmPassword, firstName, lastName } = req.body;
 
+    // Validate email
+    try {
+      await emailSchema.validate(email);
+    } catch (error) {
+      return res.status(400).json({
+        success: 0,
+        message: "Invalid email address",
+        data: null,
+      });
+    }
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: 0,
@@ -68,6 +79,16 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+
+    try {
+      await emailSchema.validate(email);
+    } catch (error) {
+      return res.status(400).json({
+        success: 0,
+        message: "Invalid email address",
+        data: null,
+      });
+    }
 
     let user = await User.findOne({ email });
     if (!user) {

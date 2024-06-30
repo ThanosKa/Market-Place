@@ -8,6 +8,8 @@ import productRoutes from "./routes/productRoutes";
 import { connectDatabase } from "./config/database";
 import path from "path";
 import reviewRoutes from "./routes/reviewRoutes";
+import swaggerUi from "swagger-ui-express";
+import specs from "./docs/swaggerConfig";
 
 dotenv.config();
 
@@ -29,6 +31,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/reviews", reviewRoutes);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

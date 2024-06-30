@@ -6,9 +6,9 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Your API Title",
+      title: "Version2 Application",
       version: "1.0.0",
-      description: "API documentation for your backend service",
+      description: "API documentation for backend service",
     },
     servers: [
       {
@@ -27,15 +27,15 @@ const options = {
 const yamlFiles = fs
   .readdirSync(path.resolve(__dirname, "./path"))
   .filter((file) => file.endsWith(".yaml"));
-console.log("YAML files found:", yamlFiles);
+// console.log("YAML files found:", yamlFiles);
 
 const specs = swaggerJsdoc(options);
 
 // Type assertion to avoid TypeScript error
 const specPaths = (specs as any).paths;
-console.log(
-  "Swagger specs generated:",
-  specPaths ? Object.keys(specPaths) : "No paths found"
-);
+// console.log(
+//   "Swagger specs generated:",
+//   specPaths ? Object.keys(specPaths) : "No paths found"
+// );
 
 export default specs;

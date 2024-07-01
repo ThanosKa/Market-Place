@@ -4,24 +4,24 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
 
-import HomeScreen from "../screens/home/home";
-import SearchScreen from "../screens/search/search";
-import SellScreen from "../screens/sell/sell";
-import ActivityScreen from "../screens/activity/activity";
-import ProfileScreen from "../screens/profile/profile";
 import {
   AuthStackParamList,
   MainStackParamList,
   RootStackParamList,
 } from "../interfaces/auth/navigation";
-import LoginScreen from "../screens/auth/login/login";
-import RegisterScreen from "../screens/auth/register/register";
-import ForgotPasswordScreen from "../screens/auth/forgotPass/forgotPass";
 import { colors } from "../colors/colors";
 import UserProfile from "../components/UserProfile/index";
 import ChatScreen from "../components/Chat/chat";
 import LikesPage from "../components/LikePage/likePage";
 import MessageScreen from "../components/Messages/messageScreen";
+import HomeScreen from "../pages/home/home";
+import SearchScreen from "../pages/search/search";
+import SellScreen from "../pages/sell/sell";
+import ActivityScreen from "../pages/activity/activity";
+import ProfileScreen from "../pages/profile/profile";
+import LoginScreen from "../pages/auth/login/login";
+import RegisterScreen from "../pages/auth/register/register";
+import ForgotPasswordScreen from "../pages/auth/forgotPass/forgotPass";
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const RootStack = createStackNavigator<RootStackParamList>();

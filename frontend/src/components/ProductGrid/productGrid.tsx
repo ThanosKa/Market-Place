@@ -1,54 +1,23 @@
-// components/ProductGrid/ProductGrid.tsx
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
-import ProductCard from "../ProductCard/productCard";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "react-query";
+import { Product } from "../../interfaces/product";
+import { getProducts } from "../../services/product";
+import ProductCard from "../ProductCard/productCard";
+import { BASE_URL } from "../../services/axiosConfig";
 
-// Mock data
-const mockProducts = [
-  {
-    id: "1",
-    userImage: "https://randomuser.me/api/portraits/men/1.jpg",
-    userName: "John Doe",
-    productImage: "https://via.placeholder.com/160x180",
-    title: "Product 1",
-    price: "$99.99",
-    condition: "New",
-  },
-  {
-    id: "2",
-    userImage: "https://randomuser.me/api/portraits/men/1.jpg",
-    userName: "John Doe",
-    productImage: "https://via.placeholder.com/160x180",
-    title: "Product 1",
-    price: "$99.99",
-    condition: "New",
-  },
-  {
-    id: "3",
-    userImage: "https://randomuser.me/api/portraits/men/1.jpg",
-    userName: "John Doe",
-    productImage: "https://via.placeholder.com/160x180",
-    title: "Product 1",
-    price: "$99.99",
-    condition: "New",
-  },
-  // ... Add more mock products
-];
+interface ProductGridProps {
+  onRefresh: () => void;
+}
 
-const ProductGrid: React.FC = () => {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+const ProductGrid: React.FC<ProductGridProps> = ({ onRefresh }) => {
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
   const { t } = useTranslation();
 
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProducts(mockProducts);
-      setLoading(false);
-    }, 2000);
-  }, []);
+  const { data, isLoading, error } = useQuery("products", () => getProducts(), {
+    onSettled: onRefresh,
+  });
 
   const toggleLike = (productId: string) => {
     setLikedProducts((prev) =>
@@ -58,11 +27,29 @@ const ProductGrid: React.FC = () => {
     );
   };
 
-  const renderProduct = ({ item }: { item: any }) => (
+  if (isLoading) {
+    return <ActivityIndicator size="small" />;
+  }
+
+  if (error) {
+    return <Text>{t("error-fetching-products")}</Text>;
+  }
+
+  const products = data?.data.products || [];
+  const renderProduct = ({ item }: { item: Product }) => (
     <ProductCard
-      {...item}
-      isLiked={likedProducts.includes(item.id)}
-      onLikeToggle={() => toggleLike(item.id)}
+      key={item._id}
+      userImage={`${BASE_URL}/${item.seller.profilePicture}`}
+      userName={`${item.seller.firstName} ${item.seller.lastName}`}
+      userId={item.seller._id}
+      productImage={
+        item.images.length > 0 ? `${BASE_URL}${item.images[0]}` : null
+      }
+      title={item.title}
+      price={`$${item.price}`}
+      condition={item.condition}
+      isLiked={likedProducts.includes(item._id)}
+      onLikeToggle={() => toggleLike(item._id)}
     />
   );
 
@@ -71,7 +58,7 @@ const ProductGrid: React.FC = () => {
       <Text style={styles.title}>{t("your-daily-picks")}</Text>
       <View style={styles.gridContainer}>
         {products.map((product) => (
-          <View key={product.id} style={styles.productWrapper}>
+          <View key={product._id} style={styles.productWrapper}>
             {renderProduct({ item: product })}
           </View>
         ))}
@@ -97,9 +84,6 @@ const styles = StyleSheet.create({
   productWrapper: {
     width: "48%",
     marginBottom: 10,
-  },
-  row: {
-    justifyContent: "space-between",
   },
 });
 

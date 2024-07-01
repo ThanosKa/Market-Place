@@ -1,9 +1,7 @@
-// components/ProductCard/ProductCard.tsx
 import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
@@ -12,7 +10,7 @@ type ProductCardProps = {
   userImage: string;
   userName: string;
   userId: string;
-  productImage: string;
+  productImage: string | null;
   title: string;
   price: string;
   condition: string;
@@ -34,8 +32,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
   const handleUserPress = () => {
-    navigation.navigate("UserProfile", { userId: userId });
+    navigation.navigate("UserProfile", { userId });
   };
+  console.log("userImage", userImage);
+  console.log("productImage", productImage);
 
   return (
     <View style={styles.container}>
@@ -43,7 +43,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <Image source={{ uri: userImage }} style={styles.userImage} />
         <Text style={styles.userName}>{userName}</Text>
       </TouchableOpacity>
-      <Image source={{ uri: productImage }} style={styles.productImage} />
+      {productImage ? (
+        <Image source={{ uri: productImage }} style={styles.productImage} />
+      ) : (
+        <Text style={styles.noImageText}>No Image Available</Text>
+      )}
       <View style={styles.productContainer}>
         <Text style={styles.title} numberOfLines={2}>
           {title}
@@ -90,6 +94,15 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 8,
   },
+  noImageText: {
+    width: 160,
+    height: 180,
+    borderRadius: 8,
+    textAlign: "center",
+    textAlignVertical: "center",
+    backgroundColor: "#f0f0f0",
+    color: "#999",
+  },
   title: {
     fontSize: 14,
     fontWeight: "bold",
@@ -104,7 +117,6 @@ const styles = StyleSheet.create({
   condition: {
     fontSize: 12,
     color: colors.secondary,
-
     marginTop: 2,
   },
   likeButton: {

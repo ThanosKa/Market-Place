@@ -17,6 +17,12 @@
   "logout": "Logout",
   "danger-zone": "Danger Zone",
   "delete-account": "Delete Account",
+  "error": "Error",
+  "success": "Success",
+  "fail-register": "Could not register. Email might exists",
+  "success-register": "Successfully registered. You can login.",
+  "fail-login": "Invalid credentials",
+
   "auth": {
     "login": "Login",
     "register": "Register",
@@ -32,6 +38,13 @@
     "forgotPasswordLink": "Forgot Password?",
     "backToLogin": "Back to Login",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "email-required": "Email is required",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "firstname-required": "First name is required",
+    "lastname-required": "Last name is required",
+    "password-required": "Password is required",
+    "confirmpassword-required": "Confirm  password is required"
   }
 }

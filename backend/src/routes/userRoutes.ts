@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.get("/", auth, getAllUsers);
 router.get("/:id", auth, getUserById);
-router.put("/", auth, uploadSingle("uploads/profilePictures"), editUser);
+router.put("/", auth, uploadSingle("uploads/"), editUser);
 router.delete("/", auth, deleteUser);
 
 export default router;

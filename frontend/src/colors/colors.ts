@@ -7,4 +7,8 @@ export const colors = {
   danger: "#FF0000",
   white: "#FFFFFF",
   background: "#fff",
+  success: "#2ECC71",
+  error: "#C0392B",
+  info: "#428BCA",
+  warning: "#FFD700",
 };

@@ -116,7 +116,7 @@ export const getProducts = async (req: Request, res: Response) => {
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate("seller", "firstName lastName email");
+      .populate("seller", "firstName lastName email profilePicture");
 
     res.json({
       success: 1,

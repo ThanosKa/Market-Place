@@ -11,15 +11,10 @@ import {
 
 const router = express.Router();
 
-router.post("/", auth, upload("uploads/productImages", 5), createProduct);
+router.post("/", auth, upload("uploads/", 5), createProduct);
 router.get("/", getProducts);
 router.get("/:productId", getProductById);
-router.put(
-  "/:productId",
-  auth,
-  upload("uploads/productImages", 5),
-  updateProduct
-);
+router.put("/:productId", auth, upload("uploads/", 5), updateProduct);
 router.delete("/:productId", auth, deleteProduct);
 
 export default router;

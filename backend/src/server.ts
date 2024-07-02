@@ -5,11 +5,12 @@ import userRoutes from "./routes/userRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import likeRoutes from "./routes/likeRoutes";
 import productRoutes from "./routes/productRoutes";
+import reviewRoutes from "./routes/reviewRoutes";
 import { connectDatabase } from "./config/database";
 import path from "path";
-import reviewRoutes from "./routes/reviewRoutes";
 import swaggerUi from "swagger-ui-express";
 import specs from "./docs/swaggerConfig";
+import morgan from "morgan";
 
 dotenv.config();
 
@@ -23,6 +24,9 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Connect to MongoDB
 connectDatabase();
+
+// Use Morgan to log requests in 'dev' format for colored output
+app.use(morgan("dev"));
 
 // Routes
 app.use("/api/auth", authRoutes);

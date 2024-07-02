@@ -6,6 +6,8 @@ export type AuthStackParamList = {
 
 export type RootStackParamList = {
   Auth: undefined;
+  AuthLoading: undefined;
+
   Main: undefined;
 };
 export type MainStackParamList = {

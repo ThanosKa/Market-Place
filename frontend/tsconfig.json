@@ -2,7 +2,8 @@
   "extends": "@tsconfig/react-native/tsconfig.json",
   "compilerOptions": {
     "jsx": "react",
-    "strict": true
-    ,  "types": ["node"]
+    "strict": true,
+    "types": ["node"],
+    "esModuleInterop": true
   }
 }

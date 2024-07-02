@@ -22,6 +22,7 @@ import ProfileScreen from "../pages/profile/profile";
 import LoginScreen from "../pages/auth/login/login";
 import RegisterScreen from "../pages/auth/register/register";
 import ForgotPasswordScreen from "../pages/auth/forgotPass/forgotPass";
+import AuthLoadingScreen from "./AuthLoadingScreen";
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -113,10 +114,11 @@ const AuthNavigator = () => (
   </AuthStack.Navigator>
 );
 
-const AppNavigator = () => {
+const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Screen name="AuthLoading" component={AuthLoadingScreen} />
         <RootStack.Screen name="Auth" component={AuthNavigator} />
         <RootStack.Screen name="Main" component={MainNavigator} />
       </RootStack.Navigator>

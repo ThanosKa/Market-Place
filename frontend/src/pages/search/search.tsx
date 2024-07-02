@@ -1,4 +1,5 @@
 // SearchScreen.tsx
+// SearchScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -7,25 +8,30 @@ import {
   Image,
   Keyboard,
   Text,
+  ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "react-query";
 import { colors } from "../../colors/colors";
 import SearchBar from "../../components/SearchBarComponenet";
-
-// Mock data for products
-const mockProducts = Array.from({ length: 20 }, (_, i) => ({
-  id: i.toString(),
-  image: `https://picsum.photos/200/200?random=${i}`,
-  title: `Product ${i + 1}`,
-  owner: {
-    firstName: `John`,
-    lastName: `Doe ${i + 1}`,
-  },
-}));
+import { Product, GetProductsParams } from "../../interfaces/product";
+import { getProducts } from "../../services/product";
+import { BASE_URL } from "../../services/axiosConfig";
 
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const { t } = useTranslation();
+
+  const { data, isLoading, error } = useQuery(
+    ["products", searchQuery],
+    () => getProducts({ search: searchQuery }),
+    {
+      enabled: true,
+    }
+  );
+
+  const products = data?.data.products || [];
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -41,22 +47,43 @@ const SearchScreen = () => {
     Keyboard.dismiss();
   };
 
-  const renderProductGrid = ({ item }: { item: (typeof mockProducts)[0] }) => (
+  const renderProductGrid = ({ item }: { item: Product }) => (
     <View style={styles.gridItemContainer}>
-      <Image source={{ uri: item.image }} style={styles.gridImage} />
+      <Image
+        source={{
+          uri:
+            item.images.length > 0 ? `${BASE_URL}${item.images[0]}` : undefined,
+        }}
+        style={styles.gridImage}
+      />
     </View>
   );
-  const renderSearchResult = ({ item }: { item: (typeof mockProducts)[0] }) => (
+
+  const renderSearchResult = ({ item }: { item: Product }) => (
     <View style={styles.searchResultItem}>
-      <Image source={{ uri: item.image }} style={styles.resultImage} />
+      <Image
+        source={{
+          uri:
+            item.images.length > 0 ? `${BASE_URL}${item.images[0]}` : undefined,
+        }}
+        style={styles.resultImage}
+      />
       <View style={styles.resultInfo}>
         <Text style={styles.resultTitle}>{item.title}</Text>
-        <Text
-          style={styles.resultOwner}
-        >{`${item.owner.firstName} ${item.owner.lastName}`}</Text>
+        <Text style={styles.resultOwner}>
+          {`${item.seller.firstName} ${item.seller.lastName}`}
+        </Text>
       </View>
     </View>
   );
+
+  if (isLoading) {
+    return <ActivityIndicator size="large" color={colors.primary} />;
+  }
+
+  if (error) {
+    return <Text>{t("error-fetching-products")}</Text>;
+  }
 
   return (
     <View style={styles.container}>
@@ -71,9 +98,9 @@ const SearchScreen = () => {
 
       {!isFocused && searchQuery.length === 0 && (
         <FlatList
-          data={mockProducts}
+          data={products}
           renderItem={renderProductGrid}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           numColumns={3}
           style={styles.productGrid}
           key="grid"
@@ -82,11 +109,9 @@ const SearchScreen = () => {
 
       {(isFocused || searchQuery.length > 0) && (
         <FlatList
-          data={mockProducts.filter((p) =>
-            p.title.toLowerCase().includes(searchQuery.toLowerCase())
-          )}
+          data={products}
           renderItem={renderSearchResult}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           style={styles.searchResults}
           key="list"
         />

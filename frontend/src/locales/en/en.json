@@ -22,7 +22,7 @@
   "fail-register": "Could not register. Email might exists",
   "success-register": "Successfully registered. You can login.",
   "fail-login": "Invalid credentials",
-
+  "no-products-found": "No products found. Try adjusting your search or filters.",
   "auth": {
     "login": "Login",
     "register": "Register",

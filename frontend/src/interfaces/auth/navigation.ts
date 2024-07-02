@@ -12,7 +12,8 @@ export type RootStackParamList = {
 };
 export type MainStackParamList = {
   MainTabs: undefined;
-  Home: undefined;
+  Home: { searchQuery?: string };
+
   Search: undefined;
   Sell: undefined;
   Activity: undefined;

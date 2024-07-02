@@ -1,5 +1,5 @@
-// screens/HomeScreen.tsx
-import React, { useState, useCallback } from "react";
+// HomeScreen.tsx
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,8 +16,24 @@ import CategoryIcon from "../../components/CategoryIcons/categoryIcons";
 import { categories } from "../../interfaces/exploreCategories/iconsCategory";
 import ProductGrid from "../../components/ProductGrid/productGrid";
 import { colors } from "../../colors/colors";
+import { RouteProp, useRoute } from "@react-navigation/native";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
 
-const HomeScreen: React.FC = () => {
+type HomeScreenRouteProp = RouteProp<MainStackParamList, "Home">;
+
+interface HomeScreenProps {
+  route: HomeScreenRouteProp;
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ route }) => {
+  const searchQuery = route.params?.searchQuery || "";
+
+  useEffect(() => {
+    if (searchQuery) {
+      // Perform search with the received query
+      queryClient.invalidateQueries(["products", { search: searchQuery }]);
+    }
+  }, [searchQuery]);
   const { t } = useTranslation();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,9 +49,14 @@ const HomeScreen: React.FC = () => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    queryClient.invalidateQueries("products");
-    setRefreshing(false);
+    queryClient.invalidateQueries("products", {
+      refetchActive: true,
+    });
   }, [queryClient]);
+
+  const selectedCategoryValues = selectedCategories
+    .map((id) => categories.find((cat) => cat.id === id)?.value)
+    .filter(Boolean) as string[];
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -45,7 +66,8 @@ const HomeScreen: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <DummySearchBar />
+        <DummySearchBar placeholder={searchQuery || t("Search")} />
+
         <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
         <View style={styles.categoriesContainer}>
           {categories.map((category, index) => (
@@ -58,13 +80,15 @@ const HomeScreen: React.FC = () => {
             />
           ))}
         </View>
-        <ProductGrid onRefresh={onRefresh} />
+        <ProductGrid
+          onRefreshComplete={() => setRefreshing(false)}
+          selectedCategories={selectedCategoryValues}
+        />
       </ScrollView>
     </TouchableWithoutFeedback>
   );
 };
 
-// ... styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,

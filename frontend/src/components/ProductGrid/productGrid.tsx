@@ -1,31 +1,40 @@
-import React, { useState } from "react";
+// components/ProductGrid/productGrid.tsx
+import React, { useState, useMemo } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
-import { Product } from "../../interfaces/product";
-import { getProducts } from "../../services/product";
+import { Product, GetProductsParams } from "../../interfaces/product";
 import ProductCard from "../ProductCard/productCard";
 import { BASE_URL } from "../../services/axiosConfig";
+import { getProducts } from "../../services/product";
 
 interface ProductGridProps {
-  onRefresh: () => void;
+  onRefreshComplete: () => void;
+  selectedCategories: string[];
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ onRefresh }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({
+  onRefreshComplete,
+  selectedCategories,
+}) => {
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
   const { t } = useTranslation();
 
-  const { data, isLoading, error } = useQuery("products", () => getProducts(), {
-    onSettled: onRefresh,
-  });
+  const queryParams: GetProductsParams = useMemo(() => {
+    const params: GetProductsParams = {};
+    if (selectedCategories.length > 0) {
+      params.category = selectedCategories;
+    }
+    return params;
+  }, [selectedCategories]);
 
-  const toggleLike = (productId: string) => {
-    setLikedProducts((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
-  };
+  const { data, isLoading, error } = useQuery(
+    ["products", queryParams],
+    () => getProducts(queryParams),
+    {
+      onSettled: onRefreshComplete,
+    }
+  );
 
   if (isLoading) {
     return <ActivityIndicator size="small" />;
@@ -36,6 +45,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({ onRefresh }) => {
   }
 
   const products = data?.data.products || [];
+
+  if (products.length === 0) {
+    return <Text style={styles.noProductsText}>{t("no-products-found")}</Text>;
+  }
+  const toggleLike = (productId: string) => {
+    setLikedProducts((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
+    );
+  };
   const renderProduct = ({ item }: { item: Product }) => (
     <ProductCard
       key={item._id}
@@ -84,6 +104,11 @@ const styles = StyleSheet.create({
   productWrapper: {
     width: "48%",
     marginBottom: 10,
+  },
+  noProductsText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
   },
 });
 

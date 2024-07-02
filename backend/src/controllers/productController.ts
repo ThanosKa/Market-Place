@@ -99,8 +99,11 @@ export const getProducts = async (req: Request, res: Response) => {
     if (typeof search === "string") {
       filter.title = { $regex: search, $options: "i" };
     }
-    if (typeof category === "string") {
-      filter.category = category;
+    if (category) {
+      // Handle multiple categories
+      filter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
     }
     if (typeof condition === "string") {
       filter.condition = condition;

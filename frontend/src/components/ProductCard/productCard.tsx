@@ -34,8 +34,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const handleUserPress = () => {
     navigation.navigate("UserProfile", { userId });
   };
-  console.log("userImage", userImage);
-  console.log("productImage", productImage);
 
   return (
     <View style={styles.container}>

@@ -11,6 +11,7 @@ import path from "path";
 import swaggerUi from "swagger-ui-express";
 import specs from "./docs/swaggerConfig";
 import morgan from "morgan";
+import recentSearchRoutes from "./routes/recentSearchRoutes";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/recent", recentSearchRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 

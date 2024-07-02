@@ -7,7 +7,11 @@ import { useTranslation } from "react-i18next";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
 
-const DummySearchBar: React.FC = () => {
+interface DummySearchBarProps {
+  placeholder: string;
+}
+
+const DummySearchBar: React.FC<DummySearchBarProps> = ({ placeholder }) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
   const { t } = useTranslation();
 
@@ -31,7 +35,7 @@ const DummySearchBar: React.FC = () => {
           color={colors.primary}
           style={styles.searchIcon}
         />
-        <Text style={styles.placeholder}>{t("search-products")}</Text>
+        <Text style={styles.placeholder}>{placeholder}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={handleHeartPress} style={styles.iconButton}>
         <Ionicons name="heart-outline" size={26} color={colors.primary} />

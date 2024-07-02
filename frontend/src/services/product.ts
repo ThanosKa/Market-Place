@@ -1,5 +1,3 @@
-// services/productService.ts
-
 import { GetProductsParams, ProductsResponse } from "../interfaces/product";
 import axiosInstance from "./axiosConfig";
 

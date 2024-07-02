@@ -59,7 +59,11 @@
       - in: query
         name: category
         schema:
-          type: string
+          type: array
+          items:
+            type: string
+        style: form
+        explode: false
       - in: query
         name: condition
         schema:

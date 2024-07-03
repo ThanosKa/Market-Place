@@ -1,9 +1,17 @@
-// screens/profile/profile.tsx
 import React, { useState } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { MainStackParamList } from "../../interfaces/auth/navigation";
+import {
+  MainStackParamList,
+  RootStackParamList,
+} from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
 import { Product, Review, User } from "../../components/UserProfile/types";
 import {
@@ -16,11 +24,11 @@ import TabSelector from "../../components/UserProfile/tabSelector";
 import ListingsTab from "../../components/UserProfile/listingTab";
 import ReviewsTab from "../../components/UserProfile/reviewTab";
 import ProfileTab from "./profileTab";
+import { removeAuthToken } from "../../services/authStorage";
 
-type ProfileScreenNavigationProp = StackNavigationProp<
-  MainStackParamList,
-  "Profile"
->;
+type CombinedParamList = RootStackParamList & MainStackParamList;
+
+type ProfileScreenNavigationProp = StackNavigationProp<CombinedParamList>;
 
 type Props = {
   navigation: ProfileScreenNavigationProp;
@@ -28,6 +36,7 @@ type Props = {
 
 const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useTranslation();
+
   const [activeTab, setActiveTab] = useState<
     "profile" | "listings" | "reviews"
   >("profile");
@@ -42,8 +51,22 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     // navigation.navigate("EditProfile");
   };
 
+  const handleSignOut = async () => {
+    try {
+      await removeAuthToken();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "AuthLoading" }],
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
       <ScrollView>
         <UserInfo user={user} />
         {/* <UserInfo user={user} onEditPress={handleEditProfile} /> */}
@@ -70,6 +93,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  signOutButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  signOutText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

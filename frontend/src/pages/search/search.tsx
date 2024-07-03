@@ -1,120 +1,166 @@
 // SearchScreen.tsx
-// SearchScreen.tsx
-import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  Image,
-  Keyboard,
-  Text,
-  ActivityIndicator,
-} from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "react-query";
+import debounce from "lodash.debounce";
 import { colors } from "../../colors/colors";
 import SearchBar from "../../components/SearchBarComponenet";
-import { Product, GetProductsParams } from "../../interfaces/product";
 import { getProducts } from "../../services/product";
-import { BASE_URL } from "../../services/axiosConfig";
+import {
+  getRecentSearches,
+  addRecentSearch,
+  deleteRecentSearch,
+  deleteAllRecentSearches,
+} from "../../services/recentSearch";
+import SearchResults from "./helpers/SearchResults";
+import RecentSearches from "./helpers/RecentSearches";
+import ProductGrid from "./helpers/ProductGrid";
+import SearchButton from "./helpers/SearchButton";
 
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [showSearchBar, setShowSearchBar] = useState(false);
 
-  const { data, isLoading, error } = useQuery(
-    ["products", searchQuery],
-    () => getProducts({ search: searchQuery }),
-    {
-      enabled: true,
-    }
-  );
-
-  const products = data?.data.products || [];
-
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-  };
-
-  const clearSearch = () => {
-    setSearchQuery("");
+  const handleShowSearch = () => {
+    setShowSearchBar(true);
+    setIsFocused(true);
   };
 
   const cancelSearch = () => {
     setSearchQuery("");
+    setDebouncedSearchQuery("");
     setIsFocused(false);
-    Keyboard.dismiss();
+    setShowSearchBar(false);
   };
 
-  const renderProductGrid = ({ item }: { item: Product }) => (
-    <View style={styles.gridItemContainer}>
-      <Image
-        source={{
-          uri:
-            item.images.length > 0 ? `${BASE_URL}${item.images[0]}` : undefined,
-        }}
-        style={styles.gridImage}
-      />
-    </View>
+  const debouncedSearch = useCallback(
+    debounce((text: string) => {
+      setDebouncedSearchQuery(text);
+    }, 300),
+    []
   );
 
-  const renderSearchResult = ({ item }: { item: Product }) => (
-    <View style={styles.searchResultItem}>
-      <Image
-        source={{
-          uri:
-            item.images.length > 0 ? `${BASE_URL}${item.images[0]}` : undefined,
-        }}
-        style={styles.resultImage}
-      />
-      <View style={styles.resultInfo}>
-        <Text style={styles.resultTitle}>{item.title}</Text>
-        <Text style={styles.resultOwner}>
-          {`${item.seller.firstName} ${item.seller.lastName}`}
-        </Text>
-      </View>
-    </View>
-  );
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    debouncedSearch(text);
+  };
 
-  if (isLoading) {
-    return <ActivityIndicator size="large" color={colors.primary} />;
-  }
+  const {
+    data: productsData,
+    isLoading: productsLoading,
+    error: productsError,
+  } = useQuery(["products", debouncedSearchQuery], () => getProducts(), {
+    enabled: !isFocused || (isFocused && debouncedSearchQuery.length > 0),
+  });
 
-  if (error) {
-    return <Text>{t("error-fetching-products")}</Text>;
-  }
+  const {
+    data: recentSearchesData,
+    isLoading: recentSearchesLoading,
+    error: recentSearchesError,
+  } = useQuery("recentSearches", getRecentSearches, {
+    enabled: isFocused && searchQuery.length === 0,
+  });
+
+  const addRecentSearchMutation = useMutation(addRecentSearch, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("recentSearches");
+    },
+  });
+
+  const deleteRecentSearchMutation = useMutation(deleteRecentSearch, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("recentSearches");
+    },
+  });
+
+  const deleteAllRecentSearchesMutation = useMutation(deleteAllRecentSearches, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("recentSearches");
+    },
+  });
+
+  const products = productsData?.data.products || [];
+  const recentSearches = recentSearchesData?.data.recentSearches || [];
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+  };
+
+  const handleClickRecentSearch = (productId: string) => {
+    console.log("Recent search product clicked:", productId);
+  };
+
+  const handleClickSearchedProduct = (productId: string) => {
+    console.log("Searched product clicked:", productId);
+    addRecentSearchMutation.mutate({
+      query: searchQuery,
+      productId: productId,
+    });
+  };
+
+  const handleDeleteRecentSearch = (id: string) => {
+    deleteRecentSearchMutation.mutate(id);
+  };
+
+  const handleClearAllRecentSearches = () => {
+    deleteAllRecentSearchesMutation.mutate();
+  };
 
   return (
     <View style={styles.container}>
-      <SearchBar
-        searchQuery={searchQuery}
-        setSearchQuery={handleSearch}
-        isFocused={isFocused}
-        setIsFocused={setIsFocused}
-        clearSearch={clearSearch}
-        cancelSearch={cancelSearch}
-      />
+      {showSearchBar ? (
+        <SearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={handleSearch}
+          isFocused={isFocused}
+          setIsFocused={setIsFocused}
+          clearSearch={clearSearch}
+          cancelSearch={cancelSearch}
+        />
+      ) : (
+        <SearchButton onPress={handleShowSearch} />
+      )}
+      {!isFocused && (
+        <>
+          {productsLoading ? (
+            <ActivityIndicator size="small" color={colors.secondary} />
+          ) : products.length > 0 ? (
+            <ProductGrid products={products} />
+          ) : (
+            <Text style={styles.emptyMessage}>{t("no-products-found")}</Text>
+          )}
+        </>
+      )}
 
-      {!isFocused && searchQuery.length === 0 && (
-        <FlatList
-          data={products}
-          renderItem={renderProductGrid}
-          keyExtractor={(item) => item._id}
-          numColumns={3}
-          style={styles.productGrid}
-          key="grid"
+      {isFocused && searchQuery.length === 0 && (
+        <RecentSearches
+          recentSearches={recentSearches}
+          isLoading={recentSearchesLoading}
+          onClickRecentSearch={handleClickRecentSearch}
+          onDeleteRecentSearch={handleDeleteRecentSearch}
+          onClearAllRecentSearches={handleClearAllRecentSearches}
         />
       )}
 
-      {(isFocused || searchQuery.length > 0) && (
-        <FlatList
-          data={products}
-          renderItem={renderSearchResult}
-          keyExtractor={(item) => item._id}
-          style={styles.searchResults}
-          key="list"
-        />
+      {isFocused && searchQuery.length > 0 && (
+        <>
+          {productsLoading ? (
+            <ActivityIndicator size="small" color={colors.secondary} />
+          ) : products.length > 0 ? (
+            <SearchResults
+              products={products}
+              onClickSearchedProduct={handleClickSearchedProduct}
+            />
+          ) : (
+            <Text style={styles.emptyMessage}>{t("no-products-found")}</Text>
+          )}
+        </>
       )}
     </View>
   );
@@ -126,45 +172,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingTop: 10,
   },
-  productGrid: {
-    flex: 1,
-  },
-  gridItemContainer: {
-    width: "33.33%",
-    aspectRatio: 1,
-    padding: 0.5,
-    backgroundColor: "#fff",
-  },
-  gridImage: {
-    flex: 1,
-    backgroundColor: "#e0e0e0",
-  },
-  searchResults: {
-    flex: 1,
-  },
-  searchResultItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  resultImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
-  },
-  resultInfo: {
-    flex: 1,
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  resultOwner: {
+  emptyMessage: {
+    textAlign: "center",
+    marginTop: 20,
     fontSize: 14,
-    color: "#666",
+    color: colors.secondary,
   },
 });
 

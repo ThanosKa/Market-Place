@@ -15,7 +15,6 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
     const checkToken = async () => {
       const token = await getAuthToken();
       if (token) {
-        // TODO: Implement token validation logic here
         navigation.replace("Main");
       } else {
         navigation.replace("Auth");

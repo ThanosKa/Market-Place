@@ -1,5 +1,5 @@
 // SearchBar.tsx
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   TextInput,
@@ -31,6 +31,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
 
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
   return (
     <View style={styles.searchBarContainer}>
       <View style={styles.searchContainer}>
@@ -62,6 +67,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   searchBarContainer: {
     flexDirection: "row",
@@ -75,7 +81,7 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: "#f0f0f0",
     borderRadius: 20,
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     flex: 1,
   },
   searchIcon: {

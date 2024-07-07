@@ -6,12 +6,15 @@ import {
   getUserById,
   editUser,
   deleteUser,
+  getLoggedInUser,
 } from "../controllers/userController";
 
 const router = express.Router();
 
 router.get("/", auth, getAllUsers);
+router.get("/me", auth, getLoggedInUser);
 router.get("/:id", auth, getUserById);
+
 router.put("/", auth, uploadSingle("uploads/"), editUser);
 router.delete("/", auth, deleteUser);
 

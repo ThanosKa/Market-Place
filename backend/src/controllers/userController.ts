@@ -5,6 +5,25 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import { emailSchema } from "../utils/email";
 
+import Review from "../models/Review";
+
+const formatUserData = (user: any) => ({
+  id: user._id,
+  email: user.email,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  profilePicture: user.profilePicture || null,
+  bio: user.bio || null,
+  likedProducts: user.likedProducts || [],
+  likedUsers: user.likedUsers || [],
+  products: user.products || [],
+  averageRating: user.averageRating,
+  reviewCount: user.reviewCount,
+  reviews: user.reviews || [],
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
+
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
     const users = await User.find()
@@ -16,12 +35,28 @@ export const getAllUsers = async (req: Request, res: Response) => {
       .populate({
         path: "likedProducts",
         model: Product,
+      })
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
       });
+
+    const usersWithReviews = await Promise.all(
+      users.map(async (user) => {
+        const reviews = await Review.find({ reviewee: user._id })
+          .populate("reviewer", "firstName lastName profilePicture")
+          .sort({ createdAt: -1 });
+        return { ...user.toObject(), reviews };
+      })
+    );
+
+    const formattedUsers = usersWithReviews.map(formatUserData);
 
     res.json({
       success: 1,
       message: "Users retrieved successfully",
-      data: { users },
+      data: { users: formattedUsers },
     });
   } catch (err) {
     console.error(err);
@@ -44,6 +79,11 @@ export const getUserById = async (req: Request, res: Response) => {
       .populate({
         path: "likedProducts",
         model: Product,
+      })
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
       });
 
     if (!user) {
@@ -54,10 +94,17 @@ export const getUserById = async (req: Request, res: Response) => {
       });
     }
 
+    const reviews = await Review.find({ reviewee: user._id })
+      .populate("reviewer", "firstName lastName profilePicture")
+      .sort({ createdAt: -1 });
+
+    const userWithReviews = { ...user.toObject(), reviews };
+    const formattedUser = formatUserData(userWithReviews);
+
     res.json({
       success: 1,
       message: "User retrieved successfully",
-      data: { user },
+      data: { user: formattedUser },
     });
   } catch (err) {
     console.error(err);
@@ -69,6 +116,54 @@ export const getUserById = async (req: Request, res: Response) => {
   }
 };
 
+export const getLoggedInUser = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate({
+        path: "products",
+        model: Product,
+      })
+      .populate({
+        path: "likedProducts",
+        model: Product,
+      })
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    const reviews = await Review.find({ reviewee: user._id })
+      .populate("reviewer", "firstName lastName profilePicture")
+      .sort({ createdAt: -1 });
+
+    const userWithReviews = { ...user.toObject(), reviews };
+    const formattedUser = formatUserData(userWithReviews);
+
+    res.json({
+      success: 1,
+      message: "Logged in user retrieved successfully",
+      data: { user: formattedUser },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
 export const editUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);

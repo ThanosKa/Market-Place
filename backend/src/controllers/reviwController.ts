@@ -83,7 +83,37 @@ export const getReviewsForUser = async (req: Request, res: Response) => {
     res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
+export const getCurrentUserReviewForUser = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const targetUserId = req.params.userId; // The user being reviewed
+    const currentUserId = (req as any).userId; // The user who left the review
 
+    const review = await Review.findOne({
+      reviewer: currentUserId,
+      reviewee: targetUserId,
+    }).populate("reviewer", "firstName lastName profilePicture");
+
+    if (!review) {
+      return res.status(404).json({
+        success: 0,
+        message: "Review not found",
+        data: null,
+      });
+    }
+
+    res.json({
+      success: 1,
+      message: "Review retrieved successfully",
+      data: { review },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: 0, message: "Server error", data: null });
+  }
+};
 export const updateReview = async (req: Request, res: Response) => {
   try {
     const { reviewId } = req.params;
@@ -174,40 +204,6 @@ export const deleteReview = async (req: Request, res: Response) => {
       success: 1,
       message: "Review deleted successfully",
       data: null,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: 0, message: "Server error", data: null });
-  }
-};
-
-// ... (keep the existing getReviewsForUser function)
-
-export const getCurrentUserReviewForUser = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const targetUserId = req.params.userId; // The user being reviewed
-    const currentUserId = (req as any).userId; // The user who left the review
-
-    const review = await Review.findOne({
-      reviewer: currentUserId,
-      reviewee: targetUserId,
-    }).populate("reviewer", "firstName lastName profilePicture");
-
-    if (!review) {
-      return res.status(404).json({
-        success: 0,
-        message: "Review not found",
-        data: null,
-      });
-    }
-
-    res.json({
-      success: 1,
-      message: "Review retrieved successfully",
-      data: { review },
     });
   } catch (err) {
     console.error(err);

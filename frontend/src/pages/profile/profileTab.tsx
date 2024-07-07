@@ -9,38 +9,15 @@ import {
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import { removeAuthToken } from "../../services/authStorage";
-import { StackNavigationProp } from "@react-navigation/stack";
-import {
-  MainStackParamList,
-  RootStackParamList,
-} from "../../interfaces/auth/navigation";
-import { User } from "../../interfaces/user";
-
-type CombinedParamList = RootStackParamList & MainStackParamList;
-
-type ProfileTabNavigationProp = StackNavigationProp<CombinedParamList>;
+import { User } from "../../components/UserProfile/types";
 
 type Props = {
   user: User;
-  navigation: ProfileTabNavigationProp;
 };
 
-const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
+const ProfileTab: React.FC<Props> = ({ user }) => {
   const { t } = useTranslation();
   const screenWidth = Dimensions.get("window").width;
-
-  const handleSignOut = async () => {
-    try {
-      await removeAuthToken();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "AuthLoading" }],
-      });
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
 
   const renderSection = (
     title: string,
@@ -106,7 +83,7 @@ const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
           label: t("shipping-address"),
           onPress: () => console.log("Open Shipping Address settings"),
         },
-        { label: t("logout"), onPress: handleSignOut },
+        { label: t("logout"), onPress: () => console.log("Perform logout") },
       ])}
       {renderSection(
         t("danger-zone"),

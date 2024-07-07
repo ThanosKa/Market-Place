@@ -4,8 +4,8 @@ import { View, TextInput, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import { Product } from "./types";
 import ProductGrid from "./productGrid";
+import { Product } from "../../interfaces/product";
 
 type Props = {
   products: Product[];

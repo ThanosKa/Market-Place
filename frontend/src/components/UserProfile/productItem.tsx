@@ -3,26 +3,33 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import { Product } from "./types";
+import { Product } from "../../interfaces/product";
+import { BASE_URL } from "../../services/axiosConfig";
 
 type Props = {
   product: Product;
 };
 
 const ProductItem: React.FC<Props> = ({ product }) => {
-  const handleProductLikeToggle = (id: number) => {
+  const handleProductLikeToggle = (id: string) => {
     // Implement product like toggle functionality
   };
+  const imageUrl =
+    product.images && product.images.length > 0
+      ? `${BASE_URL}${product.images[0]}`
+      : null;
 
   return (
     <View style={styles.productItem}>
-      <Image source={{ uri: product.image }} style={styles.productImage} />
+      {imageUrl && (
+        <Image source={{ uri: imageUrl }} style={styles.productImage} />
+      )}
       <Text style={styles.productTitle} numberOfLines={2}>
         {product.title}
       </Text>
       <View style={styles.productFooter}>
         <Text style={styles.productPrice}>{product.price}</Text>
-        <TouchableOpacity onPress={() => handleProductLikeToggle(product.id)}>
+        <TouchableOpacity onPress={() => handleProductLikeToggle(product._id)}>
           <AntDesign name="hearto" size={18} color="black" />
         </TouchableOpacity>
       </View>

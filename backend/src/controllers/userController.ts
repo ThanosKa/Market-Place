@@ -5,6 +5,22 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import { emailSchema } from "../utils/email";
 
+const formatUserData = (user: any) => ({
+  id: user._id,
+  email: user.email,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  profilePicture: user.profilePicture || null,
+  bio: user.bio || null,
+  likedProducts: user.likedProducts || [],
+  likedUsers: user.likedUsers || [],
+  products: user.products || [],
+  averageRating: user.averageRating,
+  reviewCount: user.reviewCount,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});
+
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
     const users = await User.find()
@@ -16,12 +32,19 @@ export const getAllUsers = async (req: Request, res: Response) => {
       .populate({
         path: "likedProducts",
         model: Product,
+      })
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
       });
+
+    const formattedUsers = users.map(formatUserData);
 
     res.json({
       success: 1,
       message: "Users retrieved successfully",
-      data: { users },
+      data: { users: formattedUsers },
     });
   } catch (err) {
     console.error(err);
@@ -44,6 +67,11 @@ export const getUserById = async (req: Request, res: Response) => {
       .populate({
         path: "likedProducts",
         model: Product,
+      })
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
       });
 
     if (!user) {
@@ -54,10 +82,57 @@ export const getUserById = async (req: Request, res: Response) => {
       });
     }
 
+    const formattedUser = formatUserData(user);
+
     res.json({
       success: 1,
       message: "User retrieved successfully",
-      data: { user },
+      data: { user: formattedUser },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const getLoggedInUser = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate({
+        path: "products",
+        model: Product,
+      })
+      .populate({
+        path: "likedProducts",
+        model: Product,
+      })
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    const formattedUser = formatUserData(user);
+
+    res.json({
+      success: 1,
+      message: "Logged in user retrieved successfully",
+      data: { user: formattedUser },
     });
   } catch (err) {
     console.error(err);

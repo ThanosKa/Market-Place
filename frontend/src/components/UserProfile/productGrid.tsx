@@ -2,7 +2,7 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import ProductItem from "./productItem";
-import { Product } from "./types";
+import { Product } from "../../interfaces/product";
 
 type Props = {
   products: Product[];
@@ -11,7 +11,7 @@ type Props = {
 const ProductGrid: React.FC<Props> = ({ products }) => (
   <View style={styles.productsGrid}>
     {products.map((product) => (
-      <ProductItem key={product.id} product={product} />
+      <ProductItem key={product._id} product={product} />
     ))}
   </View>
 );

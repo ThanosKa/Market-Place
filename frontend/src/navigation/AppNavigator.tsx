@@ -1,5 +1,5 @@
-import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import React, { useCallback, useRef } from "react";
+import { NavigationContainer, NavigationProp } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
@@ -23,78 +23,115 @@ import LoginScreen from "../pages/auth/login/login";
 import RegisterScreen from "../pages/auth/register/register";
 import ForgotPasswordScreen from "../pages/auth/forgotPass/forgotPass";
 import AuthLoadingScreen from "./AuthLoadingScreen";
+import { GestureResponderEvent, TouchableOpacity } from "react-native";
 
 const AuthStack = createStackNavigator<AuthStackParamList>();
 const RootStack = createStackNavigator<RootStackParamList>();
 const MainStack = createStackNavigator<MainStackParamList>();
 const Tab = createBottomTabNavigator<MainStackParamList>();
 
-const MainTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      tabBarIcon: ({ focused, color, size }) => {
-        if (route.name === "Home") {
-          return (
-            <Ionicons
-              name={focused ? "home-sharp" : "home-outline"}
-              size={size}
-              color={color}
-            />
-          );
-        } else if (route.name === "Search") {
-          return (
-            <Ionicons
-              name={focused ? "search-sharp" : "search-outline"}
-              size={size}
-              color={color}
-            />
-          );
-        } else if (route.name === "Sell") {
-          return (
-            <FontAwesome
-              name={focused ? "plus-square" : "plus-square-o"}
-              size={size}
-              color={color}
-            />
-          );
-        } else if (route.name === "Activity") {
-          return (
-            <Ionicons
-              name={focused ? "notifications-sharp" : "notifications-outline"}
-              size={size}
-              color={color}
-            />
-          );
-        } else if (route.name === "Profile") {
-          return (
-            <FontAwesome
-              name={focused ? "user" : "user-o"}
-              size={size}
-              color={color}
-            />
-          );
-        }
-        // Default icon if none of the conditions are met
-        return null;
-      },
-      tabBarActiveTintColor: colors.primary,
-      tabBarInactiveTintColor: colors.secondary,
-      tabBarStyle: {
-        // You can add more styles for the tab bar here
-      },
-      tabBarLabelStyle: {
-        // You can add styles for the tab labels here
-      },
-    })}
-  >
-    <Tab.Screen name="Home" component={HomeScreen} />
+const MainTabs = () => {
+  const lastTapTimeRef = useRef(0);
 
-    <Tab.Screen name="Search" component={SearchScreen} />
-    <Tab.Screen name="Sell" component={SellScreen} />
-    <Tab.Screen name="Activity" component={ActivityScreen} />
-    <Tab.Screen name="Profile" component={ProfileScreen} />
-  </Tab.Navigator>
-);
+  const handleDoubleTap = useCallback(
+    (navigation: NavigationProp<MainStackParamList>) => {
+      const now = Date.now();
+      const DOUBLE_PRESS_DELAY = 300;
+      if (now - lastTapTimeRef.current < DOUBLE_PRESS_DELAY) {
+        // Double tap detected
+        navigation.setParams({ refreshProfile: Date.now() });
+      }
+      lastTapTimeRef.current = now;
+    },
+    []
+  );
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          if (route.name === "Home") {
+            return (
+              <Ionicons
+                name={focused ? "home-sharp" : "home-outline"}
+                size={size}
+                color={color}
+              />
+            );
+          } else if (route.name === "Search") {
+            return (
+              <Ionicons
+                name={focused ? "search-sharp" : "search-outline"}
+                size={size}
+                color={color}
+              />
+            );
+          } else if (route.name === "Sell") {
+            return (
+              <FontAwesome
+                name={focused ? "plus-square" : "plus-square-o"}
+                size={size}
+                color={color}
+              />
+            );
+          } else if (route.name === "Activity") {
+            return (
+              <Ionicons
+                name={focused ? "notifications-sharp" : "notifications-outline"}
+                size={size}
+                color={color}
+              />
+            );
+          } else if (route.name === "Profile") {
+            return (
+              <FontAwesome
+                name={focused ? "user" : "user-o"}
+                size={size}
+                color={color}
+              />
+            );
+          }
+          // Default icon if none of the conditions are met
+          return null;
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.secondary,
+        tabBarStyle: {
+          // You can add more styles for the tab bar here
+        },
+        tabBarLabelStyle: {
+          // You can add styles for the tab labels here
+        },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="Sell" component={SellScreen} />
+      <Tab.Screen name="Activity" component={ActivityScreen} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={({
+          navigation,
+        }: {
+          navigation: NavigationProp<MainStackParamList>;
+        }) => ({
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...props}
+              onPress={(e: GestureResponderEvent) => {
+                handleDoubleTap(navigation);
+                if (props.onPress) {
+                  props.onPress(e);
+                }
+              }}
+            />
+          ),
+        })}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const MainNavigator = () => (
   <MainStack.Navigator screenOptions={{ headerShown: false }}>

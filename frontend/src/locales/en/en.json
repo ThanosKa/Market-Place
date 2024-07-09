@@ -1,4 +1,9 @@
 {
+  "by": "by",
+  "no-reviews-yet": "No reviews yet. Users can leave reviews after purchasing a product from you.",
+  "cancel": "Cancel",
+  "yes": "Yes",
+  "logout-confirmation": "Are you sure you want to log out?",
   "liked-products": "Liked  products",
   "liked-profiles": "Liked profiles",
   "noLikedProducts": "Your favorites product list is empty. Start liking products to see them here!",

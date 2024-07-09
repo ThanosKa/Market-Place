@@ -4,7 +4,8 @@ import { View, Text, Image, StyleSheet } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
-import { Review } from "./types";
+import { Review } from "../../interfaces/review";
+import { BASE_URL } from "../../services/axiosConfig";
 
 type Props = {
   review: Review;
@@ -12,39 +13,66 @@ type Props = {
 
 const ReviewItem: React.FC<Props> = ({ review }) => {
   const { t } = useTranslation();
+  console.log("review product", review.product);
+
+  const getImageUrl = (path: string | undefined) => {
+    if (!path) return "";
+    if (path.startsWith("http") || path.startsWith("https")) {
+      return path;
+    }
+    return `${BASE_URL}/${path}`;
+  };
 
   return (
-    <View style={styles.reviewContainer}>
-      <View style={styles.reviewContent}>
-        <View style={styles.reviewImageContainer}>
-          <Image
-            source={{ uri: review.productImage }}
-            style={styles.reviewProductImage}
-          />
-          <Image
-            source={{ uri: review.reviewerImage }}
-            style={styles.reviewerImage}
-          />
-        </View>
-        <View style={styles.reviewInfoContainer}>
-          <View style={styles.reviewHeader}>
-            <Text style={styles.soldText}>{t("Sold")}</Text>
-            <View style={styles.ratingContainer}>
-              {[...Array(5)].map((_, index) => (
-                <AntDesign
-                  key={index}
-                  name={index < review.rating ? "star" : "staro"}
-                  size={16}
-                  color={colors.primary}
-                />
-              ))}
-            </View>
+    <View style={styles.outerContainer}>
+      <View style={styles.reviewContainer}>
+        <View style={styles.reviewContent}>
+          <View style={styles.reviewImageContainer}>
+            {review.product &&
+            review.product.images &&
+            review.product.images.length > 0 ? (
+              <Image
+                source={{ uri: getImageUrl(review.product.images[0]) }}
+                style={styles.reviewProductImage}
+              />
+            ) : (
+              <View
+                style={[styles.reviewProductImage, styles.placeholderImage]}
+              />
+            )}
+            <Image
+              source={{ uri: getImageUrl(review.reviewer.profilePicture) }}
+              style={styles.reviewerImage}
+            />
           </View>
-          <Text style={styles.itemName}>{review.itemName}</Text>
-          <Text style={styles.reviewComment}>{review.comment}</Text>
-          <View style={styles.reviewFooter}>
-            <Text style={styles.reviewerName}>{review.reviewerName}</Text>
-            <Text style={styles.purchaseDate}>{review.purchaseDate}</Text>
+          <View style={styles.reviewInfoContainer}>
+            <View style={styles.reviewHeader}>
+              {review.product && (
+                <Text style={styles.itemName}>{review.product.title}</Text>
+              )}
+              <View style={styles.ratingContainer}>
+                {[...Array(5)].map((_, index) => (
+                  <AntDesign
+                    key={index}
+                    name={index < review.rating ? "star" : "staro"}
+                    size={16}
+                    color="#FFD700"
+                  />
+                ))}
+              </View>
+            </View>
+            <Text style={styles.reviewComment}>{review.comment}</Text>
+            <View style={styles.reviewFooter}>
+              <Text>
+                <Text style={styles.byText}>{t("by")}</Text>
+                <Text style={styles.reviewerName}>
+                  {` ${review.reviewer.firstName} ${review.reviewer.lastName}`}
+                </Text>
+              </Text>
+              <Text style={styles.purchaseDate}>
+                {new Date(review.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -52,9 +80,10 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
   );
 };
 
-// components/ReviewItem.tsx (continued)
-
 const styles = StyleSheet.create({
+  outerContainer: {
+    gap: 10,
+  },
   reviewContainer: {
     marginBottom: 24,
     borderBottomWidth: 1,
@@ -94,23 +123,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  soldText: {
-    fontSize: 14,
-    color: colors.secondary,
-  },
   ratingContainer: {
     flexDirection: "row",
   },
   itemName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: colors.primary,
-    marginBottom: 8,
+    color: colors.secondary,
+    marginBottom: 10,
   },
   reviewComment: {
     fontSize: 14,
-    color: colors.secondary,
-    marginBottom: 8,
+    color: colors.primary,
+
+    marginBottom: 10,
   },
   reviewFooter: {
     flexDirection: "row",
@@ -122,9 +147,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: colors.primary,
   },
+  byText: {
+    color: colors.secondary,
+  },
   purchaseDate: {
     fontSize: 12,
     color: colors.secondary,
+  },
+  placeholderImage: {
+    backgroundColor: colors.secondary,
   },
 });
 

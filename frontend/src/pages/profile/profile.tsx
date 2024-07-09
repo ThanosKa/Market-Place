@@ -1,89 +1,111 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Text,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { RouteProp } from "@react-navigation/native";
 import {
   MainStackParamList,
   RootStackParamList,
 } from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
-import { Product, Review, User } from "../../components/UserProfile/types";
-import {
-  dummyProducts,
-  dummyReviews,
-  dummyUser,
-} from "../../components/UserProfile/dummyData";
 import UserInfo from "../../components/UserProfile/userInfo";
 import TabSelector from "../../components/UserProfile/tabSelector";
 import ListingsTab from "../../components/UserProfile/listingTab";
 import ReviewsTab from "../../components/UserProfile/reviewTab";
 import ProfileTab from "./profileTab";
-import { removeAuthToken } from "../../services/authStorage";
+import { useQuery } from "react-query";
+import { getLoggedUser } from "../../services/user";
+import { User } from "../../interfaces/user";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
-type ProfileScreenNavigationProp = StackNavigationProp<CombinedParamList>;
+type ProfileScreenNavigationProp = StackNavigationProp<
+  CombinedParamList,
+  "Profile"
+>;
+type ProfileScreenRouteProp = RouteProp<CombinedParamList, "Profile">;
 
 type Props = {
   navigation: ProfileScreenNavigationProp;
+  route: ProfileScreenRouteProp;
 };
 
-const ProfileScreen: React.FC<Props> = ({ navigation }) => {
+const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
-
-  const [activeTab, setActiveTab] = useState<
-    "profile" | "listings" | "reviews"
-  >("profile");
+  const [activeTab, setActiveTab] = useState<string>("profile");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // In a real application, you would fetch this data for the current user
-  const user: User = dummyUser;
-  const products: Product[] = dummyProducts;
-  const reviews: Review[] = dummyReviews;
+  const {
+    data: userData,
+    isLoading: userLoading,
+    refetch,
+  } = useQuery("loggedUser", getLoggedUser);
 
-  const handleEditProfile = () => {
-    // navigation.navigate("EditProfile");
-  };
+  useEffect(() => {
+    setActiveTab("profile");
+  }, []);
 
-  const handleSignOut = async () => {
-    try {
-      await removeAuthToken();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "AuthLoading" }],
-      });
-    } catch (error) {
-      console.error("Error signing out:", error);
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
+
+  // Handle refresh triggered by double-tap on tab bar
+  useEffect(() => {
+    if (route.params?.refreshProfile) {
+      onRefresh();
     }
-  };
+  }, [route.params?.refreshProfile, onRefresh]);
+
+  if (userLoading && !isRefreshing) {
+    return <ActivityIndicator size="large" color={colors.primary} />;
+  }
+
+  const user: User | undefined = userData?.data?.user;
+
+  if (!user) {
+    return <Text>Error loading user data</Text>;
+  }
+
+  const tabs = [
+    { key: "profile", label: t("profile") },
+    { key: "listings", label: t("listings") },
+    { key: "reviews", label: t("reviews") },
+  ];
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+        }
+      >
         <UserInfo user={user} />
-        {/* <UserInfo user={user} onEditPress={handleEditProfile} /> */}
         <TabSelector
-          tabs={["profile", "listings", "reviews"]}
+          tabs={tabs}
           activeTab={activeTab}
-          setActiveTab={setActiveTab as (tab: string) => void}
+          setActiveTab={setActiveTab}
         />
-        {activeTab === "profile" && <ProfileTab user={user} />}
+        {activeTab === "profile" && (
+          <ProfileTab user={user} navigation={navigation} />
+        )}
         {activeTab === "listings" && (
           <ListingsTab
-            products={products}
+            products={user.products}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
           />
         )}
-        {activeTab === "reviews" && <ReviewsTab reviews={reviews} />}
+        {activeTab === "reviews" && <ReviewsTab reviews={user.reviews} />}
       </ScrollView>
     </View>
   );
@@ -93,17 +115,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-  },
-  signOutButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  signOutText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });
 

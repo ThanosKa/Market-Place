@@ -1,11 +1,10 @@
-// components/ListingsTab.tsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, TextInput, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import { Product } from "./types";
 import ProductGrid from "./productGrid";
+import { Product } from "../../interfaces/product";
 
 type Props = {
   products: Product[];
@@ -19,6 +18,15 @@ const ListingsTab: React.FC<Props> = ({
   setSearchQuery,
 }) => {
   const { t } = useTranslation();
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+
+  useEffect(() => {
+    setFilteredProducts(
+      products.filter((product) =>
+        product.title.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
+  }, [searchQuery, products]);
 
   return (
     <View style={styles.listingsContainer}>
@@ -36,7 +44,7 @@ const ListingsTab: React.FC<Props> = ({
           onChangeText={setSearchQuery}
         />
       </View>
-      <ProductGrid products={products} />
+      <ProductGrid products={filteredProducts} />
     </View>
   );
 };

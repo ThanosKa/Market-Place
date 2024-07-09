@@ -30,7 +30,7 @@ export interface ProductsResponse {
 
 export interface GetProductsParams {
   search?: string;
-  category?: string | string[]; // Updated
+  category?: string | string[];
   condition?: string;
   minPrice?: number;
   maxPrice?: number;

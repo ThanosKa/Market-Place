@@ -3,7 +3,8 @@ import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
-import { User } from "./types";
+import { User } from "../../interfaces/user";
+import { BASE_URL } from "../../services/axiosConfig";
 
 type Props = {
   user: User;
@@ -14,20 +15,31 @@ const UserInfo: React.FC<Props> = ({ user }) => {
 
   return (
     <View style={styles.userInfoContainer}>
-      <Image source={{ uri: user.profileImage }} style={styles.profileImage} />
+      <Image
+        source={{
+          uri: user.profilePicture
+            ? `${BASE_URL}/${user.profilePicture}`
+            : undefined,
+        }}
+        style={styles.profileImage}
+      />
       <View style={styles.userDetails}>
         <Text
           style={styles.userName}
         >{`${user.firstName} ${user.lastName}`}</Text>
         <Text style={styles.userStat}>
-          {t("Reviews")}: <Text style={styles.statValue}>{user.reviews}</Text>
+          {t("Reviews")}:{" "}
+          <Text style={styles.statValue}>{user.reviewCount}</Text>
         </Text>
         <Text style={styles.userStat}>
-          {t("Sales")}: <Text style={styles.statValue}>{user.sales}</Text> |
-          {t("Purchases")}:{" "}
-          <Text style={styles.statValue}>{user.purchases}</Text>
+          {t("Average Rating")}:{" "}
+          <Text style={styles.statValue}>{user.averageRating.toFixed(1)}</Text>
         </Text>
-        <Text style={styles.userLocation}>{user.location}</Text>
+        <Text style={styles.userStat}>
+          {t("Products")}:{" "}
+          <Text style={styles.statValue}>{user.products.length}</Text>
+        </Text>
+        {user.bio && <Text style={styles.userBio}>{user.bio}</Text>}
       </View>
     </View>
   );
@@ -45,6 +57,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     marginRight: 16,
+    backgroundColor: colors.secondary,
   },
   userDetails: {
     flex: 1,
@@ -65,10 +78,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: colors.primary,
   },
-  userLocation: {
+  userBio: {
     fontSize: 14,
     color: colors.secondary,
-    marginTop: 4,
+    marginTop: 8,
   },
 });
 

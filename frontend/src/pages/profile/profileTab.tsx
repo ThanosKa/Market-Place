@@ -5,19 +5,56 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import { User } from "../../components/UserProfile/types";
+import { User } from "../../interfaces/user";
+import { removeAuthToken } from "../../services/authStorage";
+import { useQueryClient } from "react-query";
+import { StackNavigationProp } from "@react-navigation/stack";
+import {
+  MainStackParamList,
+  RootStackParamList,
+} from "../../interfaces/auth/navigation";
+
+type CombinedParamList = RootStackParamList & MainStackParamList;
 
 type Props = {
   user: User;
+  navigation: StackNavigationProp<CombinedParamList>;
 };
 
-const ProfileTab: React.FC<Props> = ({ user }) => {
+const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
   const { t } = useTranslation();
   const screenWidth = Dimensions.get("window").width;
+  const queryClient = useQueryClient();
+
+  const handleLogout = async () => {
+    Alert.alert(t("logout"), t("logout-confirmation"), [
+      {
+        text: t("cancel"),
+        style: "cancel",
+      },
+      {
+        text: t("yes"),
+        onPress: async () => {
+          try {
+            await removeAuthToken();
+            queryClient.clear();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "AuthLoading" }],
+            });
+          } catch (error) {
+            console.error("Error logging out:", error);
+            Alert.alert(t("error"), t("logout-error"));
+          }
+        },
+      },
+    ]);
+  };
 
   const renderSection = (
     title: string,
@@ -83,7 +120,7 @@ const ProfileTab: React.FC<Props> = ({ user }) => {
           label: t("shipping-address"),
           onPress: () => console.log("Open Shipping Address settings"),
         },
-        { label: t("logout"), onPress: () => console.log("Perform logout") },
+        { label: t("logout"), onPress: handleLogout },
       ])}
       {renderSection(
         t("danger-zone"),

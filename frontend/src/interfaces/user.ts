@@ -1,5 +1,6 @@
+// interfaces/user.ts
 import { Product } from "./product";
-// import { Review } from "./reviews";
+import { Review } from "./review";
 
 export interface LikedUser {
   _id: string;
@@ -13,6 +14,7 @@ export interface LikedUser {
   averageRating: number;
   reviewCount: number;
 }
+
 export interface User {
   id: string;
   email: string;
@@ -25,9 +27,7 @@ export interface User {
   products: Product[];
   averageRating: number;
   reviewCount: number;
-  // reviews: Review[];
-  reviews: any[];
-
+  reviews: Review[];
   updatedAt: string;
 }
 

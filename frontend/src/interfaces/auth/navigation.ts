@@ -10,14 +10,14 @@ export type RootStackParamList = {
 
   Main: undefined;
 };
+
 export type MainStackParamList = {
   MainTabs: undefined;
   Home: { searchQuery?: string };
-
   Search: undefined;
   Sell: undefined;
   Activity: undefined;
-  Profile: undefined;
+  Profile: { refreshProfile?: number }; // Add this line
   UserProfile: { userId: string };
   Chat: { userId: string };
   Likes: undefined;

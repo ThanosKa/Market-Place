@@ -3,27 +3,42 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import { Product } from "./types";
+import { Product } from "../../interfaces/product";
+import { BASE_URL } from "../../services/axiosConfig";
 
 type Props = {
   product: Product;
+  onLikeToggle: (productId: string) => void;
+  isDisabled: boolean;
 };
 
-const ProductItem: React.FC<Props> = ({ product }) => {
-  const handleProductLikeToggle = (id: number) => {
-    // Implement product like toggle functionality
-  };
+const ProductItem: React.FC<Props> = ({
+  product,
+  onLikeToggle,
+  isDisabled,
+}) => {
+  const imageUrl =
+    product.images.length > 0 ? `${BASE_URL}${product.images[0]}` : undefined;
 
   return (
     <View style={styles.productItem}>
-      <Image source={{ uri: product.image }} style={styles.productImage} />
+      {imageUrl && (
+        <Image source={{ uri: imageUrl }} style={styles.productImage} />
+      )}
       <Text style={styles.productTitle} numberOfLines={2}>
         {product.title}
       </Text>
       <View style={styles.productFooter}>
-        <Text style={styles.productPrice}>{product.price}</Text>
-        <TouchableOpacity onPress={() => handleProductLikeToggle(product.id)}>
-          <AntDesign name="hearto" size={18} color="black" />
+        <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+        <TouchableOpacity
+          onPress={() => onLikeToggle(product._id)}
+          disabled={isDisabled}
+        >
+          <AntDesign
+            name={product.likes.length > 0 ? "heart" : "hearto"}
+            size={18}
+            color={product.likes.length > 0 ? "red" : "black"}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -42,7 +57,6 @@ const styles = StyleSheet.create({
   },
   productTitle: {
     fontSize: 14,
-    fontWeight: "bold",
     marginTop: 8,
     color: colors.primary,
   },

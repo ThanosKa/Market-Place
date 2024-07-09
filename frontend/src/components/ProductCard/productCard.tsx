@@ -16,6 +16,7 @@ type ProductCardProps = {
   condition: string;
   isLiked: boolean;
   onLikeToggle: () => void;
+  isDisabled: boolean;
 };
 
 const ProductCard: React.FC<ProductCardProps> = ({
@@ -28,6 +29,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   condition,
   isLiked,
   onLikeToggle,
+  isDisabled,
 }) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
@@ -53,7 +55,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <Text style={styles.price}>{price}</Text>
         <Text style={styles.condition}>{condition}</Text>
       </View>
-      <TouchableOpacity onPress={onLikeToggle} style={styles.likeButton}>
+      <TouchableOpacity
+        onPress={onLikeToggle}
+        style={styles.likeButton}
+        disabled={isDisabled}
+      >
         <AntDesign
           name={isLiked ? "heart" : "hearto"}
           size={18}

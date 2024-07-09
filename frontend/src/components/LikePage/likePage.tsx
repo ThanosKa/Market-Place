@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,22 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import { Product, User } from "../UserProfile/types";
 import Header from "../UserProfile/header";
 import { RouteProp } from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { StackNavigationProp } from "@react-navigation/stack";
 import TabSelector from "../UserProfile/tabSelector";
+import { useQuery, useMutation, useQueryClient } from "react-query";
+import { Product } from "../../interfaces/product";
+import { useTranslation } from "react-i18next";
+import { BASE_URL } from "../../services/axiosConfig";
+import { toggleLikeProduct, toggleLikeUser } from "../../services/likes";
+import { getLoggedUser } from "../../services/user";
+import { LikedUser } from "../../interfaces/user";
 
 type LikesPageProp = RouteProp<MainStackParamList, "Likes">;
 type LikesPagePropScreenNavigationProp = StackNavigationProp<
@@ -27,156 +34,227 @@ type Props = {
 };
 
 const LikesPage: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<
     "liked-products" | "liked-profiles"
   >("liked-products");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const mockProducts = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    image: `https://picsum.photos/200/200?random=${i}`,
-    title: `Product ${i + 1}`,
-    price: `$${(i + 1) * 10}`,
-    isLiked: true,
-  }));
+  const queryClient = useQueryClient();
 
-  const [likedProducts, setLikedProducts] = useState<Product[]>(mockProducts);
+  const {
+    data: userData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery("loggedUser", getLoggedUser);
 
-  const [likedProfiles, setLikedProfiles] = useState<User[]>([
-    {
-      firstName: "John",
-      lastName: "Doe",
-      profileImage: "https://example.com/john.jpg",
-      reviews: 4.5,
-      sales: 10,
-      purchases: 5,
-      location: "New York, USA",
-      products: mockProducts.slice(0, 1),
+  const toggleUserLikeMutation = useMutation(toggleLikeUser, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("loggedUser");
     },
-    {
-      firstName: "Jane",
-      lastName: "Smith",
-      profileImage: "https://example.com/jane.jpg",
-      reviews: 4.7,
-      sales: 15,
-      purchases: 7,
-      location: "Los Angeles, USA",
-      products: mockProducts.slice(1, 5),
-    },
-    {
-      firstName: "Emily",
-      lastName: "Johnson",
-      profileImage: "https://example.com/emily.jpg",
-      reviews: 4.2,
-      sales: 8,
-      purchases: 3,
-      location: "Chicago, USA",
-      products: mockProducts.slice(5, 10),
-    },
-    // Add more dummy profile data as needed
-  ]);
+  });
 
-  const renderProductItem = ({ item }: { item: Product }) => (
-    <View style={styles.productItem}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <Text style={styles.productPrice}>{item.price}</Text>
-        <TouchableOpacity onPress={() => toggleProductLike(item.id)}>
-          <Ionicons
-            name={item.isLiked ? "heart" : "heart-outline"}
-            size={24}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.productTitle} numberOfLines={1}>
-        {item.title}
-      </Text>
-    </View>
+  const toggleProductLikeMutation = useMutation(toggleLikeProduct, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("loggedUser");
+    },
+  });
+
+  const handleToggleProductLike = useCallback(
+    (productId: string) => {
+      // Optimistic update
+      queryClient.setQueryData("loggedUser", (oldData: any) => ({
+        ...oldData,
+        data: {
+          ...oldData.data,
+          user: {
+            ...oldData.data.user,
+            likedProducts: oldData.data.user.likedProducts.filter(
+              (p: Product) => p._id !== productId
+            ),
+          },
+        },
+      }));
+
+      toggleProductLikeMutation.mutate(productId, {
+        onError: () => {
+          // Revert on error
+          refetch();
+        },
+      });
+    },
+    [toggleProductLikeMutation, refetch, queryClient]
   );
 
-  const renderProfileItem = ({ item }: { item: User }) => {
-    const productCount = item.products?.length || 0;
+  const handleToggleUserLike = useCallback(
+    (userId: string) => {
+      // Optimistic update
+      queryClient.setQueryData("loggedUser", (oldData: any) => ({
+        ...oldData,
+        data: {
+          ...oldData.data,
+          user: {
+            ...oldData.data.user,
+            likedUsers: oldData.data.user.likedUsers.filter(
+              (u: LikedUser) => u._id !== userId
+            ),
+          },
+        },
+      }));
 
-    return (
-      <View style={styles.profileItem}>
-        {productCount === 1 && item.products ? (
+      toggleUserLikeMutation.mutate(userId, {
+        onError: () => {
+          // Revert on error
+          refetch();
+        },
+      });
+    },
+    [toggleUserLikeMutation, refetch, queryClient]
+  );
+
+  const renderProductItem = useCallback(
+    ({ item }: { item: Product }) => {
+      const isLiked = item.likes.includes(userData?.data.user.id || "");
+
+      return (
+        <View style={styles.productItem}>
           <Image
-            source={{ uri: item.products[0].image }}
-            style={styles.profileImage}
+            source={{ uri: `${BASE_URL}${item.images[0]}` }}
+            style={styles.productImage}
           />
-        ) : (
-          <View style={styles.productGrid}>
-            {item.products?.slice(0, 4).map((product: any, index: any) => (
-              <View key={index} style={styles.gridItem}>
-                <Image
-                  source={{ uri: product.image }}
-                  style={styles.gridImage}
-                />
-                {index === 3 && productCount > 4 && (
-                  <View style={styles.overlay}>
-                    <Text style={styles.overlayText}>+{productCount - 3}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
+          <View style={styles.productInfo}>
+            <Text style={styles.productPrice}>${item.price}</Text>
+            <TouchableOpacity onPress={() => handleToggleProductLike(item._id)}>
+              <AntDesign
+                name={isLiked ? "heart" : "hearto"}
+                size={18}
+                color={isLiked ? "red" : "black"}
+              />
+            </TouchableOpacity>
           </View>
-        )}
-        <View style={styles.profileInfo}>
-          <Text
-            style={styles.profileName}
-          >{`${item.firstName} ${item.lastName}`}</Text>
-          <TouchableOpacity onPress={() => toggleProfileLike(item)}>
-            <Ionicons name="heart" size={24} color={colors.primary} />
-          </TouchableOpacity>
+          <Text style={styles.productTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
         </View>
-        <Text style={styles.profileReviews}>{`${item.reviews} Reviews`}</Text>
-      </View>
-    );
-  };
+      );
+    },
+    [userData, handleToggleProductLike]
+  );
 
-  const toggleProductLike = (productId: number) => {
-    setLikedProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === productId
-          ? { ...product, isLiked: !product.isLiked }
-          : product
-      )
-    );
-  };
+  const renderProfileItem = useCallback(
+    ({ item }: { item: LikedUser }) => {
+      const productCount = item.products?.length || 0;
 
-  const toggleProfileLike = (user: User) => {
-    // Implement profile like/unlike logic here
-    console.log(`Toggled like for ${user.firstName} ${user.lastName}`);
-  };
+      return (
+        <View style={styles.profileItem}>
+          {productCount > 0 ? (
+            <View style={styles.productGrid}>
+              {item.products?.slice(0, 4).map((productId, index) => (
+                <View key={index} style={styles.gridItem}>
+                  <Image
+                    source={{ uri: `${BASE_URL}/${productId}` }}
+                    style={styles.gridImage}
+                  />
+                  {index === 3 && productCount > 4 && (
+                    <View style={styles.overlay}>
+                      <Text style={styles.overlayText}>
+                        +{productCount - 3}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.noProductsPlaceholder}>
+              <AntDesign name="user" size={50} color={colors.secondary} />
+              <Text style={styles.noProductsText}>{t("noProducts")}</Text>
+            </View>
+          )}
+          <View style={styles.profileInfo}>
+            <Text
+              style={styles.profileName}
+            >{`${item.firstName} ${item.lastName}`}</Text>
+            <TouchableOpacity onPress={() => handleToggleUserLike(item._id)}>
+              <AntDesign name="heart" size={18} color="red" />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.profileReviews}>
+            {t("reviewsCount", { count: item.reviewCount })}
+          </Text>
+        </View>
+      );
+    },
+    [handleToggleUserLike]
+  );
 
   const handleBackPress = () => navigation.goBack();
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
+
+  const likedProducts = userData?.data.user.likedProducts || [];
+  const likedUsers = userData?.data.user.likedUsers || [];
+
+  const renderContent = () => {
+    if (isLoading && !isRefreshing) {
+      return null; // Don't show anything on initial load
+    }
+
+    if (error) {
+      return <Text style={styles.errorText}>{t("errorLoadingData")}</Text>;
+    }
+
+    if (activeTab === "liked-products") {
+      return likedProducts.length > 0 ? (
+        <FlatList
+          data={likedProducts}
+          renderItem={renderProductItem}
+          keyExtractor={(item) => item._id}
+          numColumns={2}
+          columnWrapperStyle={styles.productRow}
+        />
+      ) : (
+        <Text style={styles.emptyMessage}>{t("noLikedProducts")}</Text>
+      );
+    } else {
+      return likedUsers.length > 0 ? (
+        <FlatList
+          data={likedUsers}
+          renderItem={renderProfileItem}
+          keyExtractor={(item) => item._id}
+          numColumns={2}
+          columnWrapperStyle={styles.profileRow}
+        />
+      ) : (
+        <Text style={styles.emptyMessage}>{t("noLikedProfiles")}</Text>
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Header onBackPress={handleBackPress} />
       <TabSelector
-        tabs={["liked-products", "liked-profiles"]}
+        tabs={[
+          { key: "liked-products", label: t("liked-products") },
+          { key: "liked-profiles", label: t("liked-profiles") },
+        ]}
         activeTab={activeTab}
         setActiveTab={setActiveTab as (tab: string) => void}
       />
-      <View style={styles.headerMargin}></View>
-      {activeTab === "liked-products" ? (
-        <FlatList
-          data={likedProducts}
-          renderItem={renderProductItem}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          columnWrapperStyle={styles.productRow}
-        />
-      ) : (
-        <FlatList
-          data={likedProfiles}
-          renderItem={renderProfileItem}
-          keyExtractor={(item) => `${item.firstName}-${item.lastName}`}
-          numColumns={2}
-          columnWrapperStyle={styles.profileRow}
-        />
-      )}
+      <View style={styles.headerMargin} />
+      <FlatList
+        data={[{ key: "content" }]}
+        renderItem={() => renderContent()}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+      />
     </View>
   );
 };
@@ -203,7 +281,7 @@ const styles = StyleSheet.create({
   },
   productImage: {
     width: "100%",
-    height: 150,
+    aspectRatio: 1,
     resizeMode: "cover",
   },
   productInfo: {
@@ -234,18 +312,14 @@ const styles = StyleSheet.create({
     elevation: 3,
     overflow: "hidden",
   },
-  profileImage: {
-    width: "100%",
-    height: 150,
-    resizeMode: "cover",
-  },
   productGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    aspectRatio: 1,
   },
   gridItem: {
     width: "50%",
-    height: 75,
+    height: "50%",
     borderWidth: 1,
     borderColor: "white",
     position: "relative",
@@ -253,6 +327,7 @@ const styles = StyleSheet.create({
   gridImage: {
     width: "100%",
     height: "100%",
+    resizeMode: "cover",
   },
   overlay: {
     position: "absolute",
@@ -269,6 +344,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  noProductsPlaceholder: {
+    aspectRatio: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.lightGray,
+  },
+  noProductsText: {
+    marginTop: 10,
+    color: colors.secondary,
+    textAlign: "center",
+  },
   profileInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -284,6 +370,20 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     paddingHorizontal: 10,
     paddingBottom: 10,
+  },
+  emptyMessage: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
+    color: colors.secondary,
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 20,
+    color: colors.error,
+    padding: 20,
   },
 });
 

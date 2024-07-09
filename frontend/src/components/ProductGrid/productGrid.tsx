@@ -1,12 +1,13 @@
-// components/ProductGrid/productGrid.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 import { Product, GetProductsParams } from "../../interfaces/product";
 import ProductCard from "../ProductCard/productCard";
 import { BASE_URL } from "../../services/axiosConfig";
 import { getProducts } from "../../services/product";
+import { toggleLikeProduct } from "../../services/likes";
+import { getLoggedUser } from "../../services/user";
 
 interface ProductGridProps {
   onRefreshComplete: () => void;
@@ -18,7 +19,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   selectedCategories,
 }) => {
   const [likedProducts, setLikedProducts] = useState<string[]>([]);
+  const [disabledButtons, setDisabledButtons] = useState<string[]>([]);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
   const queryParams: GetProductsParams = useMemo(() => {
     const params: GetProductsParams = {};
@@ -28,6 +31,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return params;
   }, [selectedCategories]);
 
+  const { data: userData, isLoading: userLoading } = useQuery(
+    "loggedUser",
+    getLoggedUser
+  );
+
   const { data, isLoading, error } = useQuery(
     ["products", queryParams],
     () => getProducts(queryParams),
@@ -36,7 +44,38 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     }
   );
 
-  if (isLoading) {
+  useEffect(() => {
+    if (userData?.data?.user?.likedProducts) {
+      setLikedProducts(
+        userData.data.user.likedProducts.map((p: Product) => p._id)
+      );
+    }
+  }, [userData]);
+
+  const toggleLikeMutation = useMutation(toggleLikeProduct, {
+    onMutate: (productId) => {
+      setDisabledButtons((prev) => [...prev, productId]);
+      setLikedProducts((prev) =>
+        prev.includes(productId)
+          ? prev.filter((id) => id !== productId)
+          : [...prev, productId]
+      );
+    },
+    onSettled: (data, error, productId) => {
+      setDisabledButtons((prev) => prev.filter((id) => id !== productId));
+      if (error) {
+        setLikedProducts((prev) =>
+          prev.includes(productId)
+            ? prev.filter((id) => id !== productId)
+            : [...prev, productId]
+        );
+      }
+      queryClient.invalidateQueries("loggedInUser");
+      queryClient.invalidateQueries(["products", queryParams]);
+    },
+  });
+
+  if (isLoading || userLoading) {
     return <ActivityIndicator size="small" />;
   }
 
@@ -49,13 +88,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   if (products.length === 0) {
     return <Text style={styles.noProductsText}>{t("no-products-found")}</Text>;
   }
+
   const toggleLike = (productId: string) => {
-    setLikedProducts((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
+    toggleLikeMutation.mutate(productId);
   };
+
   const renderProduct = ({ item }: { item: Product }) => (
     <ProductCard
       key={item._id}
@@ -67,9 +104,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       }
       title={item.title}
       price={`$${item.price}`}
-      condition={item.condition}
+      condition={t(item.condition)}
       isLiked={likedProducts.includes(item._id)}
       onLikeToggle={() => toggleLike(item._id)}
+      isDisabled={disabledButtons.includes(item._id)}
     />
   );
 

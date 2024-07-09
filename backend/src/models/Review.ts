@@ -4,6 +4,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IReview extends Document {
   reviewer: mongoose.Types.ObjectId;
   reviewee: mongoose.Types.ObjectId;
+  product: mongoose.Types.ObjectId; // Add this line
   rating: number;
   comment?: string;
 }
@@ -18,6 +19,12 @@ const ReviewSchema: Schema = new Schema(
     reviewee: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
+    },
+    product: {
+      // Add this field
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
       required: true,
     },
     rating: { type: Number, required: true, min: 1, max: 5 },

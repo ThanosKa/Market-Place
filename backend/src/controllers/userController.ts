@@ -46,6 +46,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
       users.map(async (user) => {
         const reviews = await Review.find({ reviewee: user._id })
           .populate("reviewer", "firstName lastName profilePicture")
+          .populate("product") // Add this line to populate the product details
           .sort({ createdAt: -1 });
         return { ...user.toObject(), reviews };
       })
@@ -67,7 +68,6 @@ export const getAllUsers = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.params.id)
@@ -96,6 +96,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
     const reviews = await Review.find({ reviewee: user._id })
       .populate("reviewer", "firstName lastName profilePicture")
+      .populate("product") // Add this line to populate the entire product details
       .sort({ createdAt: -1 });
 
     const userWithReviews = { ...user.toObject(), reviews };
@@ -115,7 +116,6 @@ export const getUserById = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getLoggedInUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -145,6 +145,7 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
 
     const reviews = await Review.find({ reviewee: user._id })
       .populate("reviewer", "firstName lastName profilePicture")
+      .populate("product") // Add this line to populate the entire product details
       .sort({ createdAt: -1 });
 
     const userWithReviews = { ...user.toObject(), reviews };

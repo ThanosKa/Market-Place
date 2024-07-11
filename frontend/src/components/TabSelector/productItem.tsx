@@ -1,5 +1,5 @@
 // components/ProductItem.tsx
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
@@ -8,17 +8,30 @@ import { BASE_URL } from "../../services/axiosConfig";
 
 type Props = {
   product: Product;
-  onLikeToggle: (productId: string) => void;
-  isDisabled: boolean;
+  onLikeToggle: (productId: string) => Promise<void>;
 };
 
-const ProductItem: React.FC<Props> = ({
-  product,
-  onLikeToggle,
-  isDisabled,
-}) => {
+const ProductItem: React.FC<Props> = ({ product, onLikeToggle }) => {
+  const [isLiked, setIsLiked] = useState(product.likes.length > 0);
+  const [isLoading, setIsLoading] = useState(false);
+
   const imageUrl =
     product.images.length > 0 ? `${BASE_URL}${product.images[0]}` : undefined;
+
+  const handleLikeToggle = async () => {
+    setIsLoading(true);
+    setIsLiked(!isLiked); // Immediately update UI
+
+    try {
+      await onLikeToggle(product._id);
+    } catch (error) {
+      // If the API call fails, revert the UI change
+      setIsLiked(isLiked);
+      console.error("Failed to toggle like:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.productItem}>
@@ -31,13 +44,14 @@ const ProductItem: React.FC<Props> = ({
       <View style={styles.productFooter}>
         <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
         <TouchableOpacity
-          onPress={() => onLikeToggle(product._id)}
-          disabled={isDisabled}
+          onPress={handleLikeToggle}
+          disabled={isLoading}
+          style={styles.likeButton}
         >
           <AntDesign
-            name={product.likes.length > 0 ? "heart" : "hearto"}
+            name={isLiked ? "heart" : "hearto"}
             size={18}
-            color={product.likes.length > 0 ? "red" : "black"}
+            color={isLiked ? "red" : "black"}
           />
         </TouchableOpacity>
       </View>
@@ -70,6 +84,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: colors.primary,
+  },
+  likeButton: {
+    opacity: 1,
   },
 });
 

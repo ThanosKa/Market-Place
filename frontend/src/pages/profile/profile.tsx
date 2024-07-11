@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useFocusEffect } from "@react-navigation/native";
 import {
   MainStackParamList,
   RootStackParamList,
@@ -49,9 +49,14 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     refetch,
   } = useQuery("loggedUser", getLoggedUser);
 
-  useEffect(() => {
-    setActiveTab("profile");
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+
+      setActiveTab("profile");
+      console.log("taB", activeTab);
+    }, [])
+  );
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -59,7 +64,6 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     setIsRefreshing(false);
   }, [refetch]);
 
-  // Handle refresh triggered by double-tap on tab bar
   useEffect(() => {
     if (route.params?.refreshProfile) {
       onRefresh();

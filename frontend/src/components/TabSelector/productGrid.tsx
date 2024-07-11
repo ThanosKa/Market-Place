@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// components/ProductGrid.tsx
+import React from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import ProductItem from "./productItem";
@@ -11,21 +12,16 @@ type Props = {
 };
 
 const ProductGrid: React.FC<Props> = ({ products }) => {
-  const [disabledButtons, setDisabledButtons] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
   const toggleLikeMutation = useMutation(toggleLikeProduct, {
-    onMutate: (productId) => {
-      setDisabledButtons((prev) => [...prev, productId]);
-    },
-    onSettled: (data, error, productId) => {
-      setDisabledButtons((prev) => prev.filter((id) => id !== productId));
+    onSettled: () => {
       queryClient.invalidateQueries("loggedUser");
     },
   });
 
-  const handleLikeToggle = (productId: string) => {
-    toggleLikeMutation.mutate(productId);
+  const handleLikeToggle = async (productId: string) => {
+    await toggleLikeMutation.mutateAsync(productId);
   };
 
   return (
@@ -37,7 +33,6 @@ const ProductGrid: React.FC<Props> = ({ products }) => {
               key={product._id}
               product={product}
               onLikeToggle={handleLikeToggle}
-              isDisabled={disabledButtons.includes(product._id)}
             />
           ))
         ) : (

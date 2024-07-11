@@ -41,6 +41,7 @@
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^20.14.9",
     "@types/react": "~18.2.45",
+    "@types/react-native": "^0.73.0",
     "@types/react-test-renderer": "^18.3.0",
     "typescript": "^5.5.2"
   },

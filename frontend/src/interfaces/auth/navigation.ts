@@ -5,9 +5,8 @@ export type AuthStackParamList = {
 };
 
 export type RootStackParamList = {
-  Auth: undefined;
+  Auth: { screen?: keyof AuthStackParamList } | undefined;
   AuthLoading: undefined;
-
   Main: undefined;
 };
 
@@ -17,7 +16,7 @@ export type MainStackParamList = {
   Search: undefined;
   Sell: undefined;
   Activity: undefined;
-  Profile: { refreshProfile?: number }; // Add this line
+  Profile: { refreshProfile?: number };
   UserProfile: { userId: string };
   Chat: { userId: string };
   Likes: undefined;

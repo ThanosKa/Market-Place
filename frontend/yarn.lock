@@ -2241,6 +2241,13 @@
   "resolved" "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.12.tgz"
   "version" "15.7.12"
 
+"@types/react-native@^0.73.0":
+  "integrity" "sha512-6ZRPQrYM72qYKGWidEttRe6M5DZBEV5F+MHMHqd4TTYx0tfkcdrUFGdef6CCxY0jXU7wldvd/zA/b0A/kTeJmA=="
+  "resolved" "https://registry.npmjs.org/@types/react-native/-/react-native-0.73.0.tgz"
+  "version" "0.73.0"
+  dependencies:
+    "react-native" "*"
+
 "@types/react-test-renderer@^18.3.0":
   "integrity" "sha512-HW4MuEYxfDbOHQsVlY/XtOvNHftCVEPhJF2pQXXwcUiUF+Oyb0usgp48HSgpK5rt8m9KZb22yqOeZm+rrVG8gw=="
   "resolved" "https://registry.npmjs.org/@types/react-test-renderer/-/react-test-renderer-18.3.0.tgz"

@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { getAuthToken } from "../services/authStorage";
+import { getAuthToken, removeAuthToken } from "../services/authStorage";
 import { RootStackParamList } from "../interfaces/auth/navigation";
 
 type AuthLoadingScreenProps = {
@@ -13,9 +13,18 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
 }) => {
   useEffect(() => {
     const checkToken = async () => {
-      const token = await getAuthToken();
-      if (token) {
-        navigation.replace("Main");
+      const { token, expirationTime } = await getAuthToken();
+      console.log("token: ", token);
+      console.log("expirationTime: ", expirationTime);
+
+      if (token && expirationTime) {
+        if (Date.now() < expirationTime) {
+          navigation.replace("Main");
+        } else {
+          // Token is expired
+          await removeAuthToken();
+          navigation.replace("Auth");
+        }
       } else {
         navigation.replace("Auth");
       }

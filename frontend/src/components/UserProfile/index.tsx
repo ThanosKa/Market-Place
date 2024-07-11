@@ -16,8 +16,8 @@ import { dummyUser, dummyProducts, dummyReviews } from "./dummyData";
 import { Product, Review, User } from "./types";
 import Header from "./header";
 import UserInfo from "./userInfo";
-import TabSelector from "./tabSelector";
-import ListingsTab from "./listingTab";
+import TabSelector from "../TabSelector/tabSelector";
+import ListingsTab from "../TabSelector/listingTab";
 import ReviewsTab from "./reviewTab";
 
 type UserProfileScreenRouteProp = RouteProp<MainStackParamList, "UserProfile">;

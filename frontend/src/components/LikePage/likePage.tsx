@@ -14,7 +14,7 @@ import Header from "../UserProfile/header";
 import { RouteProp } from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { StackNavigationProp } from "@react-navigation/stack";
-import TabSelector from "../UserProfile/tabSelector";
+import TabSelector from "../TabSelector/tabSelector";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { Product } from "../../interfaces/product";
 import { useTranslation } from "react-i18next";

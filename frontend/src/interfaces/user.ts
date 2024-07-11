@@ -14,6 +14,33 @@ export interface LikedUser {
   averageRating: number;
   reviewCount: number;
 }
+export interface ActivityProduct {
+  _id: string;
+  title: string;
+  images: string[];
+}
+
+export interface Activity {
+  _id: string;
+  user: string;
+  type: "message" | "product_like" | "profile_like";
+  sender: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture: string;
+  };
+  content: string;
+  read: boolean;
+  createdAt: string;
+  __v: number;
+  product?: ActivityProduct;
+}
+
+export interface Activities {
+  items: Activity[];
+  unseenCount: number;
+}
 
 export interface User {
   id: string;
@@ -28,6 +55,7 @@ export interface User {
   averageRating: number;
   reviewCount: number;
   reviews: Review[];
+  activities: Activities;
   updatedAt: string;
 }
 

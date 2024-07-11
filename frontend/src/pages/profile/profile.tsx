@@ -18,11 +18,11 @@ import { colors } from "../../colors/colors";
 import UserInfo from "../../components/UserProfile/userInfo";
 import TabSelector from "../../components/TabSelector/tabSelector";
 import ListingsTab from "../../components/TabSelector/listingTab";
-import ReviewsTab from "../../components/UserProfile/reviewTab";
 import ProfileTab from "../../components/TabSelector/profileTab";
 import { useQuery } from "react-query";
 import { getLoggedUser } from "../../services/user";
 import { User } from "../../interfaces/user";
+import ReviewsTab from "../../components/TabSelector/reviewTab";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 

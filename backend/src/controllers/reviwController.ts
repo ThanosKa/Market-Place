@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import Review from "../models/Review";
 import User from "../models/User";
 
+import { createActivity } from "./activityController";
+
 export const createReview = async (req: Request, res: Response) => {
   try {
     const { revieweeId, rating, comment } = req.body;
@@ -56,10 +58,27 @@ export const createReview = async (req: Request, res: Response) => {
     reviewee.reviewCount = newReviewCount;
     await reviewee.save();
 
+    // Populate the reviewer information
+    const populatedReview = await Review.findById(newReview._id).populate(
+      "reviewer",
+      "firstName lastName email username profilePicture"
+    );
+
+    // Create an activity for the reviewee
+    await createActivity(
+      revieweeId,
+      "review",
+      reviewerId,
+      `New review: ${comment.substring(0, 50)}${
+        comment.length > 50 ? "..." : ""
+      }`,
+      newReview._id.toString() // Adding review ID as an identifier
+    );
+
     res.status(201).json({
       success: 1,
       message: "Review created successfully",
-      data: { review: newReview },
+      data: { review: populatedReview },
     });
   } catch (err) {
     console.error(err);

@@ -1,9 +1,9 @@
 // components/ReviewsTab.tsx
 import React from "react";
 import { View, StyleSheet, Text } from "react-native";
-import ReviewItem from "./ReviewItem";
 import { useTranslation } from "react-i18next";
 import { Review } from "../../interfaces/review";
+import ReviewItem from "./ReviewItem";
 
 type Props = {
   reviews: Review[];

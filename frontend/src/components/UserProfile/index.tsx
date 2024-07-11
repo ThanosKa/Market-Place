@@ -18,7 +18,7 @@ import Header from "./header";
 import UserInfo from "./userInfo";
 import TabSelector from "../TabSelector/tabSelector";
 import ListingsTab from "../TabSelector/listingTab";
-import ReviewsTab from "./reviewTab";
+import ReviewsTab from "../TabSelector/reviewTab";
 
 type UserProfileScreenRouteProp = RouteProp<MainStackParamList, "UserProfile">;
 type UserProfileScreenNavigationProp = StackNavigationProp<

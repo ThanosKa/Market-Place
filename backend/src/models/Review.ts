@@ -2,6 +2,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IReview extends Document {
+  _id: mongoose.Types.ObjectId;
   reviewer: mongoose.Types.ObjectId;
   reviewee: mongoose.Types.ObjectId;
   product: mongoose.Types.ObjectId; // Add this line

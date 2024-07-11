@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Chat, { IMessage } from "../models/Chat";
 import User from "../models/User";
+import { createActivity } from "./activityController";
 
 export const createChat = async (req: Request, res: Response) => {
   try {
@@ -107,7 +108,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
-    const chatId = req.params.chatId; // Get chatId from URL parameters
+    const chatId = req.params.chatId;
     const userId = (req as any).userId;
 
     const chat = await Chat.findOne({ _id: chatId, participants: userId });
@@ -131,10 +132,32 @@ export const sendMessage = async (req: Request, res: Response) => {
     chat.messages.push(newMessage);
     await chat.save();
 
+    // Populate the sender information
+    const populatedMessage = await Chat.populate(newMessage, {
+      path: "sender",
+      select: "firstName lastName email username",
+    });
+
+    // Create an activity for the recipient
+    const recipientId = chat.participants.find(
+      (participantId) => participantId.toString() !== userId
+    );
+    if (recipientId) {
+      await createActivity(
+        recipientId.toString(),
+        "message",
+        userId,
+        `New message: ${content.substring(0, 50)}${
+          content.length > 50 ? "..." : ""
+        }`,
+        chatId.toString() // Adding chatId as an identifier
+      );
+    }
+
     res.json({
       success: 1,
       message: "Message sent successfully",
-      data: { message: newMessage },
+      data: { message: populatedMessage },
     });
   } catch (err) {
     console.error(err);

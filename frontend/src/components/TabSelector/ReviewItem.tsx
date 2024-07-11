@@ -13,35 +13,29 @@ type Props = {
 
 const ReviewItem: React.FC<Props> = ({ review }) => {
   const { t } = useTranslation();
-  console.log("review product", review.product);
-
-  const getImageUrl = (path: string | undefined) => {
-    if (!path) return "";
-    if (path.startsWith("http") || path.startsWith("https")) {
-      return path;
-    }
-    return `${BASE_URL}/${path}`;
-  };
 
   return (
     <View style={styles.outerContainer}>
       <View style={styles.reviewContainer}>
         <View style={styles.reviewContent}>
           <View style={styles.reviewImageContainer}>
-            {review.product &&
-            review.product.images &&
-            review.product.images.length > 0 ? (
-              <Image
-                source={{ uri: getImageUrl(review.product.images[0]) }}
-                style={styles.reviewProductImage}
-              />
-            ) : (
-              <View
-                style={[styles.reviewProductImage, styles.placeholderImage]}
-              />
-            )}
             <Image
-              source={{ uri: getImageUrl(review.reviewer.profilePicture) }}
+              source={{
+                uri:
+                  review.product &&
+                  review.product.images &&
+                  review.product.images.length > 0
+                    ? `${BASE_URL}${review.product.images[0]}`
+                    : undefined,
+              }}
+              style={styles.reviewProductImage}
+            />
+            <Image
+              source={{
+                uri: review.reviewer.profilePicture
+                  ? `${BASE_URL}/${review.reviewer.profilePicture}`
+                  : undefined,
+              }}
               style={styles.reviewerImage}
             />
           </View>
@@ -79,6 +73,8 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
     </View>
   );
 };
+
+// Styles remain the same
 
 const styles = StyleSheet.create({
   outerContainer: {

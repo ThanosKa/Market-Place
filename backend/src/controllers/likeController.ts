@@ -3,6 +3,9 @@ import mongoose from "mongoose";
 import User from "../models/User";
 import Product from "../models/Product";
 
+import { createActivity } from "./activityController";
+import Activity from "../models/Activity";
+
 export const toggleLikeProduct = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -10,7 +13,10 @@ export const toggleLikeProduct = async (req: Request, res: Response) => {
 
     const [user, product] = await Promise.all([
       User.findById(userId),
-      Product.findById(productId),
+      Product.findById(productId).populate(
+        "seller",
+        "firstName lastName username"
+      ),
     ]);
 
     if (!product) {
@@ -28,14 +34,37 @@ export const toggleLikeProduct = async (req: Request, res: Response) => {
     const productLikedIndex = product.likes.indexOf(userId);
     const userLikedProductIndex = user.likedProducts.indexOf(productId);
 
+    let liked: boolean;
+
     if (productLikedIndex > -1) {
       // User has already liked the product, so unlike it
       product.likes.splice(productLikedIndex, 1);
       user.likedProducts.splice(userLikedProductIndex, 1);
+      liked = false;
+
+      // Remove the activity when unliking
+      await Activity.findOneAndDelete({
+        user: product.seller._id,
+        type: "product_like",
+        sender: userId,
+        product: productId,
+      });
     } else {
       // User hasn't liked the product, so like it
       product.likes.push(userId);
       user.likedProducts.push(productId);
+      liked = true;
+
+      // Create an activity for the product seller
+      if (product.seller && !product.seller._id.equals(userId)) {
+        await createActivity(
+          product.seller._id.toString(),
+          "product_like",
+          userId.toString(),
+          `${user.firstName} ${user.lastName} liked your product: ${product.title}`,
+          productId.toString()
+        );
+      }
     }
 
     await Promise.all([product.save(), user.save()]);
@@ -43,7 +72,7 @@ export const toggleLikeProduct = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "Product like toggled successfully",
-      data: { liked: productLikedIndex === -1 },
+      data: { liked },
     });
   } catch (err) {
     console.error(err);
@@ -62,28 +91,50 @@ export const toggleLikeUser = async (req: Request, res: Response) => {
         .json({ success: 0, message: "You cannot like yourself", data: null });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
+    const [user, likedUser] = await Promise.all([
+      User.findById(userId),
+      User.findById(likedUserId),
+    ]);
+
+    if (!user || !likedUser) {
       return res
         .status(404)
         .json({ success: 0, message: "User not found", data: null });
     }
 
     const likedIndex = user.likedUsers.indexOf(likedUserId);
+    let liked: boolean;
+
     if (likedIndex > -1) {
       // User has already liked the other user, so unlike
       user.likedUsers.splice(likedIndex, 1);
+      liked = false;
+
+      // Remove the activity when unliking
+      await Activity.findOneAndDelete({
+        user: likedUserId,
+        type: "profile_like",
+        sender: userId,
+      });
     } else {
       // User hasn't liked the other user, so like
       user.likedUsers.push(likedUserId);
-    }
+      liked = true;
 
+      // Create an activity for the liked user
+      await createActivity(
+        likedUserId.toString(),
+        "profile_like",
+        userId.toString(),
+        `${user.firstName} ${user.lastName} liked your profile`
+      );
+    }
     await user.save();
 
     res.json({
       success: 1,
       message: "User like toggled successfully",
-      data: { liked: likedIndex === -1 },
+      data: { liked },
     });
   } catch (err) {
     console.error(err);

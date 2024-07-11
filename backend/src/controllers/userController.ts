@@ -4,25 +4,10 @@ import Product from "../models/Product";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import { emailSchema } from "../utils/email";
+import Activity from "../models/Activity";
 
 import Review from "../models/Review";
-
-const formatUserData = (user: any) => ({
-  id: user._id,
-  email: user.email,
-  firstName: user.firstName,
-  lastName: user.lastName,
-  profilePicture: user.profilePicture || null,
-  bio: user.bio || null,
-  likedProducts: user.likedProducts || [],
-  likedUsers: user.likedUsers || [],
-  products: user.products || [],
-  averageRating: user.averageRating,
-  reviewCount: user.reviewCount,
-  reviews: user.reviews || [],
-  createdAt: user.createdAt,
-  updatedAt: user.updatedAt,
-});
+import { formatUserData } from "../utils/formatUserData";
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -42,17 +27,35 @@ export const getAllUsers = async (req: Request, res: Response) => {
         select: "-password",
       });
 
-    const usersWithReviews = await Promise.all(
+    const usersWithReviewsAndActivities = await Promise.all(
       users.map(async (user) => {
         const reviews = await Review.find({ reviewee: user._id })
           .populate("reviewer", "firstName lastName profilePicture")
-          .populate("product") // Add this line to populate the product details
+          .populate("product")
           .sort({ createdAt: -1 });
-        return { ...user.toObject(), reviews };
+
+        const activities = await Activity.find({ user: user._id })
+          .populate("sender", "firstName lastName profilePicture")
+          .populate("product")
+          .sort({ createdAt: -1 });
+
+        const unseenActivitiesCount = await Activity.countDocuments({
+          user: user._id,
+          read: false,
+        });
+
+        return {
+          ...user.toObject(),
+          reviews,
+          activities: {
+            items: activities,
+            unseenCount: unseenActivitiesCount,
+          },
+        };
       })
     );
 
-    const formattedUsers = usersWithReviews.map(formatUserData);
+    const formattedUsers = usersWithReviewsAndActivities.map(formatUserData);
 
     res.json({
       success: 1,
@@ -68,6 +71,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.params.id)
@@ -96,11 +100,28 @@ export const getUserById = async (req: Request, res: Response) => {
 
     const reviews = await Review.find({ reviewee: user._id })
       .populate("reviewer", "firstName lastName profilePicture")
-      .populate("product") // Add this line to populate the entire product details
+      .populate("product")
       .sort({ createdAt: -1 });
 
-    const userWithReviews = { ...user.toObject(), reviews };
-    const formattedUser = formatUserData(userWithReviews);
+    const activities = await Activity.find({ user: user._id })
+      .populate("sender", "firstName lastName profilePicture")
+      .populate("product")
+      .sort({ createdAt: -1 });
+
+    const unseenActivitiesCount = await Activity.countDocuments({
+      user: user._id,
+      read: false,
+    });
+
+    const userWithReviewsAndActivities = {
+      ...user.toObject(),
+      reviews,
+      activities: {
+        items: activities,
+        unseenCount: unseenActivitiesCount,
+      },
+    };
+    const formattedUser = formatUserData(userWithReviewsAndActivities);
 
     res.json({
       success: 1,
@@ -116,6 +137,7 @@ export const getUserById = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getLoggedInUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -145,11 +167,28 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
 
     const reviews = await Review.find({ reviewee: user._id })
       .populate("reviewer", "firstName lastName profilePicture")
-      .populate("product") // Add this line to populate the entire product details
+      .populate("product")
       .sort({ createdAt: -1 });
 
-    const userWithReviews = { ...user.toObject(), reviews };
-    const formattedUser = formatUserData(userWithReviews);
+    const activities = await Activity.find({ user: user._id })
+      .populate("sender", "firstName lastName profilePicture")
+      .populate("product", "title images") // Add this line to populate product details
+      .sort({ createdAt: -1 });
+
+    const unseenActivitiesCount = await Activity.countDocuments({
+      user: user._id,
+      read: false,
+    });
+
+    const userWithReviewsAndActivities = {
+      ...user.toObject(),
+      reviews,
+      activities: {
+        items: activities,
+        unseenCount: unseenActivitiesCount,
+      },
+    };
+    const formattedUser = formatUserData(userWithReviewsAndActivities);
 
     res.json({
       success: 1,

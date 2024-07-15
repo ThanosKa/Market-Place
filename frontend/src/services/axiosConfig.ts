@@ -71,25 +71,9 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response && error.response.status === 401) {
-      // Session timed out
-      await removeAuthToken();
-
-      Alert.alert(
-        i18n.t("sessionTimeoutTitle"),
-        i18n.t("sessionTimeoutMessage"),
-        [
-          {
-            text: i18n.t("ok"),
-            onPress: () => {
-              navigate("Auth", { screen: "Login" });
-            },
-          },
-        ],
-        { cancelable: false }
-      );
+      navigate("AuthLoading");
     }
     return Promise.reject(error);
   }
 );
-
 export default axiosInstance;

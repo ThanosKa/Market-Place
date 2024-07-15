@@ -1,12 +1,16 @@
 import React, { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Alert } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { getAuthToken, removeAuthToken } from "../services/authStorage";
 import { RootStackParamList } from "../interfaces/auth/navigation";
+import { QueryClient } from "react-query";
+import i18n from "../utils/i18n";
 
 type AuthLoadingScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, "AuthLoading">;
 };
+
+const queryClient = new QueryClient();
 
 const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
   navigation,
@@ -22,8 +26,24 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
           navigation.replace("Main");
         } else {
           // Token is expired
-          await removeAuthToken();
-          navigation.replace("Auth");
+          Alert.alert(
+            i18n.t("sessionTimeoutTitle"),
+            i18n.t("sessionTimeoutMessage"),
+            [
+              {
+                text: i18n.t("ok"),
+                onPress: async () => {
+                  await removeAuthToken();
+                  queryClient.clear();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "AuthLoading" }],
+                  });
+                },
+              },
+            ],
+            { cancelable: false }
+          );
         }
       } else {
         navigation.replace("Auth");

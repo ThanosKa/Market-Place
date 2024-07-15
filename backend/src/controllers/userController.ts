@@ -204,12 +204,20 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const editUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
 
-    const { email, firstName, lastName, bio, newPassword, confirmNewPassword } =
-      req.body;
+    const {
+      email,
+      firstName,
+      lastName,
+      bio,
+      currentPassword,
+      newPassword,
+      confirmNewPassword,
+    } = req.body;
     const profilePicture = req.file;
 
     const user = await User.findById(userId);
@@ -221,7 +229,7 @@ export const editUser = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate and update email if it's being changed
+    // Update email if provided
     if (email && email !== user.email) {
       try {
         await emailSchema.validate(email);
@@ -252,6 +260,26 @@ export const editUser = async (req: Request, res: Response) => {
 
     // Update password if provided
     if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: 0,
+          message: "Current password is required to change password",
+          data: null,
+        });
+      }
+
+      const isPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.password
+      );
+      if (!isPasswordValid) {
+        return res.status(400).json({
+          success: 0,
+          message: "Current password is incorrect",
+          data: null,
+        });
+      }
+
       if (newPassword !== confirmNewPassword) {
         return res.status(400).json({
           success: 0,
@@ -259,6 +287,7 @@ export const editUser = async (req: Request, res: Response) => {
           data: null,
         });
       }
+
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(newPassword, salt);
     }
@@ -288,7 +317,6 @@ export const editUser = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);

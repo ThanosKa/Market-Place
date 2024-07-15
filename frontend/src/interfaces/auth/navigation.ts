@@ -21,4 +21,7 @@ export type MainStackParamList = {
   Chat: { userId: string };
   Likes: undefined;
   Messages: undefined;
+  EditProfile: undefined;
+  ChangeEmailScreen: undefined;
+  ChangePasswordScreen: undefined;
 };

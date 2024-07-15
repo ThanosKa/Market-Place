@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AUTH_TOKEN_KEY = "authToken";
 const AUTH_EXPIRATION_KEY = "authExpiration";
+const USER_ID_KEY = "userId";
 
 export const setAuthToken = async (token: string) => {
   try {
@@ -38,5 +39,33 @@ export const removeAuthToken = async () => {
     await AsyncStorage.removeItem(AUTH_EXPIRATION_KEY);
   } catch (error) {
     console.error("Error removing auth token:", error);
+  }
+};
+
+// New method to save userId
+export const setUserId = async (userId: string) => {
+  try {
+    await AsyncStorage.setItem(USER_ID_KEY, userId);
+  } catch (error) {
+    console.error("Error setting user ID:", error);
+  }
+};
+
+// New method to get userId
+export const getUserId = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(USER_ID_KEY);
+  } catch (error) {
+    console.error("Error getting user ID:", error);
+    return null;
+  }
+};
+
+// New method to remove userId
+export const removeUserId = async () => {
+  try {
+    await AsyncStorage.removeItem(USER_ID_KEY);
+  } catch (error) {
+    console.error("Error removing user ID:", error);
   }
 };

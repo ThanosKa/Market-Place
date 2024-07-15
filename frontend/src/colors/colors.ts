@@ -11,4 +11,6 @@ export const colors = {
   error: "#C0392B",
   info: "#428BCA",
   warning: "#FFD700",
+  customBlue: "#3897f0",
+  customBlueDarker: "#2769A8",
 };

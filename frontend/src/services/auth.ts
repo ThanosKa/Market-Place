@@ -1,6 +1,6 @@
 // services/authService.ts
 import axiosInstance, { axiosFormDataInstance } from "./axiosConfig";
-import { setAuthToken, removeAuthToken } from "./authStorage";
+import { setAuthToken, removeAuthToken, setUserId } from "./authStorage";
 import { LoginFormData, RegisterFormData } from "../interfaces/auth/auth";
 
 export const registerUser = async (userData: RegisterFormData) => {
@@ -17,6 +17,7 @@ export const loginUser = async (userData: LoginFormData) => {
     const response = await axiosInstance.post("/auth/login", userData);
     const { token, user } = response.data.data;
     await setAuthToken(token);
+    await setUserId(user.id);
     return { message: response.data.message, user };
   } catch (error) {
     throw error;

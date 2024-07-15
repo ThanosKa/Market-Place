@@ -1,5 +1,5 @@
 import { User } from "../interfaces/user";
-import axiosInstance from "./axiosConfig";
+import axiosInstance, { axiosFormDataInstance } from "./axiosConfig";
 
 interface ApiResponse {
   success: number;
@@ -16,6 +16,20 @@ export const getLoggedUser = async (): Promise<ApiResponse> => {
     return response.data;
   } catch (error) {
     throw error;
+  }
+};
+export const editUser = async (
+  formData: FormData
+): Promise<ApiResponse | null> => {
+  try {
+    const response = await axiosFormDataInstance.put<ApiResponse>(
+      "/users",
+      formData
+    );
+    return response.data;
+  } catch (error) {
+    // console.error("Error editing user:", error);
+    return null; // Return null instead of throwing
   }
 };
 

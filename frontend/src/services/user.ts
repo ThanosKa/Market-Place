@@ -1,7 +1,7 @@
 import { User } from "../interfaces/user";
 import axiosInstance, { axiosFormDataInstance } from "./axiosConfig";
 
-interface ApiResponse {
+export interface ApiResponse {
   success: number;
   message: string;
   data: {
@@ -10,9 +10,29 @@ interface ApiResponse {
 }
 
 // Get logged-in user
-export const getLoggedUser = async (): Promise<ApiResponse> => {
+export const getLoggedUser = async (params?: {
+  search?: string;
+  category?: string | string[];
+  condition?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}): Promise<ApiResponse> => {
   try {
-    const response = await axiosInstance.get<ApiResponse>("/users/me");
+    let url = "/users/me";
+    if (params) {
+      const queryString = new URLSearchParams(
+        Object.entries(params).filter(([_, value]) => value !== undefined) as [
+          string,
+          string
+        ][]
+      ).toString();
+      url += `?${queryString}`;
+    }
+    const response = await axiosInstance.get<ApiResponse>(url);
     return response.data;
   } catch (error) {
     throw error;
@@ -28,7 +48,7 @@ export const editUser = async (
     );
     return response.data;
   } catch (error) {
-    // console.error("Error editing user:", error);
+    console.error("Error editing user:", error);
     return null; // Return null instead of throwing
   }
 };

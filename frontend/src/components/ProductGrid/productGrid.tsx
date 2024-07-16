@@ -35,7 +35,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     "loggedUser",
     getLoggedUser
   );
-
   const { data, isLoading, error } = useQuery(
     ["products", queryParams],
     () => getProducts(queryParams),

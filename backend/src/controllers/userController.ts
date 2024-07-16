@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import User from "../models/User";
-import Product from "../models/Product";
+import Product, { IProduct } from "../models/Product";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import { emailSchema } from "../utils/email";
@@ -71,13 +71,49 @@ export const getAllUsers = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserById = async (req: Request, res: Response) => {
   try {
+    const {
+      search,
+      category,
+      condition,
+      minPrice,
+      maxPrice,
+      sort = "createdAt",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const productFilter: mongoose.FilterQuery<IProduct> = {};
+
+    if (typeof search === "string") {
+      productFilter.title = { $regex: search, $options: "i" };
+    }
+    if (category) {
+      productFilter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
+    }
+    if (typeof condition === "string") {
+      productFilter.condition = condition;
+    }
+    if (minPrice || maxPrice) {
+      productFilter.price = {};
+      if (minPrice) productFilter.price.$gte = Number(minPrice);
+      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+    }
+
     const user = await User.findById(req.params.id)
       .select("-password")
       .populate({
         path: "products",
+        match: productFilter,
+        options: {
+          sort: { [sort as string]: order as mongoose.SortOrder },
+          skip: (Number(page) - 1) * Number(limit),
+          limit: Number(limit),
+        },
         model: Product,
       })
       .populate({
@@ -105,7 +141,7 @@ export const getUserById = async (req: Request, res: Response) => {
 
     const activities = await Activity.find({ user: user._id })
       .populate("sender", "firstName lastName profilePicture")
-      .populate("product")
+      .populate("product", "title images")
       .sort({ createdAt: -1 });
 
     const unseenActivitiesCount = await Activity.countDocuments({
@@ -123,10 +159,21 @@ export const getUserById = async (req: Request, res: Response) => {
     };
     const formattedUser = formatUserData(userWithReviewsAndActivities);
 
+    const totalProducts = await Product.countDocuments({
+      seller: user._id,
+      ...productFilter,
+    });
+
     res.json({
       success: 1,
       message: "User retrieved successfully",
-      data: { user: formattedUser },
+      data: {
+        user: formattedUser,
+        page: Number(page),
+        limit: Number(limit),
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
     });
   } catch (err) {
     console.error(err);
@@ -140,11 +187,48 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const getLoggedInUser = async (req: Request, res: Response) => {
   try {
+    const {
+      search,
+      category,
+      condition,
+      minPrice,
+      maxPrice,
+      sort = "createdAt",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const productFilter: mongoose.FilterQuery<IProduct> = {};
+
+    if (typeof search === "string") {
+      productFilter.title = { $regex: search, $options: "i" };
+    }
+    if (category) {
+      productFilter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
+    }
+    if (typeof condition === "string") {
+      productFilter.condition = condition;
+    }
+    if (minPrice || maxPrice) {
+      productFilter.price = {};
+      if (minPrice) productFilter.price.$gte = Number(minPrice);
+      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+    }
+
     const userId = new mongoose.Types.ObjectId((req as any).userId);
     const user = await User.findById(userId)
       .select("-password")
       .populate({
         path: "products",
+        match: productFilter,
+        options: {
+          sort: { [sort as string]: order as mongoose.SortOrder },
+          skip: (Number(page) - 1) * Number(limit),
+          limit: Number(limit),
+        },
         model: Product,
       })
       .populate({
@@ -172,7 +256,7 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
 
     const activities = await Activity.find({ user: user._id })
       .populate("sender", "firstName lastName profilePicture")
-      .populate("product", "title images") // Add this line to populate product details
+      .populate("product", "title images")
       .sort({ createdAt: -1 });
 
     const unseenActivitiesCount = await Activity.countDocuments({
@@ -190,10 +274,21 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
     };
     const formattedUser = formatUserData(userWithReviewsAndActivities);
 
+    const totalProducts = await Product.countDocuments({
+      seller: userId,
+      ...productFilter,
+    });
+
     res.json({
       success: 1,
       message: "Logged in user retrieved successfully",
-      data: { user: formattedUser },
+      data: {
+        user: formattedUser,
+        page: Number(page),
+        limit: Number(limit),
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
     });
   } catch (err) {
     console.error(err);

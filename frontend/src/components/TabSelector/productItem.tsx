@@ -1,5 +1,6 @@
 // components/ProductItem.tsx
-import React, { useState } from "react";
+// components/ProductItem.tsx
+import React, { useState, useEffect } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
@@ -9,11 +10,20 @@ import { BASE_URL } from "../../services/axiosConfig";
 type Props = {
   product: Product;
   onLikeToggle: (productId: string) => Promise<void>;
+  isLiked: boolean; // Add this prop
 };
 
-const ProductItem: React.FC<Props> = ({ product, onLikeToggle }) => {
-  const [isLiked, setIsLiked] = useState(product.likes.length > 0);
+const ProductItem: React.FC<Props> = ({
+  product,
+  onLikeToggle,
+  isLiked: initialIsLiked,
+}) => {
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsLiked(initialIsLiked);
+  }, [initialIsLiked]);
 
   const imageUrl =
     product.images.length > 0 ? `${BASE_URL}${product.images[0]}` : undefined;
@@ -58,6 +68,8 @@ const ProductItem: React.FC<Props> = ({ product, onLikeToggle }) => {
     </View>
   );
 };
+
+// ... (styles remain the same)
 
 const styles = StyleSheet.create({
   productItem: {

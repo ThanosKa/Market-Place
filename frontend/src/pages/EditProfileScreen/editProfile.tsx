@@ -22,6 +22,7 @@ import { BASE_URL } from "../../services/axiosConfig";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import Toast from "react-native-toast-message";
+import { useLoggedUser } from "../../hooks/useLoggedUser";
 
 type EditProfileScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -38,10 +39,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const firstNameRef = useRef<TextInput>(null);
   const lastNameRef = useRef<TextInput>(null);
   const bioRef = useRef<TextInput>(null);
-  const { data: userData, isLoading: userLoading } = useQuery(
-    "loggedUser",
-    getLoggedUser
-  );
+  const { data: userData, isLoading: userLoading, refetch } = useLoggedUser();
   console.log(userData?.data.user.email);
   const [firstName, setFirstName] = useState(
     userData?.data.user.firstName || ""

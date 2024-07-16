@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { View, TextInput, StyleSheet } from "react-native";
+import React from "react";
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
@@ -10,23 +17,28 @@ type Props = {
   products: Product[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onSearch: () => void;
+  isLoading: boolean;
 };
 
 const ListingsTab: React.FC<Props> = ({
   products,
   searchQuery,
   setSearchQuery,
+  onSearch,
+  isLoading,
 }) => {
   const { t } = useTranslation();
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
 
-  useEffect(() => {
-    setFilteredProducts(
-      products.filter((product) =>
-        product.title.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
-  }, [searchQuery, products]);
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    onSearch();
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    onSearch();
+  };
 
   return (
     <View style={styles.listingsContainer}>
@@ -41,10 +53,25 @@ const ListingsTab: React.FC<Props> = ({
           style={styles.searchInput}
           placeholder={t("Search this profile")}
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearch}
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            onPress={handleClearSearch}
+            style={styles.clearButton}
+          >
+            <Ionicons name="close-circle" size={20} color="#999" />
+          </TouchableOpacity>
+        )}
       </View>
-      <ProductGrid products={filteredProducts} />
+
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.secondary} />
+        </View>
+      ) : (
+        <ProductGrid products={products} />
+      )}
     </View>
   );
 };
@@ -59,7 +86,7 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: "#f0f0f0",
     borderRadius: 20,
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     marginBottom: 16,
   },
   searchIcon: {
@@ -68,6 +95,13 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
+  },
+  clearButton: {
+    padding: 5,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

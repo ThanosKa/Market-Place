@@ -19,10 +19,9 @@ import UserInfo from "../../components/UserProfile/userInfo";
 import TabSelector from "../../components/TabSelector/tabSelector";
 import ListingsTab from "../../components/TabSelector/listingTab";
 import ProfileTab from "../../components/TabSelector/profileTab";
-import { useQuery } from "react-query";
-import { getLoggedUser } from "../../services/user";
 import { User } from "../../interfaces/user";
 import ReviewsTab from "../../components/TabSelector/reviewTab";
+import { useLoggedUser } from "../../hooks/useLoggedUser";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
@@ -42,19 +41,21 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [initialUserData, setInitialUserData] = useState<User | null>(null);
 
   const {
     data: userData,
     isLoading: userLoading,
     refetch,
-  } = useQuery("loggedUser", getLoggedUser);
+  } = useLoggedUser({
+    search: activeTab === "listings" ? searchQuery : undefined,
+  });
 
   useFocusEffect(
     useCallback(() => {
       refetch();
-
       setActiveTab("profile");
-    }, [])
+    }, [refetch])
   );
 
   const onRefresh = useCallback(async () => {
@@ -69,24 +70,30 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [route.params?.refreshProfile, onRefresh]);
 
-  if (userLoading && !isRefreshing) {
-    return <ActivityIndicator size="large" color={colors.primary} />;
-  }
+  useEffect(() => {
+    if (userData?.data?.user && !initialUserData) {
+      setInitialUserData(userData.data.user);
+    }
+  }, [userData, initialUserData]);
 
-  const user: User | undefined = userData?.data?.user;
+  const user = userData?.data?.user || initialUserData;
 
-  if (!user) {
-    return <Text>Error loading user data</Text>;
-  }
+  const renderContent = () => {
+    if (userLoading && !initialUserData) {
+      return <ActivityIndicator size="large" color={colors.primary} />;
+    }
 
-  const tabs = [
-    { key: "profile", label: t("profile") },
-    { key: "listings", label: t("listings") },
-    { key: "reviews", label: t("reviews") },
-  ];
+    if (!user) {
+      return <Text>Error loading user data</Text>;
+    }
 
-  return (
-    <View style={styles.container}>
+    const tabs = [
+      { key: "profile", label: t("profile") },
+      { key: "listings", label: t("listings") },
+      { key: "reviews", label: t("reviews") },
+    ];
+
+    return (
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
@@ -106,12 +113,16 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             products={user.products}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            onSearch={() => refetch()}
+            isLoading={userLoading}
           />
         )}
         {activeTab === "reviews" && <ReviewsTab reviews={user.reviews} />}
       </ScrollView>
-    </View>
-  );
+    );
+  };
+
+  return <View style={styles.container}>{renderContent()}</View>;
 };
 
 const styles = StyleSheet.create({

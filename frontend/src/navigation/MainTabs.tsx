@@ -99,6 +99,8 @@ const MainTabs = () => {
         tabBarLabelStyle: {
           // You can add styles for the tab labels here
         },
+        gestureEnabled: false, // This disables the swipe-back gesture
+        swipeEnabled: false,
       })}
     >
       <Tab.Screen

@@ -1,4 +1,8 @@
 {
+  "no-reviews-user": "has not reviews yet",
+  "for-sale": "For sale",
+  "no-reviews": "No reviews",
+  "about": "About",
   "success-change-password": "Password changed successfully",
   "fail-change-password": "Could not change password",
 

@@ -5,9 +5,10 @@ import { colors } from "../../colors/colors";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-
+import { getUserId } from "../../services/authStorage";
+import { Feather } from "@expo/vector-icons";
 type ProductCardProps = {
-  userImage: string;
+  userImage: string | null;
   userName: string;
   userId: string;
   productImage: string | null;
@@ -33,14 +34,34 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
-  const handleUserPress = () => {
-    navigation.navigate("UserProfile", { userId });
+  const handleUserPress = async () => {
+    if (userId) {
+      const loggedUserId = await getUserId();
+      if (loggedUserId === userId) {
+        // Navigate to the Profile tab
+        navigation.navigate("MainTabs");
+        navigation.navigate("Profile", { refreshProfile: Date.now() });
+      } else {
+        // If it's a different user, navigate to their UserProfile
+        navigation.navigate("UserProfile", { userId });
+      }
+    } else {
+      console.warn("User ID is missing");
+    }
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={handleUserPress} style={styles.userInfo}>
-        <Image source={{ uri: userImage }} style={styles.userImage} />
+        <View style={styles.userImageContainer}>
+          {userImage ? (
+            <Image source={{ uri: userImage }} style={styles.userImage} />
+          ) : (
+            <View style={styles.defaultUserImage}>
+              <Feather name="user" size={15} color={colors.secondary} />
+            </View>
+          )}
+        </View>
         <Text style={styles.userName}>{userName}</Text>
       </TouchableOpacity>
       {productImage ? (
@@ -106,6 +127,20 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
     backgroundColor: "#f0f0f0",
     color: "#999",
+  },
+  userImageContainer: {
+    width: 30,
+    height: 30,
+    marginRight: 8,
+  },
+
+  defaultUserImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.lightGray,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 14,

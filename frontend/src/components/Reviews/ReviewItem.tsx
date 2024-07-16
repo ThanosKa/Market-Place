@@ -122,14 +122,15 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    color: colors.secondary,
+    fontWeight: "bold",
+    color: colors.primary,
     marginBottom: 10,
   },
   reviewComment: {
     fontSize: 14,
     color: colors.primary,
 
-    marginBottom: 10,
+    marginBottom: 14,
   },
   reviewFooter: {
     flexDirection: "row",
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontSize: 14,
     fontWeight: "bold",
-    color: colors.primary,
+    color: colors.secondary,
   },
   byText: {
     color: colors.secondary,

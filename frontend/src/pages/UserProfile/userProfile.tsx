@@ -9,7 +9,11 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { RouteProp, useFocusEffect } from "@react-navigation/native";
+import {
+  CommonActions,
+  RouteProp,
+  useFocusEffect,
+} from "@react-navigation/native";
 import {
   MainStackParamList,
   RootStackParamList,
@@ -18,43 +22,53 @@ import { colors } from "../../colors/colors";
 import UserInfo from "../../components/UserInfo/userInfo";
 import TabSelector from "../../components/TabSelector/tabSelector";
 import ListingsTab from "../../components/TabSelector/listingTab";
-import ProfileTab from "../../components/TabSelector/profileTab";
 import { User } from "../../interfaces/user";
 import ReviewsTab from "../../components/TabSelector/reviewTab";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
+import { getUserId } from "../../services/authStorage";
+import { useUserById } from "../../hooks/useUserById";
+import AboutTab from "../../components/TabSelector/aboutTab";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
-type ProfileScreenNavigationProp = StackNavigationProp<
+type UserProfileScreenNavigationProp = StackNavigationProp<
   CombinedParamList,
-  "Profile"
+  "UserProfile"
 >;
-type ProfileScreenRouteProp = RouteProp<CombinedParamList, "Profile">;
+type UserProfileScreenRouteProp = RouteProp<CombinedParamList, "UserProfile">;
 
 type Props = {
-  navigation: ProfileScreenNavigationProp;
-  route: ProfileScreenRouteProp;
+  navigation: UserProfileScreenNavigationProp;
+  route: UserProfileScreenRouteProp;
 };
 
-const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
+const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<string>("profile");
+  const [activeTab, setActiveTab] = useState<string>("about");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [initialUserData, setInitialUserData] = useState<User | null>(null);
+
+  const userId = route.params.userId;
 
   const {
     data: userData,
     isLoading: userLoading,
     refetch,
-  } = useLoggedUser({
+  } = useUserById(userId, {
     search: activeTab === "listings" ? searchQuery : undefined,
   });
+  const user = userData?.data?.user || initialUserData;
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      setActiveTab("about");
+    }, [refetch])
+  );
 
   useFocusEffect(
     useCallback(() => {
       refetch();
-      setActiveTab("profile");
+      setActiveTab("about");
     }, [refetch])
   );
 
@@ -63,20 +77,19 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     await refetch();
     setIsRefreshing(false);
   }, [refetch]);
-
   useEffect(() => {
-    if (route.params?.refreshProfile) {
-      onRefresh();
+    if (user) {
+      navigation.setParams({
+        firstName: user.firstName,
+        lastName: user.lastName,
+      });
     }
-  }, [route.params?.refreshProfile, onRefresh]);
-
+  }, [user, navigation]);
   useEffect(() => {
     if (userData?.data?.user && !initialUserData) {
       setInitialUserData(userData.data.user);
     }
   }, [userData, initialUserData]);
-
-  const user = userData?.data?.user || initialUserData;
 
   const renderContent = () => {
     if (userLoading && !initialUserData) {
@@ -86,9 +99,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!user) {
       return <Text>Error loading user data</Text>;
     }
-
     const tabs = [
-      { key: "profile", label: t("profile") },
+      { key: "about", label: t("about") },
       { key: "listings", label: t("listings") },
       { key: "reviews", label: t("reviews") },
     ];
@@ -105,9 +117,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
         />
-        {activeTab === "profile" && (
-          <ProfileTab user={user} navigation={navigation} />
-        )}
+        {activeTab === "about" && <AboutTab user={user} />}
         {activeTab === "listings" && (
           <ListingsTab
             products={user.products}
@@ -117,7 +127,14 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             isLoading={userLoading}
           />
         )}
-        {activeTab === "reviews" && <ReviewsTab reviews={user.reviews} />}
+        {activeTab === "reviews" && (
+          <ReviewsTab
+            user={false}
+            reviews={user.reviews}
+            firstName={user.firstName}
+            lastName={user.lastName}
+          />
+        )}
       </ScrollView>
     );
   };
@@ -132,4 +149,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProfileScreen;
+export default UserProfileScreen;

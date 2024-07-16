@@ -13,4 +13,5 @@ export const colors = {
   warning: "#FFD700",
   customBlue: "#3897f0",
   customBlueDarker: "#2769A8",
+  starYellow: "#FFD700",
 };

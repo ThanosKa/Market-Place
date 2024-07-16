@@ -26,24 +26,7 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
           navigation.replace("Main");
         } else {
           // Token is expired
-          Alert.alert(
-            i18n.t("sessionTimeoutTitle"),
-            i18n.t("sessionTimeoutMessage"),
-            [
-              {
-                text: i18n.t("ok"),
-                onPress: async () => {
-                  await removeAuthToken();
-                  queryClient.clear();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "AuthLoading" }],
-                  });
-                },
-              },
-            ],
-            { cancelable: false }
-          );
+          await handleExpiredToken();
         }
       } else {
         navigation.replace("Auth");
@@ -52,6 +35,25 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
 
     checkToken();
   }, [navigation]);
+
+  const handleExpiredToken = async () => {
+    await removeAuthToken();
+    queryClient.clear();
+
+    Alert.alert(
+      i18n.t("sessionTimeoutTitle"),
+      i18n.t("sessionTimeoutMessage"),
+      [
+        {
+          text: i18n.t("ok"),
+          onPress: () => {
+            navigation.replace("Auth");
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

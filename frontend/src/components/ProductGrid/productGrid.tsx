@@ -8,6 +8,7 @@ import { BASE_URL } from "../../services/axiosConfig";
 import { getProducts } from "../../services/product";
 import { toggleLikeProduct } from "../../services/likes";
 import { getLoggedUser } from "../../services/user";
+import { useLoggedUser } from "../../hooks/useLoggedUser";
 
 interface ProductGridProps {
   onRefreshComplete: () => void;
@@ -31,10 +32,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return params;
   }, [selectedCategories]);
 
-  const { data: userData, isLoading: userLoading } = useQuery(
-    "loggedUser",
-    getLoggedUser
-  );
+  const { data: userData, isLoading: userLoading } = useLoggedUser();
+
   const { data, isLoading, error } = useQuery(
     ["products", queryParams],
     () => getProducts(queryParams),
@@ -95,7 +94,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const renderProduct = ({ item }: { item: Product }) => (
     <ProductCard
       key={item._id}
-      userImage={`${BASE_URL}/${item.seller.profilePicture}`}
+      userImage={
+        item.seller.profilePicture
+          ? `${BASE_URL}/${item.seller.profilePicture}`
+          : null
+      }
       userName={`${item.seller.firstName} ${item.seller.lastName}`}
       userId={item.seller._id}
       productImage={

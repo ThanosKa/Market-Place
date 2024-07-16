@@ -13,7 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { colors } from "../../colors/colors";
-import Header from "../UserProfile/header";
+// import Header from "../UserProfile/header";
 import SearchBar from "../SearchBarComponenet";
 import { Swipeable } from "react-native-gesture-handler";
 
@@ -133,7 +133,7 @@ const MessageScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header onBackPress={handleBackPress} />
+      {/* <Header onBackPress={handleBackPress} /> */}
 
       <SearchBar
         searchQuery={searchQuery}

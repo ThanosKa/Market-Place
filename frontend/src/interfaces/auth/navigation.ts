@@ -23,7 +23,11 @@ export type MainStackParamList = {
   Activity: { refreshActivity?: number };
 
   Profile: { refreshProfile?: number };
-  UserProfile: { userId: string };
+  UserProfile: {
+    userId: string;
+    firstName?: string;
+    lastName?: string;
+  };
   Chat: { userId: string };
   Likes: undefined;
   Messages: undefined;

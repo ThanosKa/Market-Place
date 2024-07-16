@@ -57,6 +57,7 @@ export interface User {
   reviews: Review[];
   activities: Activities;
   updatedAt: string;
+  createdAt: string;
 }
 
 export interface UserResponse {

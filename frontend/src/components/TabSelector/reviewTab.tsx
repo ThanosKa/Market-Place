@@ -7,15 +7,31 @@ import ReviewItem from "../Reviews/ReviewItem";
 
 type Props = {
   reviews: Review[];
+  user?: boolean;
+  firstName?: string;
+  lastName?: string;
 };
 
-const ReviewsTab: React.FC<Props> = ({ reviews }) => {
+const ReviewsTab: React.FC<Props> = ({
+  reviews,
+  user,
+  firstName,
+  lastName,
+}) => {
   const { t } = useTranslation();
 
   if (reviews.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t("no-reviews-yet")}</Text>
+        {user && <Text style={styles.emptyText}>{t("no-reviews-yet")}</Text>}
+        {!user && firstName && lastName && (
+          <Text style={styles.emptyText}>
+            {`${firstName} ${lastName} ${t("no-reviews-user")}`}
+          </Text>
+        )}
+        {!user && (!firstName || !lastName) && (
+          <Text style={styles.emptyText}>{t("no-reviews-user")}</Text>
+        )}
       </View>
     );
   }
@@ -37,6 +53,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingBottom: 10,
     padding: 16,
   },
   emptyText: {

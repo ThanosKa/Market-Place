@@ -54,11 +54,33 @@ export const editUser = async (
 };
 
 // Get user by ID
-export const getUserById = async (userId: string): Promise<ApiResponse> => {
+// services/user.ts
+export const getUserById = async (
+  userId: string,
+  params?: {
+    search?: string;
+    category?: string | string[];
+    condition?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: string;
+    order?: "asc" | "desc";
+    page?: number;
+    limit?: number;
+  }
+): Promise<ApiResponse> => {
   try {
-    const response = await axiosInstance.get<ApiResponse>(
-      `/api/users/${userId}`
-    );
+    let url = `/users/${userId}`;
+    if (params) {
+      const queryString = new URLSearchParams(
+        Object.entries(params).filter(([_, value]) => value !== undefined) as [
+          string,
+          string
+        ][]
+      ).toString();
+      url += `?${queryString}`;
+    }
+    const response = await axiosInstance.get<ApiResponse>(url);
     return response.data;
   } catch (error) {
     throw error;

@@ -12,10 +12,16 @@ export type RootStackParamList = {
 
 export type MainStackParamList = {
   MainTabs: undefined;
-  Home: { searchQuery?: string };
-  Search: undefined;
+  Home: {
+    searchQuery?: string;
+    refreshHome?: number;
+  };
+  Search: {
+    refreshSearch?: number;
+  };
   Sell: undefined;
-  Activity: undefined;
+  Activity: { refreshActivity?: number };
+
   Profile: { refreshProfile?: number };
   UserProfile: { userId: string };
   Chat: { userId: string };

@@ -6,9 +6,13 @@ import { BASE_URL } from "../../../services/axiosConfig";
 
 interface ProductGridProps {
   products: Product[];
+  refreshControl?: React.ReactElement;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({
+  products,
+  refreshControl,
+}) => {
   const handleClickProduct = (product: Product) => {
     console.log("Product clicked:", product._id);
   };
@@ -35,6 +39,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products }) => {
       keyExtractor={(item) => item._id}
       numColumns={3}
       style={styles.productGrid}
+      refreshControl={refreshControl}
     />
   );
 };

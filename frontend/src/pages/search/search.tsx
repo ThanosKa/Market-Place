@@ -1,6 +1,12 @@
-// SearchScreen.tsx
-import React, { useState, useCallback } from "react";
-import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import React, { useState, useCallback, useEffect } from "react";
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Text,
+  RefreshControl,
+  ScrollView,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import debounce from "lodash.debounce";
@@ -17,6 +23,10 @@ import SearchResults from "./helpers/SearchResults";
 import RecentSearches from "./helpers/RecentSearches";
 import ProductGrid from "./helpers/ProductGrid";
 import SearchButton from "./helpers/SearchButton";
+import { RouteProp, useRoute } from "@react-navigation/native";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
+
+type SearchScreenRouteProp = RouteProp<MainStackParamList, "Search">;
 
 const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,6 +35,16 @@ const SearchScreen = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const route = useRoute<SearchScreenRouteProp>();
+
+  useEffect(() => {
+    if (route.params?.refreshSearch) {
+      onRefresh();
+    }
+  }, [route.params?.refreshSearch]);
 
   const handleShowSearch = () => {
     setShowSearchBar(true);
@@ -54,6 +74,7 @@ const SearchScreen = () => {
     data: productsData,
     isLoading: productsLoading,
     error: productsError,
+    refetch: refetchProducts,
   } = useQuery(["products", debouncedSearchQuery], () => getProducts(), {
     enabled: !isFocused || (isFocused && debouncedSearchQuery.length > 0),
   });
@@ -62,6 +83,7 @@ const SearchScreen = () => {
     data: recentSearchesData,
     isLoading: recentSearchesLoading,
     error: recentSearchesError,
+    refetch: refetchRecentSearches,
   } = useQuery("recentSearches", getRecentSearches, {
     enabled: isFocused && searchQuery.length === 0,
   });
@@ -112,6 +134,17 @@ const SearchScreen = () => {
     deleteAllRecentSearchesMutation.mutate();
   };
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setIsLoading(true);
+    Promise.all([refetchProducts(), refetchRecentSearches()]).then(() => {
+      setRefreshing(false);
+      setIsLoading(false);
+    });
+  }, [refetchProducts, refetchRecentSearches]);
+  const refreshControl = (
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  );
   return (
     <View style={styles.container}>
       {showSearchBar ? (
@@ -126,12 +159,13 @@ const SearchScreen = () => {
       ) : (
         <SearchButton onPress={handleShowSearch} />
       )}
+
       {!isFocused && (
         <>
           {productsLoading ? (
             <ActivityIndicator size="small" color={colors.secondary} />
           ) : products.length > 0 ? (
-            <ProductGrid products={products} />
+            <ProductGrid products={products} refreshControl={refreshControl} />
           ) : (
             <Text style={styles.emptyMessage}>{t("no-products-found")}</Text>
           )}
@@ -141,7 +175,7 @@ const SearchScreen = () => {
       {isFocused && searchQuery.length === 0 && (
         <RecentSearches
           recentSearches={recentSearches}
-          isLoading={recentSearchesLoading}
+          isLoading={recentSearchesLoading || isLoading}
           onClickRecentSearch={handleClickRecentSearch}
           onDeleteRecentSearch={handleDeleteRecentSearch}
           onClearAllRecentSearches={handleClearAllRecentSearches}
@@ -150,7 +184,7 @@ const SearchScreen = () => {
 
       {isFocused && searchQuery.length > 0 && (
         <>
-          {productsLoading ? (
+          {productsLoading || isLoading ? (
             <ActivityIndicator size="small" color={colors.secondary} />
           ) : products.length > 0 ? (
             <SearchResults
@@ -177,6 +211,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 14,
     color: colors.secondary,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

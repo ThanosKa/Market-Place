@@ -8,6 +8,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   RefreshControl,
+  ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "react-query";
@@ -16,6 +18,7 @@ import CategoryIcon from "../../components/CategoryIcons/categoryIcons";
 import { categories } from "../../interfaces/exploreCategories/iconsCategory";
 import ProductGrid from "../../components/ProductGrid/productGrid";
 import { colors } from "../../colors/colors";
+
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 
@@ -25,7 +28,9 @@ interface HomeScreenProps {
   route: HomeScreenRouteProp;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ route }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
+  // Add this line to use the useRoute hook
+  const route = useRoute<HomeScreenRouteProp>();
   const searchQuery = route.params?.searchQuery || "";
 
   useEffect(() => {
@@ -34,6 +39,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route }) => {
       queryClient.invalidateQueries(["products", { search: searchQuery }]);
     }
   }, [searchQuery]);
+  useEffect(() => {
+    if (route.params?.refreshHome) {
+      onRefresh();
+    }
+  }, [route.params?.refreshHome]);
+  const handleRefreshComplete = () => {
+    setRefreshing(false);
+  };
+
   const { t } = useTranslation();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,7 +95,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route }) => {
           ))}
         </View>
         <ProductGrid
-          onRefreshComplete={() => setRefreshing(false)}
+          onRefreshComplete={handleRefreshComplete}
           selectedCategories={selectedCategoryValues}
         />
       </ScrollView>

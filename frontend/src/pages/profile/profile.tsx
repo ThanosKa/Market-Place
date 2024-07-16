@@ -54,7 +54,6 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       refetch();
 
       setActiveTab("profile");
-      console.log("taB", activeTab);
     }, [])
   );
 

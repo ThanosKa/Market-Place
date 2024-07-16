@@ -1,4 +1,6 @@
-import React from "react";
+// ActivityScreen.tsx
+
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,99 +9,51 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Swipeable } from "react-native-gesture-handler";
 import { colors } from "../../colors/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "react-query";
-import {
-  formatDistanceToNow,
-  isToday,
-  isYesterday,
-  isThisWeek,
-  isThisMonth,
-  differenceInHours,
-} from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { getLoggedUser } from "../../services/user";
 import { Activity, User } from "../../interfaces/user";
 import { BASE_URL } from "../../services/axiosConfig";
+import { RouteProp, useFocusEffect, useRoute } from "@react-navigation/native";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { groupActivities, getActivityMessage, getSections } from "./helper";
+
+type ActivityScreenRouteProp = RouteProp<MainStackParamList, "Activity">;
 
 const ActivityScreen: React.FC = () => {
+  const route = useRoute<ActivityScreenRouteProp>();
   const { t } = useTranslation();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, error } = useQuery<any, Error>(
+  const { data, isLoading, error, refetch } = useQuery<any, Error>(
     "loggedUser",
     getLoggedUser
   );
 
   const user: User | undefined = data?.data.user;
   const activities: Activity[] = user?.activities?.items || [];
-
-  const groupActivities = (activities: Activity[]) => {
-    const now = new Date();
-    const grouped: Record<string, Activity[]> = {
-      today: [],
-      yesterday: [],
-      lastWeek: [],
-      lastMonth: [],
-      older: [],
-    };
-
-    activities.forEach((activity) => {
-      const activityDate = new Date(activity.createdAt);
-      const hoursDiff = differenceInHours(now, activityDate);
-
-      if (isToday(activityDate)) {
-        grouped.today.push(activity);
-      } else if (
-        isYesterday(activityDate) ||
-        (hoursDiff >= 24 && hoursDiff < 48)
-      ) {
-        grouped.yesterday.push(activity);
-      } else if (isThisWeek(activityDate)) {
-        grouped.lastWeek.push(activity);
-      } else if (isThisMonth(activityDate)) {
-        grouped.lastMonth.push(activity);
-      } else {
-        grouped.older.push(activity);
-      }
-    });
-
-    return grouped;
-  };
-
   const groupedActivities = groupActivities(activities);
 
   const renderActivityItem = ({ item }: { item: Activity }) => {
-    const getActivityMessage = (type: string) => {
-      switch (type) {
-        case "product_like":
-          return t("liked your product");
-        case "profile_like":
-          return t("liked your profile");
-        case "message":
-          return t("sent you a message");
-        default:
-          return "";
-      }
-    };
-
     const deleteItem = (id: string) => {
       // TODO: Implement delete functionality with API
       console.log("Delete item", id);
     };
 
-    const renderRightActions = () => {
-      return (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => deleteItem(item._id)}
-        >
-          <Ionicons name="trash-outline" size={24} color={colors.white} />
-        </TouchableOpacity>
-      );
-    };
+    const renderRightActions = () => (
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => deleteItem(item._id)}
+      >
+        <Ionicons name="trash-outline" size={24} color={colors.white} />
+      </TouchableOpacity>
+    );
 
     return (
       <Swipeable renderRightActions={renderRightActions}>
@@ -139,10 +93,28 @@ const ActivityScreen: React.FC = () => {
     </View>
   );
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  useEffect(() => {
+    if (route.params?.refreshActivity) {
+      onRefresh();
+    }
+  }, [route.params?.refreshActivity, onRefresh]);
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
@@ -155,19 +127,11 @@ const ActivityScreen: React.FC = () => {
     );
   }
 
-  const sections = [
-    { title: t("Today"), data: groupedActivities.today },
-    { title: t("Yesterday"), data: groupedActivities.yesterday },
-    { title: t("Last 7 Days"), data: groupedActivities.lastWeek },
-    { title: t("This Month"), data: groupedActivities.lastMonth },
-    { title: t("Older"), data: groupedActivities.older },
-  ];
-
   return (
     <View style={styles.container}>
       <Text style={styles.notificationTitle}>{t("Notifications")}</Text>
       <FlatList
-        data={sections}
+        data={getSections(groupedActivities)}
         renderItem={({ item }) => (
           <>
             {item.data.length > 0 && (
@@ -186,6 +150,9 @@ const ActivityScreen: React.FC = () => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>{t("No activities yet")}</Text>
         }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );
@@ -195,7 +162,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 16,
+    padding: 6,
   },
   notificationTitle: {
     fontSize: 24,

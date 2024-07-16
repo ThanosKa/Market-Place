@@ -14,18 +14,34 @@ import ProfileScreen from "../pages/profile/profile";
 const Tab = createBottomTabNavigator<MainStackParamList>();
 
 const MainTabs = () => {
-  const lastTapTimeRef = useRef(0);
+  const lastTapTimeRef = useRef<{ [key: string]: number }>({});
 
   const handleDoubleTap = useCallback(
-    (navigation: NavigationProp<MainStackParamList>) => {
+    (navigation: NavigationProp<MainStackParamList>, routeName: string) => {
       const now = Date.now();
       const DOUBLE_PRESS_DELAY = 300;
-      if (now - lastTapTimeRef.current < DOUBLE_PRESS_DELAY) {
-        navigation.setParams({ refreshProfile: Date.now() });
+      if (now - (lastTapTimeRef.current[routeName] || 0) < DOUBLE_PRESS_DELAY) {
+        navigation.setParams({ [`refresh${routeName}`]: Date.now() });
       }
-      lastTapTimeRef.current = now;
+      lastTapTimeRef.current[routeName] = now;
     },
     []
+  );
+
+  const renderTabBarButton = (
+    props: any,
+    navigation: NavigationProp<MainStackParamList>,
+    routeName: string
+  ) => (
+    <TouchableOpacity
+      {...props}
+      onPress={(e: GestureResponderEvent) => {
+        handleDoubleTap(navigation, routeName);
+        if (props.onPress) {
+          props.onPress(e);
+        }
+      }}
+    />
   );
 
   return (
@@ -73,7 +89,6 @@ const MainTabs = () => {
               />
             );
           }
-          // Default icon if none of the conditions are met
           return null;
         },
         tabBarActiveTintColor: colors.primary,
@@ -86,29 +101,37 @@ const MainTabs = () => {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={({ navigation }) => ({
+          tabBarButton: (props) =>
+            renderTabBarButton(props, navigation, "Home"),
+        })}
+      />
+      <Tab.Screen
+        name="Search"
+        component={SearchScreen}
+        options={({ navigation }) => ({
+          tabBarButton: (props) =>
+            renderTabBarButton(props, navigation, "Search"),
+        })}
+      />
       <Tab.Screen name="Sell" component={SellScreen} />
-      <Tab.Screen name="Activity" component={ActivityScreen} />
+      <Tab.Screen
+        name="Activity"
+        component={ActivityScreen}
+        options={({ navigation }) => ({
+          tabBarButton: (props) =>
+            renderTabBarButton(props, navigation, "Activity"),
+        })}
+      />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={({
-          navigation,
-        }: {
-          navigation: NavigationProp<MainStackParamList>;
-        }) => ({
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              {...props}
-              onPress={(e: GestureResponderEvent) => {
-                handleDoubleTap(navigation);
-                if (props.onPress) {
-                  props.onPress(e);
-                }
-              }}
-            />
-          ),
+        options={({ navigation }) => ({
+          tabBarButton: (props) =>
+            renderTabBarButton(props, navigation, "Profile"),
         })}
       />
     </Tab.Navigator>

@@ -1,5 +1,4 @@
 // components/ProductGrid.tsx
-// components/ProductGrid.tsx
 import React from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
@@ -9,7 +8,7 @@ import { Product } from "../../interfaces/product";
 import { useMutation, useQueryClient } from "react-query";
 import { toggleLikeProduct } from "../../services/likes";
 import { colors } from "../../colors/colors";
-import { useLoggedUser } from "../../hooks/useLoggedUser"; // Add this import
+import { useLoggedUser } from "../../hooks/useLoggedUser";
 
 type Props = {
   products: Product[];

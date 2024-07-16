@@ -74,8 +74,6 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
   );
 };
 
-// Styles remain the same
-
 const styles = StyleSheet.create({
   outerContainer: {
     gap: 10,

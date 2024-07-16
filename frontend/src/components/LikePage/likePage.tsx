@@ -22,6 +22,7 @@ import { BASE_URL } from "../../services/axiosConfig";
 import { toggleLikeProduct, toggleLikeUser } from "../../services/likes";
 import { getLoggedUser } from "../../services/user";
 import { LikedUser } from "../../interfaces/user";
+import { useLoggedUser } from "../../hooks/useLoggedUser";
 
 type LikesPageProp = RouteProp<MainStackParamList, "Likes">;
 type LikesPagePropScreenNavigationProp = StackNavigationProp<
@@ -42,12 +43,7 @@ const LikesPage: React.FC<Props> = ({ navigation }) => {
 
   const queryClient = useQueryClient();
 
-  const {
-    data: userData,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery("loggedUser", getLoggedUser);
+  const { data: userData, isLoading, refetch, error } = useLoggedUser();
 
   const toggleUserLikeMutation = useMutation(toggleLikeUser, {
     onSuccess: () => {

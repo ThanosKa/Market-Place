@@ -10,7 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
-import ProductGrid from "./productGrid";
+import ProductGrid from "../Product/productGrid";
 import { Product } from "../../interfaces/product";
 
 type Props = {

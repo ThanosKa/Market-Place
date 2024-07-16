@@ -3,7 +3,7 @@ import React from "react";
 import { View, StyleSheet, Text } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Review } from "../../interfaces/review";
-import ReviewItem from "./ReviewItem";
+import ReviewItem from "../Reviews/ReviewItem";
 
 type Props = {
   reviews: Review[];

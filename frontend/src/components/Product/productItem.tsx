@@ -69,8 +69,6 @@ const ProductItem: React.FC<Props> = ({
   );
 };
 
-// ... (styles remain the same)
-
 const styles = StyleSheet.create({
   productItem: {
     width: "48%",

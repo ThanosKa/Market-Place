@@ -12,7 +12,6 @@ export const formatUserData = (user: any) => ({
   reviewCount: user.reviewCount,
   reviews: user.reviews || [],
   activities: user.activities || [],
-
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });

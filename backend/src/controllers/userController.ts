@@ -151,6 +151,8 @@ export const getUserById = async (req: Request, res: Response) => {
 
     const userWithReviewsAndActivities = {
       ...user.toObject(),
+      createdAt: user.createdAt,
+
       reviews,
       activities: {
         items: activities,
@@ -266,6 +268,8 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
 
     const userWithReviewsAndActivities = {
       ...user.toObject(),
+      createdAt: user.createdAt,
+
       reviews,
       activities: {
         items: activities,

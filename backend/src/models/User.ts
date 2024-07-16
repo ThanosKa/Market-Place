@@ -12,6 +12,8 @@ export interface IUser extends Document {
   products: mongoose.Types.ObjectId[];
   averageRating: number;
   reviewCount: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const UserSchema: Schema = new Schema(

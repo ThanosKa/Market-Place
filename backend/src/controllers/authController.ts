@@ -8,7 +8,6 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, confirmPassword, firstName, lastName } = req.body;
 
-    // Validate email
     try {
       await emailSchema.validate(email);
     } catch (error) {
@@ -18,6 +17,7 @@ export const register = async (req: Request, res: Response) => {
         data: null,
       });
     }
+
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: 0,
@@ -63,6 +63,7 @@ export const register = async (req: Request, res: Response) => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          createdAt: user.createdAt,
         },
       },
     });
@@ -75,7 +76,6 @@ export const register = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;

@@ -47,20 +47,20 @@ This is a full-stack C2C (Consumer-to-Consumer) marketplace application built wi
 ### Frontend
 
 1. Navigate to the frontend directory:
-   cd frontend
+   - cd frontend
 2. Install dependencies:
-   npm install
+   - npm install
 3. Start the Expo development server:
-   npm start
+   - npm start
 
 ### Backend
 
 1. Navigate to the backend directory:
-   cd backend
+   - cd backend
 2. Install dependencies:
-   npm install
+   - npm install
 3. Start the server:
-   npm start
+   - npm start
 
 ## Running the App
 
@@ -71,28 +71,6 @@ This is a full-stack C2C (Consumer-to-Consumer) marketplace application built wi
 ## API Documentation
 
 API documentation is available via Swagger. After starting the backend server, visit `http://localhost:5001/api-docs` to view the API documentation.
-
-## Project Structure
-
-frontend/
-├── src/
-│ ├── components/
-│ ├── screens/
-│ ├── navigation/
-│ ├── services/
-│ ├── utils/
-│ └── App.tsx
-├── assets/
-└── package.json
-
-backend/
-├── src/
-│ ├── controllers/
-│ ├── models/
-│ ├── routes/
-│ ├── middleware/
-│ └── server.ts
-└── package.json
 
 ## Contributing
 

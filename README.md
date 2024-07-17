@@ -70,7 +70,7 @@ This is a full-stack C2C (Consumer-to-Consumer) marketplace application built wi
 
 ## API Documentation
 
-API documentation is available via Swagger. After starting the backend server, visit `http://localhost:<YOUR_PORT>/api-docs` to view the API documentation.
+API documentation is available via Swagger. After starting the backend server, visit `http://localhost:5001/api-docs` to view the API documentation.
 
 ## Project Structure
 
@@ -84,6 +84,7 @@ frontend/
 │ └── App.tsx
 ├── assets/
 └── package.json
+
 backend/
 ├── src/
 │ ├── controllers/
@@ -92,7 +93,6 @@ backend/
 │ ├── middleware/
 │ └── server.ts
 └── package.json
-Copy
 
 ## Contributing
 

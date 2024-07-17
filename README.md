@@ -72,14 +72,6 @@ This is a full-stack C2C (Consumer-to-Consumer) marketplace application built wi
 
 API documentation is available via Swagger. After starting the backend server, visit `http://localhost:5001/api-docs` to view the API documentation.
 
-## Contributing
-
-[Add contribution guidelines if this is an open-source project]
-
-## License
-
-[Specify the license under which this project is released]
-
 ## Contact
 
 kazakis.th@gmail.com

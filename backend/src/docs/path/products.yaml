@@ -42,10 +42,14 @@
               $ref: "#/components/schemas/ProductResponse"
       "400":
         description: Bad request (missing fields or invalid data)
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "500":
-        description: Server error
+        $ref: "#/components/responses/ServerError"
 
   get:
     summary: Get all products with filters
@@ -85,6 +89,7 @@
         name: order
         schema:
           type: string
+        enum: [asc, desc]
         default: desc
       - in: query
         name: page
@@ -102,27 +107,9 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                message:
-                  type: string
-                data:
-                  type: object
-                  properties:
-                    products:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Product"
-                    total:
-                      type: number
-                    page:
-                      type: number
-                    limit:
-                      type: number
+              $ref: "#/components/schemas/ProductsListResponse"
       "500":
-        description: Server error
+        $ref: "#/components/responses/ServerError"
 
 /api/products/{productId}:
   get:
@@ -144,8 +131,12 @@
               $ref: "#/components/schemas/ProductResponse"
       "404":
         description: Product not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "500":
-        description: Server error
+        $ref: "#/components/responses/ServerError"
 
   put:
     summary: Update a product
@@ -189,12 +180,20 @@
               $ref: "#/components/schemas/ProductResponse"
       "400":
         description: Bad request (invalid data)
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "404":
         description: Product not found or not authorized to update
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "500":
-        description: Server error
+        $ref: "#/components/responses/ServerError"
 
   delete:
     summary: Delete a product
@@ -211,12 +210,20 @@
     responses:
       "200":
         description: Product deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "404":
         description: Product not found or not authorized to delete
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "500":
-        description: Server error
+        $ref: "#/components/responses/ServerError"
 
 components:
   schemas:
@@ -251,6 +258,7 @@ components:
       properties:
         success:
           type: number
+          enum: [1]
         message:
           type: string
         data:
@@ -258,6 +266,28 @@ components:
           properties:
             product:
               $ref: "#/components/schemas/Product"
+
+    ProductsListResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            products:
+              type: array
+              items:
+                $ref: "#/components/schemas/Product"
+            total:
+              type: number
+            page:
+              type: number
+            limit:
+              type: number
 
     User:
       type: object
@@ -270,6 +300,45 @@ components:
           type: string
         email:
           type: string
+        profilePicture:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [0]
+        message:
+          type: string
+        data:
+          type: null
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: null
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
 
   securitySchemes:
     BearerAuth:

@@ -17,23 +17,17 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                message:
-                  type: string
-                data:
-                  type: object
-                  properties:
-                    liked:
-                      type: boolean
+              $ref: "#/components/schemas/LikeResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "404":
         description: Product or user not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "500":
-        description: Server error
+        $ref: "#/components/responses/ServerError"
 
 /api/likes/user/{likedUserId}:
   post:
@@ -54,27 +48,66 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                message:
-                  type: string
-                data:
-                  type: object
-                  properties:
-                    liked:
-                      type: boolean
+              $ref: "#/components/schemas/LikeResponse"
       "400":
         description: Cannot like yourself
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "404":
         description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "500":
-        description: Server error
+        $ref: "#/components/responses/ServerError"
 
 components:
+  schemas:
+    LikeResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            liked:
+              type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [0]
+        message:
+          type: string
+        data:
+          type: null
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   securitySchemes:
     BearerAuth:
       type: http

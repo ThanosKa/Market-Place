@@ -6,6 +6,7 @@ export interface IMessage {
   content: string;
   timestamp: Date;
   seen: boolean;
+  edited?: boolean;
 }
 
 export interface IChat extends Document {
@@ -23,6 +24,7 @@ const MessageSchema: Schema = new Schema(
     content: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
     seen: { type: Boolean, default: false },
+    edited: { type: Boolean, default: false },
   },
   { _id: true }
 );

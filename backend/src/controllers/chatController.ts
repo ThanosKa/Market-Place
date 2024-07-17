@@ -168,6 +168,60 @@ export const sendMessage = async (req: Request, res: Response) => {
     });
   }
 };
+export const editMessage = async (req: Request, res: Response) => {
+  try {
+    const { chatId, messageId } = req.params;
+    const { content } = req.body;
+    const userId = (req as any).userId;
+
+    const chat = await Chat.findOne({ _id: chatId, participants: userId });
+
+    if (!chat) {
+      return res.status(404).json({
+        success: 0,
+        message: "Chat not found",
+        data: null,
+      });
+    }
+
+    const message = chat.messages.find(
+      (msg) => msg._id.toString() === messageId
+    );
+
+    if (!message) {
+      return res.status(404).json({
+        success: 0,
+        message: "Message not found",
+        data: null,
+      });
+    }
+
+    if (message.sender.toString() !== userId) {
+      return res.status(403).json({
+        success: 0,
+        message: "You are not authorized to edit this message",
+        data: null,
+      });
+    }
+
+    message.content = content;
+    message.edited = true;
+    await chat.save();
+
+    res.json({
+      success: 1,
+      message: "Message edited successfully",
+      data: { message },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
 
 export const deleteMessage = async (req: Request, res: Response) => {
   try {

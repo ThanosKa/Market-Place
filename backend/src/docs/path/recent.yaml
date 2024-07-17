@@ -24,23 +24,24 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                message:
-                  type: string
-                data:
-                  type: object
-                  properties:
-                    recentSearch:
-                      $ref: "#/components/schemas/RecentSearch"
+              $ref: "#/components/schemas/RecentSearchResponse"
+      "200":
+        description: Recent search for this product already exists
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecentSearchResponse"
       "400":
         description: Bad request - Query is required or Invalid productId
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "500":
-        description: Failed to add recent search
+        $ref: "#/components/responses/ServerError"
+
   get:
     summary: Get recent searches for the user
     tags:
@@ -53,23 +54,12 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                message:
-                  type: string
-                data:
-                  type: object
-                  properties:
-                    recentSearches:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/RecentSearch"
+              $ref: "#/components/schemas/RecentSearchesListResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "500":
-        description: Failed to retrieve recent searches
+        $ref: "#/components/responses/ServerError"
+
 /api/recent/all:
   delete:
     summary: Delete all recent searches for the user
@@ -80,10 +70,14 @@
     responses:
       "200":
         description: All recent searches deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "500":
-        description: Failed to delete all recent searches
+        $ref: "#/components/responses/ServerError"
 
 /api/recent/{id}:
   delete:
@@ -101,11 +95,143 @@
     responses:
       "200":
         description: Recent search deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeletedRecentSearchResponse"
       "400":
         description: Invalid search ID
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "401":
-        description: Unauthorized
+        $ref: "#/components/responses/Unauthorized"
       "404":
         description: Recent search not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
       "500":
-        description: Failed to delete recent search
+        $ref: "#/components/responses/ServerError"
+
+components:
+  schemas:
+    RecentSearch:
+      type: object
+      properties:
+        _id:
+          type: string
+        user:
+          type: string
+        query:
+          type: string
+        product:
+          $ref: "#/components/schemas/Product"
+        createdAt:
+          type: string
+          format: date-time
+
+    RecentSearchResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            recentSearch:
+              $ref: "#/components/schemas/RecentSearch"
+
+    RecentSearchesListResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            recentSearches:
+              type: array
+              items:
+                $ref: "#/components/schemas/RecentSearch"
+
+    DeletedRecentSearchResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            deletedSearch:
+              $ref: "#/components/schemas/RecentSearch"
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        price:
+          type: number
+        condition:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [0]
+        message:
+          type: string
+        data:
+          type: null
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: null
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

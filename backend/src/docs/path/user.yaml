@@ -177,7 +177,7 @@ components:
         products:
           type: array
           items:
-            $ref: "#/components/schemas/Product"
+            $ref: "#/components/schemas/PopulatedProduct"
         likedProducts:
           type: array
           items:
@@ -307,6 +307,33 @@ components:
           type: string
         condition:
           type: string
+    PopulatedProduct:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        price:
+          type: number
+        images:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        condition:
+          type: string
+        seller:
+          $ref: "#/components/schemas/User"
+        likes:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     Review:
       type: object
       properties:

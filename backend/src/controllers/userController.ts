@@ -124,6 +124,12 @@ export const getUserById = async (req: Request, res: Response) => {
         path: "likedUsers",
         model: User,
         select: "-password",
+        populate: {
+          path: "products",
+          model: Product,
+          select:
+            "title price images category condition seller likes createdAt updatedAt",
+        },
       });
 
     if (!user) {
@@ -241,6 +247,12 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
         path: "likedUsers",
         model: User,
         select: "-password",
+        populate: {
+          path: "products",
+          model: Product,
+          select:
+            "title price images category condition seller likes createdAt updatedAt",
+        },
       });
 
     if (!user) {

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "react-query";
-import DummySearchBar from "../../components/SearchBar/searchBar";
+import DummySearchBar from "../../components/DummySearchBar/DummySearchBar";
 import CategoryIcon from "../../components/CategoryIcons/categoryIcons";
 import { categories } from "../../interfaces/exploreCategories/iconsCategory";
 import ProductGrid from "../../components/ProductGrid/productGrid";

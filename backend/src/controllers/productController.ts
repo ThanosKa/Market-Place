@@ -23,19 +23,24 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate category and condition
+    // Validate category
     if (!CATEGORY_TYPES.includes(category)) {
       return res.status(400).json({
         success: 0,
-        message: "Invalid category",
+        message: `Invalid category. Valid categories are: ${CATEGORY_TYPES.join(
+          ", "
+        )}`,
         data: null,
       });
     }
 
+    // Validate condition
     if (!CONDITION_TYPES.includes(condition)) {
       return res.status(400).json({
         success: 0,
-        message: "Invalid condition",
+        message: `Invalid condition. Valid conditions are: ${CONDITION_TYPES.join(
+          ", "
+        )}`,
         data: null,
       });
     }

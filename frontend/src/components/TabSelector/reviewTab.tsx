@@ -20,6 +20,7 @@ const ReviewsTab: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
 
+  console.log(user, firstName, lastName);
   if (reviews.length === 0) {
     return (
       <View style={styles.emptyContainer}>

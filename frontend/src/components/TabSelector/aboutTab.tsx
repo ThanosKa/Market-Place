@@ -1,4 +1,3 @@
-// components/TabSelector/aboutTab.tsx
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -29,11 +28,11 @@ const AboutTab: React.FC<AboutTabProps> = ({ user }) => {
       <Text style={styles.sectionTitle}>{t("member-since")}</Text>
       <Text style={styles.dateText}>{formatDate(user.createdAt)}</Text>
 
-      <Text style={styles.sectionTitle}>{t("bio")}</Text>
-      {user.bio ? (
-        <Text style={styles.bioText}>{user.bio}</Text>
-      ) : (
-        <Text style={styles.noBioText}>{t("no-bio-yet")}</Text>
+      {user.bio && user.bio.trim() !== "" && (
+        <>
+          <Text style={styles.sectionTitle}>{t("bio")}</Text>
+          <Text style={styles.bioText}>{user.bio}</Text>
+        </>
       )}
     </View>
   );
@@ -56,10 +55,6 @@ const styles = StyleSheet.create({
   bioText: {
     fontSize: 16,
     lineHeight: 24,
-  },
-  noBioText: {
-    fontSize: 16,
-    color: colors.secondary,
   },
 });
 

@@ -47,7 +47,7 @@ const MainNavigator = () => (
             }}
             style={{ marginRight: 15 }}
           >
-            {/* <Feather name="more-horizontal" size={20} color={colors.primary} /> */}
+            <Feather name="more-horizontal" size={20} color={colors.primary} />
           </TouchableOpacity>
         ),
         headerStyle: {

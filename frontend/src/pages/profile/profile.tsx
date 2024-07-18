@@ -117,7 +117,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             isLoading={userLoading}
           />
         )}
-        {activeTab === "reviews" && <ReviewsTab reviews={user.reviews} />}
+        {activeTab === "reviews" && <ReviewsTab user reviews={user.reviews} />}
       </ScrollView>
     );
   };

@@ -27,7 +27,9 @@ const DummySearchBar: React.FC<DummySearchBarProps> = ({ placeholder }) => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.searchBar}
-        onPress={() => navigation.navigate("Search")}
+        onPress={() =>
+          navigation.navigate("Search", { refreshSearch: Date.now() })
+        }
       >
         <Ionicons
           name="search"

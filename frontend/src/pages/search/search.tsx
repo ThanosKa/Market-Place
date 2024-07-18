@@ -5,13 +5,19 @@ import {
   ActivityIndicator,
   Text,
   RefreshControl,
-  ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import debounce from "lodash.debounce";
+import { RouteProp, useRoute } from "@react-navigation/native";
+
 import { colors } from "../../colors/colors";
 import SearchBar from "../../components/SearchBarComponenet";
+import SearchButton from "./helpers/SearchButton";
+import SearchResults from "./helpers/SearchResults";
+import RecentSearches from "./helpers/RecentSearches";
+import ProductGrid from "./helpers/ProductGrid";
+
 import { getProducts } from "../../services/product";
 import {
   getRecentSearches,
@@ -19,44 +25,22 @@ import {
   deleteRecentSearch,
   deleteAllRecentSearches,
 } from "../../services/recentSearch";
-import SearchResults from "./helpers/SearchResults";
-import RecentSearches from "./helpers/RecentSearches";
-import ProductGrid from "./helpers/ProductGrid";
-import SearchButton from "./helpers/SearchButton";
-import { RouteProp, useRoute } from "@react-navigation/native";
+
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 
 type SearchScreenRouteProp = RouteProp<MainStackParamList, "Search">;
 
 const SearchScreen = () => {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const route = useRoute<SearchScreenRouteProp>();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const route = useRoute<SearchScreenRouteProp>();
-
-  useEffect(() => {
-    if (route.params?.refreshSearch) {
-      onRefresh();
-    }
-  }, [route.params?.refreshSearch]);
-
-  const handleShowSearch = () => {
-    setShowSearchBar(true);
-    setIsFocused(true);
-  };
-
-  const cancelSearch = () => {
-    setSearchQuery("");
-    setDebouncedSearchQuery("");
-    setIsFocused(false);
-    setShowSearchBar(false);
-  };
 
   const debouncedSearch = useCallback(
     debounce((text: string) => {
@@ -65,24 +49,27 @@ const SearchScreen = () => {
     []
   );
 
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    debouncedSearch(text);
-  };
+  useEffect(() => {
+    if (route.params?.refreshSearch) {
+      onRefresh();
+    }
+  }, [route.params?.refreshSearch]);
 
   const {
     data: productsData,
     isLoading: productsLoading,
-    error: productsError,
     refetch: refetchProducts,
-  } = useQuery(["products", debouncedSearchQuery], () => getProducts(), {
-    enabled: !isFocused || (isFocused && debouncedSearchQuery.length > 0),
-  });
+  } = useQuery(
+    ["products", debouncedSearchQuery],
+    () => getProducts({ search: debouncedSearchQuery }),
+    {
+      enabled: !isFocused || (isFocused && debouncedSearchQuery.length > 0),
+    }
+  );
 
   const {
     data: recentSearchesData,
     isLoading: recentSearchesLoading,
-    error: recentSearchesError,
     refetch: refetchRecentSearches,
   } = useQuery("recentSearches", getRecentSearches, {
     enabled: isFocused && searchQuery.length === 0,
@@ -102,12 +89,29 @@ const SearchScreen = () => {
 
   const deleteAllRecentSearchesMutation = useMutation(deleteAllRecentSearches, {
     onSuccess: () => {
-      queryClient.invalidateQueries("recentSearches");
+      refetchRecentSearches();
     },
   });
 
   const products = productsData?.data.products || [];
   const recentSearches = recentSearchesData?.data.recentSearches || [];
+
+  const handleShowSearch = () => {
+    setShowSearchBar(true);
+    setIsFocused(true);
+  };
+
+  const cancelSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+    setIsFocused(false);
+    setShowSearchBar(false);
+  };
+
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    debouncedSearch(text);
+  };
 
   const clearSearch = () => {
     setSearchQuery("");
@@ -142,9 +146,11 @@ const SearchScreen = () => {
       setIsLoading(false);
     });
   }, [refetchProducts, refetchRecentSearches]);
+
   const refreshControl = (
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
   );
+
   return (
     <View style={styles.container}>
       {showSearchBar ? (
@@ -179,6 +185,7 @@ const SearchScreen = () => {
           onClickRecentSearch={handleClickRecentSearch}
           onDeleteRecentSearch={handleDeleteRecentSearch}
           onClearAllRecentSearches={handleClearAllRecentSearches}
+          clearingAllRecentSearches={deleteAllRecentSearchesMutation.isLoading}
         />
       )}
 
@@ -192,7 +199,9 @@ const SearchScreen = () => {
               onClickSearchedProduct={handleClickSearchedProduct}
             />
           ) : (
-            <Text style={styles.emptyMessage}>{t("no-products-found")}</Text>
+            <Text style={styles.emptyMessage}>
+              {t("no-results-found-for")} "{searchQuery}"
+            </Text>
           )}
         </>
       )}
@@ -207,10 +216,12 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   emptyMessage: {
-    textAlign: "center",
+    textAlign: "left",
     marginTop: 20,
-    fontSize: 14,
+    marginLeft: 10,
+    fontSize: 16,
     color: colors.secondary,
+    fontWeight: "bold",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

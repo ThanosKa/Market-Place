@@ -6,6 +6,7 @@ import {
   sendMessage,
   deleteMessage,
   markMessagesAsSeen,
+  editMessage,
 } from "../controllers/chatController";
 import { auth } from "../middleware/auth";
 
@@ -15,6 +16,7 @@ router.post("/", auth, createChat);
 router.get("/", auth, getUserChats);
 router.get("/:chatId", auth, getChatMessages);
 router.post("/:chatId/messages", auth, sendMessage);
+router.put("/:chatId/messages/:messageId", auth, editMessage);
 router.delete("/:chatId/messages/:messageId", auth, deleteMessage);
 router.post("/:chatId/seen", auth, markMessagesAsSeen);
 

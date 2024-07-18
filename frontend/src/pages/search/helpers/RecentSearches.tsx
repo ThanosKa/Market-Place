@@ -21,6 +21,7 @@ interface RecentSearchesProps {
   onClickRecentSearch: (productId: string) => void;
   onDeleteRecentSearch: (id: string) => void;
   onClearAllRecentSearches: () => void;
+  clearingAllRecentSearches: boolean;
 }
 
 const RecentSearches: React.FC<RecentSearchesProps> = ({
@@ -29,6 +30,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
   onClickRecentSearch,
   onDeleteRecentSearch,
   onClearAllRecentSearches,
+  clearingAllRecentSearches,
 }) => {
   const { t } = useTranslation();
 
@@ -66,15 +68,23 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
   }
 
   if (recentSearches.length === 0) {
-    return <Text style={styles.emptyMessage}>{t("search-for-products")}</Text>;
+    return;
+    <Text style={styles.emptyMessage}>{t("search-for-products")}</Text>;
   }
 
   return (
     <View style={styles.recentSearchesContainer}>
       <View style={styles.recentSearchesHeader}>
         <Text style={styles.recentSearchesTitle}>{t("recent-searches")}</Text>
-        <TouchableOpacity onPress={onClearAllRecentSearches}>
-          <Text style={styles.clearAllText}>{t("clear-all")}</Text>
+        <TouchableOpacity
+          onPress={onClearAllRecentSearches}
+          disabled={clearingAllRecentSearches}
+        >
+          {clearingAllRecentSearches ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={styles.clearAllText}>{t("clear-all")}</Text>
+          )}
         </TouchableOpacity>
       </View>
       <FlatList

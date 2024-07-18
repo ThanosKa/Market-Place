@@ -27,6 +27,7 @@ export type MainStackParamList = {
     userId: string;
     firstName?: string;
     lastName?: string;
+    isLiked?: boolean;
   };
   Chat: { userId: string };
   Likes: undefined;

@@ -9,7 +9,7 @@ export interface LikedUser {
   lastName: string;
   likedProducts: string[];
   likedUsers: string[];
-  products: string[];
+  products: Product[];
   updatedAt: string;
   averageRating: number;
   reviewCount: number;

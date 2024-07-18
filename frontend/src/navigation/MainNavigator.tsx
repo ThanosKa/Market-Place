@@ -3,12 +3,12 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { MainStackParamList } from "../interfaces/auth/navigation";
 import MainTabs from "./MainTabs";
 import ChatScreen from "../components/Chat/chat";
-import LikesPage from "../components/LikePage/likePage";
+import LikesPage from "../pages/LikePage/likePage";
 import MessageScreen from "../components/Messages/messageScreen";
 import EditProfileScreen from "../pages/EditProfileScreen/editProfile";
 import ChangeEmailScreen from "../pages/EditProfileScreen/ChangeEmail/changeEmail";
 import { Text, TouchableOpacity } from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import { Ionicons, AntDesign } from "@expo/vector-icons";
 import { colors } from "../colors/colors";
 import ChangePasswordScreen from "../pages/EditProfileScreen/ChangePassword/changePassword";
 import UserProfileScreen from "../pages/UserProfile/userProfile";
@@ -38,16 +38,6 @@ const MainNavigator = () => (
               size={24}
               color={colors.primary}
             />
-          </TouchableOpacity>
-        ),
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => {
-              /* Handle more options */
-            }}
-            style={{ marginRight: 15 }}
-          >
-            <Feather name="more-horizontal" size={20} color={colors.primary} />
           </TouchableOpacity>
         ),
         headerStyle: {

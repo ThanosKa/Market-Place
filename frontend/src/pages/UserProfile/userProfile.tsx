@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -6,14 +6,11 @@ import {
   Text,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
-import {
-  CommonActions,
-  RouteProp,
-  useFocusEffect,
-} from "@react-navigation/native";
+import { RouteProp, useFocusEffect } from "@react-navigation/native";
 import {
   MainStackParamList,
   RootStackParamList,
@@ -24,9 +21,12 @@ import TabSelector from "../../components/TabSelector/tabSelector";
 import ListingsTab from "../../components/TabSelector/listingTab";
 import { User } from "../../interfaces/user";
 import ReviewsTab from "../../components/TabSelector/reviewTab";
-import { getUserId } from "../../services/authStorage";
-import { useUserById } from "../../hooks/useUserById";
 import AboutTab from "../../components/TabSelector/aboutTab";
+import { useUserById } from "../../hooks/useUserById";
+import { useLoggedUser } from "../../hooks/useLoggedUser";
+import { useMutation, useQueryClient } from "react-query";
+import { toggleLikeUser } from "../../services/likes";
+import { AntDesign } from "@expo/vector-icons";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
@@ -43,13 +43,14 @@ type Props = {
 
 const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+
   const [activeTab, setActiveTab] = useState<string>("about");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [initialUserData, setInitialUserData] = useState<User | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
 
   const userId = route.params.userId;
-
   const {
     data: userData,
     isLoading: userLoading,
@@ -57,48 +58,81 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   } = useUserById(userId, {
     search: activeTab === "listings" ? searchQuery : undefined,
   });
-  const user = userData?.data?.user || initialUserData;
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-      setActiveTab("about");
-    }, [refetch])
-  );
+  const { data: loggedUserData } = useLoggedUser();
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-      setActiveTab("about");
-    }, [refetch])
-  );
+  const toggleUserLikeMutation = useMutation(toggleLikeUser, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("loggedUser");
+    },
+  });
+
+  const user = userData?.data?.user;
+
+  const userName = useMemo(() => {
+    return user ? { firstName: user.firstName, lastName: user.lastName } : null;
+  }, [user]);
+
+  const handleToggleLike = useCallback(() => {
+    if (userId) {
+      toggleUserLikeMutation.mutate(userId);
+      setIsLiked((prev) => !prev);
+    }
+  }, [userId, toggleUserLikeMutation]);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await refetch();
     setIsRefreshing(false);
   }, [refetch]);
+
   useEffect(() => {
-    if (user) {
-      navigation.setParams({
-        firstName: user.firstName,
-        lastName: user.lastName,
-      });
+    if (loggedUserData?.data?.user && userId) {
+      const isUserLiked = loggedUserData.data.user.likedUsers.some(
+        (likedUser: any) => likedUser._id === userId
+      );
+      setIsLiked(isUserLiked);
     }
-  }, [user, navigation]);
+  }, [loggedUserData, userId]);
+
   useEffect(() => {
-    if (userData?.data?.user && !initialUserData) {
-      setInitialUserData(userData.data.user);
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={handleToggleLike}
+          style={{ marginRight: 15 }}
+        >
+          <AntDesign
+            name={isLiked ? "heart" : "hearto"}
+            size={24}
+            color={isLiked ? "red" : colors.primary}
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, isLiked, handleToggleLike]);
+
+  useEffect(() => {
+    if (userName) {
+      navigation.setParams(userName);
     }
-  }, [userData, initialUserData]);
+  }, [navigation, userName]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      setActiveTab("about");
+    }, [refetch])
+  );
 
   const renderContent = () => {
-    if (userLoading && !initialUserData) {
-      return <ActivityIndicator size="large" color={colors.primary} />;
+    if (userLoading && !user) {
+      return <ActivityIndicator size="small" color={colors.secondary} />;
     }
 
     if (!user) {
       return <Text>Error loading user data</Text>;
     }
+
     const tabs = [
       { key: "about", label: t("about") },
       { key: "listings", label: t("listings") },

@@ -28,7 +28,13 @@ const MainNavigator = () => {
   return (
     <UnseenActivitiesProvider>
       <MainStack.Navigator screenOptions={{ headerShown: false }}>
-        <MainStack.Screen name="MainTabs" component={MainTabs} />
+        <MainStack.Screen
+          name="MainTabs"
+          options={{
+            gestureEnabled: false,
+          }}
+          component={MainTabs}
+        />
         <MainStack.Screen
           name="UserProfile"
           component={UserProfileScreen}

@@ -21,6 +21,7 @@ import { colors } from "../../colors/colors";
 
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { useLoggedUser } from "../../hooks/useLoggedUser";
 
 type HomeScreenRouteProp = RouteProp<MainStackParamList, "Home">;
 
@@ -32,6 +33,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   // Add this line to use the useRoute hook
   const route = useRoute<HomeScreenRouteProp>();
   const searchQuery = route.params?.searchQuery || "";
+  const { refetch: refetchUser } = useLoggedUser();
 
   useEffect(() => {
     if (searchQuery) {
@@ -60,13 +62,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
         : [...prev, categoryId]
     );
   };
+  // const { refetch: refetchUser } = useLoggedUser(undefined, { staleTime: 0 });
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     queryClient.invalidateQueries("products", {
       refetchActive: true,
     });
-  }, [queryClient]);
+    refetchUser();
+  }, [queryClient, refetchUser]);
 
   const selectedCategoryValues = selectedCategories
     .map((id) => categories.find((cat) => cat.id === id)?.value)

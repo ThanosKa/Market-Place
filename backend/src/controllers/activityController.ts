@@ -47,7 +47,7 @@ export const createActivity = async (
 export const getActivities = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const activities = await Activity.find({ user: userId })
+    const activitiesItems = await Activity.find({ user: userId })
       .sort({ createdAt: -1 })
       .populate("sender", "firstName lastName profilePicture")
       .populate("product", "title images");
@@ -62,8 +62,10 @@ export const getActivities = async (req: Request, res: Response) => {
       success: 1,
       message: "Activities retrieved successfully",
       data: {
-        activities,
-        unseenCount,
+        activities: {
+          items: activitiesItems,
+          unseenCount,
+        },
       },
     });
   } catch (error) {
@@ -75,7 +77,6 @@ export const getActivities = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const markActivityAsRead = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -105,6 +106,60 @@ export const markActivityAsRead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: 0,
       message: "Failed to mark activity as read",
+      data: null,
+    });
+  }
+};
+
+export const deleteActivity = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = (req as any).userId;
+
+    const activity = await Activity.findOneAndDelete({ _id: id, user: userId });
+
+    if (!activity) {
+      return res.status(404).json({
+        success: 0,
+        message: "Activity not found or you don't have permission to delete it",
+        data: null,
+      });
+    }
+
+    res.json({
+      success: 1,
+      message: "Activity deleted successfully",
+      data: null,
+    });
+  } catch (error) {
+    console.error("Error in deleteActivity:", error);
+    res.status(500).json({
+      success: 0,
+      message: "Failed to delete activity",
+      data: null,
+    });
+  }
+};
+
+export const markAllActivitiesAsRead = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    const result = await Activity.updateMany(
+      { user: userId, read: false },
+      { read: true }
+    );
+
+    res.json({
+      success: 1,
+      message: "All activities marked as read",
+      data: { modifiedCount: result.modifiedCount },
+    });
+  } catch (error) {
+    console.error("Error in markAllActivitiesAsRead:", error);
+    res.status(500).json({
+      success: 0,
+      message: "Failed to mark all activities as read",
       data: null,
     });
   }

@@ -80,7 +80,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const renderContent = () => {
     if (userLoading && !initialUserData) {
-      return <ActivityIndicator size="large" color={colors.primary} />;
+      return <ActivityIndicator size="small" color={colors.secondary} />;
     }
 
     if (!user) {

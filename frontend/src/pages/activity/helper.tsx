@@ -17,7 +17,6 @@ export interface GroupedActivities {
   lastMonth: Activity[];
   older: Activity[];
 }
-
 export const groupActivities = (activities: Activity[]): GroupedActivities => {
   const now = new Date();
   const grouped: GroupedActivities = {

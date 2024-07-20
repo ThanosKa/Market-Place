@@ -1,6 +1,4 @@
-// ActivityScreen.tsx
-
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,54 +8,157 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Swipeable } from "react-native-gesture-handler";
 import { colors } from "../../colors/colors";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "react-query";
 import { formatDistanceToNow } from "date-fns";
-import { getLoggedUser } from "../../services/user";
 import { Activity, User } from "../../interfaces/user";
 import { BASE_URL } from "../../services/axiosConfig";
-import { RouteProp, useFocusEffect, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  RouteProp,
+  NavigationProp,
+  useIsFocused,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { groupActivities, getActivityMessage, getSections } from "./helper";
+import { useLoggedUser } from "../../hooks/useLoggedUser";
+import { useDispatch } from "react-redux";
+import {
+  deleteActivity,
+  getActivities,
+  GetActivitiesResponse,
+  markAllActivitiesAsRead,
+} from "../../services/activity";
+import { setUnseenActivitiesCount } from "../../redux/useSlice";
+import { useQuery } from "react-query";
 
 type ActivityScreenRouteProp = RouteProp<MainStackParamList, "Activity">;
+type ActivityScreenNavigationProp = NavigationProp<
+  MainStackParamList,
+  "Activity"
+>;
 
-const ActivityScreen: React.FC = () => {
-  const route = useRoute<ActivityScreenRouteProp>();
+interface ActivityScreenProps {
+  route: ActivityScreenRouteProp;
+}
+
+const ActivityScreen: React.FC<ActivityScreenProps> = ({
+  route: propRoute,
+}) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
+  const [localActivities, setLocalActivities] = useState<Activity[]>([]);
+  const dispatch = useDispatch();
+  const navigation = useNavigation<ActivityScreenNavigationProp>();
+  const isFocused = useIsFocused();
+  // const { data, isLoading, error, refetch } = useLoggedUser();
+  const { data, isLoading, error, refetch } = useQuery<
+    GetActivitiesResponse,
+    Error
+  >("activities", getActivities, {
+    onSuccess: (data) => {
+      dispatch(setUnseenActivitiesCount(data?.data.unseenCount));
+    },
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+      return () => {
+        // Optional cleanup
+      };
+    }, [refetch])
+  );
+  useEffect(() => {
+    refetch();
+  }, []);
+  useEffect(() => {
+    if (data?.data.activities.items) {
+      setLocalActivities(data?.data.activities.items);
+    }
+  }, [data?.data]);
 
-  const { data, isLoading, error, refetch } = useQuery<any, Error>(
-    "loggedUser",
-    getLoggedUser
+  const updateUnseenCount = useCallback(
+    (count: number) => {
+      dispatch(setUnseenActivitiesCount(count));
+      navigation.setParams({ unseenCount: count });
+    },
+    [dispatch, navigation]
   );
 
-  const user: User | undefined = data?.data.user;
-  const activities: Activity[] = user?.activities?.items || [];
-  const groupedActivities = groupActivities(activities);
+  useEffect(() => {
+    if (isFocused) {
+      updateUnseenCount(0);
+    }
+  }, [isFocused, updateUnseenCount]);
+
+  const markAllAsRead = useCallback(async () => {
+    try {
+      await markAllActivitiesAsRead();
+      setLocalActivities((prev) => prev.map((a) => ({ ...a, read: true })));
+      updateUnseenCount(0);
+    } catch (error) {
+      console.error("Error marking all activities as read:", error);
+    }
+  }, [updateUnseenCount]);
+
+  useEffect(() => {
+    const markAllReadOnBlur = navigation.addListener("blur", markAllAsRead);
+    return () => markAllReadOnBlur();
+  }, [navigation, markAllAsRead]);
+
+  const handleDeleteItem = async (id: string) => {
+    try {
+      await deleteActivity(id);
+      setLocalActivities((prev) => prev.filter((a) => a._id !== id));
+      const unseenCount = localActivities.filter(
+        (a) => !a.read && a._id !== id
+      ).length;
+      updateUnseenCount(unseenCount);
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+    }
+  };
 
   const renderActivityItem = ({ item }: { item: Activity }) => {
-    const deleteItem = (id: string) => {
-      // TODO: Implement delete functionality with API
-      console.log("Delete item", id);
+    const renderRightActions = (
+      progress: Animated.AnimatedInterpolation<number>,
+      dragX: Animated.AnimatedInterpolation<number>
+    ) => {
+      const trans = dragX.interpolate({
+        inputRange: [-100, 0],
+        outputRange: [1, 0],
+        extrapolate: "clamp",
+      });
+      return (
+        <Animated.View
+          style={[
+            styles.deleteButtonContainer,
+            { transform: [{ translateX: trans }] },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteItem(item._id)}
+          >
+            <Ionicons name="trash-outline" size={24} color={colors.white} />
+          </TouchableOpacity>
+        </Animated.View>
+      );
     };
-
-    const renderRightActions = () => (
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => deleteItem(item._id)}
-      >
-        <Ionicons name="trash-outline" size={24} color={colors.white} />
-      </TouchableOpacity>
-    );
 
     return (
       <Swipeable renderRightActions={renderRightActions}>
-        <View style={styles.activityItem}>
+        <View
+          style={[styles.activityItem, !item.read && styles.unreadActivityItem]}
+        >
+          {!item.read && <View style={styles.unseenDot} />}
           <Image
             source={{ uri: `${BASE_URL}/${item.sender.profilePicture}` }}
             style={styles.profileImage}
@@ -81,17 +182,10 @@ const ActivityScreen: React.FC = () => {
               style={styles.productImage}
             />
           )}
-          {!item.read && <View style={styles.unseenDot} />}
         </View>
       </Swipeable>
     );
   };
-
-  const renderSectionHeader = (title: string) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{title}</Text>
-    </View>
-  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -99,17 +193,11 @@ const ActivityScreen: React.FC = () => {
     setRefreshing(false);
   }, [refetch]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-    }, [refetch])
-  );
-
   useEffect(() => {
-    if (route.params?.refreshActivity) {
+    if (propRoute.params?.refreshActivity) {
       onRefresh();
     }
-  }, [route.params?.refreshActivity, onRefresh]);
+  }, [propRoute.params?.refreshActivity, onRefresh]);
 
   if (isLoading) {
     return (
@@ -127,6 +215,8 @@ const ActivityScreen: React.FC = () => {
     );
   }
 
+  const groupedActivities = groupActivities(localActivities);
+
   return (
     <View style={styles.container}>
       <Text style={styles.notificationTitle}>{t("Notifications")}</Text>
@@ -136,7 +226,9 @@ const ActivityScreen: React.FC = () => {
           <>
             {item.data.length > 0 && (
               <>
-                {renderSectionHeader(item.title)}
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionHeaderText}>{item.title}</Text>
+                </View>
                 {item.data.map((activity) => (
                   <React.Fragment key={activity._id}>
                     {renderActivityItem({ item: activity })}
@@ -185,7 +277,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sectionHeader: {
-    // backgroundColor: colors.lightGray,
     padding: 8,
     marginTop: 16,
     marginBottom: 8,
@@ -200,11 +291,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    // backgroundColor: colors.white,
-    borderBottomColor: colors.secondary,
-    borderBottomWidth: 0.5,
-    borderRadius: 12,
-    marginBottom: 12,
+    // borderRadius: 12,
+    // marginBottom: 12,
+  },
+  unreadActivityItem: {
+    backgroundColor: colors.lighterBlue,
   },
   profileImage: {
     width: 50,
@@ -230,21 +321,12 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     marginTop: 4,
   },
-  deleteButton: {
-    backgroundColor: colors.error,
-    justifyContent: "center",
-    alignItems: "center",
-    width: 70,
-    height: "100%",
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-  },
   unseenDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.primary,
-    marginLeft: 8,
+    backgroundColor: colors.customBlue,
+    marginRight: 8,
   },
   emptyText: {
     textAlign: "center",
@@ -256,6 +338,20 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 8,
     marginLeft: 12,
+  },
+  deleteButtonContainer: {
+    width: 80,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "flex-end",
+  },
+  deleteButton: {
+    backgroundColor: colors.error,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
 });
 

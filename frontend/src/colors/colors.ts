@@ -14,4 +14,5 @@ export const colors = {
   customBlue: "#3897f0",
   customBlueDarker: "#2769A8",
   starYellow: "#FFD700",
+  lighterBlue: "#F0FFFF",
 };

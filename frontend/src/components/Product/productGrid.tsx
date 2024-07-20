@@ -18,7 +18,7 @@ const ProductGrid: React.FC<Props> = ({ products }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data: userData } = useLoggedUser(); // Add this line
-
+  console.log(userData?.data.user.activities.unseenCount);
   const toggleLikeMutation = useMutation(toggleLikeProduct, {
     onSettled: () => {
       queryClient.invalidateQueries("loggedUser");

@@ -20,7 +20,7 @@ export type MainStackParamList = {
     refreshSearch?: number;
   };
   Sell: undefined;
-  Activity: { refreshActivity?: number };
+  Activity: { refreshActivity?: number; unseenCount?: number };
 
   Profile: { refreshProfile?: number };
   UserProfile: {

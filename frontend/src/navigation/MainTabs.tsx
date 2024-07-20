@@ -2,7 +2,13 @@ import React, { useCallback, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationProp } from "@react-navigation/native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { GestureResponderEvent, TouchableOpacity } from "react-native";
+import {
+  GestureResponderEvent,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { MainStackParamList } from "../interfaces/auth/navigation";
 import { colors } from "../colors/colors";
 import HomeScreen from "../pages/home/home";
@@ -10,10 +16,26 @@ import SearchScreen from "../pages/search/search";
 import SellScreen from "../pages/sell/sell";
 import ActivityScreen from "../pages/activity/activity";
 import ProfileScreen from "../pages/profile/profile";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../redux/redux";
+import { setUnseenActivitiesCount } from "../redux/useSlice"; // Make sure this import is correct
+import { useQueryClient } from "react-query";
 
 const Tab = createBottomTabNavigator<MainStackParamList>();
 
 const MainTabs = () => {
+  const queryClient = useQueryClient();
+  const unseenActivitiesCount = useSelector(
+    (state: RootState) => state.user.unseenActivitiesCount
+  );
+  const handleActivityPress = useCallback(() => {
+    if (unseenActivitiesCount > 0) {
+      queryClient.invalidateQueries("activities");
+    }
+  }, [unseenActivitiesCount, queryClient]);
+
+  const dispatch = useDispatch();
+
   const lastTapTimeRef = useRef<{ [key: string]: number }>({});
 
   const handleDoubleTap = useCallback(
@@ -74,11 +96,22 @@ const MainTabs = () => {
             );
           } else if (route.name === "Activity") {
             return (
-              <Ionicons
-                name={focused ? "notifications-sharp" : "notifications-outline"}
-                size={size}
-                color={color}
-              />
+              <View>
+                <Ionicons
+                  name={
+                    focused ? "notifications-sharp" : "notifications-outline"
+                  }
+                  size={size}
+                  color={color}
+                />
+                {unseenActivitiesCount > 0 && !focused && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unseenActivitiesCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
             );
           } else if (route.name === "Profile") {
             return (
@@ -126,7 +159,23 @@ const MainTabs = () => {
         options={({ navigation }) => ({
           tabBarButton: (props) =>
             renderTabBarButton(props, navigation, "Activity"),
+
+          tabBarIcon: ({ focused, color, size }) => (
+            <View>
+              <Ionicons
+                name={focused ? "notifications-sharp" : "notifications-outline"}
+                size={size}
+                color={color}
+              />
+              {unseenActivitiesCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unseenActivitiesCount}</Text>
+                </View>
+              )}
+            </View>
+          ),
         })}
+        initialParams={{ unseenCount: unseenActivitiesCount }}
       />
       <Tab.Screen
         name="Profile"
@@ -139,5 +188,24 @@ const MainTabs = () => {
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  badge: {
+    position: "absolute",
+    right: -6,
+    top: -3,
+    backgroundColor: "red",
+    borderRadius: 9,
+    width: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+});
 
 export default MainTabs;

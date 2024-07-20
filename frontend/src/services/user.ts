@@ -24,14 +24,23 @@ export const getLoggedUser = async (params?: {
   try {
     let url = "/users/me";
     if (params) {
-      const queryString = new URLSearchParams(
-        Object.entries(params).filter(([_, value]) => value !== undefined) as [
-          string,
-          string
-        ][]
-      ).toString();
-      url += `?${queryString}`;
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          if (Array.isArray(value)) {
+            value.forEach((v) => queryParams.append(key, v));
+          } else {
+            queryParams.append(key, value.toString());
+          }
+        }
+      });
+
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
     }
+
     const response = await axiosInstance.get<ApiResponse>(url);
     return response.data;
   } catch (error) {

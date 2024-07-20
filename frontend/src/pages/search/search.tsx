@@ -63,6 +63,8 @@ const SearchScreen = () => {
     ["products", debouncedSearchQuery],
     () => getProducts({ search: debouncedSearchQuery }),
     {
+      staleTime: 0,
+      cacheTime: 0,
       enabled: !isFocused || (isFocused && debouncedSearchQuery.length > 0),
     }
   );

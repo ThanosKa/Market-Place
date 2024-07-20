@@ -53,20 +53,20 @@ export const groupActivities = (activities: Activity[]): GroupedActivities => {
 export const getActivityMessage = (type: string): string => {
   switch (type) {
     case "product_like":
-      return t("liked your product");
+      return t("liked-your-product");
     case "profile_like":
-      return t("liked your profile");
+      return t("liked-your-profile");
     case "message":
-      return t("sent you a message");
+      return t("sent-you-a-message");
     default:
       return "";
   }
 };
 
 export const getSections = (groupedActivities: GroupedActivities) => [
-  { title: t("Today"), data: groupedActivities.today },
-  { title: t("Yesterday"), data: groupedActivities.yesterday },
-  { title: t("Last 7 Days"), data: groupedActivities.lastWeek },
-  { title: t("This Month"), data: groupedActivities.lastMonth },
-  { title: t("Older"), data: groupedActivities.older },
+  { title: t("today"), data: groupedActivities.today },
+  { title: t("yesterday"), data: groupedActivities.yesterday },
+  { title: t("last-7-days"), data: groupedActivities.lastWeek },
+  { title: t("this-month"), data: groupedActivities.lastMonth },
+  { title: t("older"), data: groupedActivities.older },
 ];

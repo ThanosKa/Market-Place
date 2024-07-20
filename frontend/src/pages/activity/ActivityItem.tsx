@@ -14,6 +14,8 @@ import { Activity } from "../../interfaces/user";
 import { colors } from "../../colors/colors";
 import { BASE_URL } from "../../services/axiosConfig";
 import { getActivityMessage } from "./helper";
+import { getTranslatableTimeString } from "./activityUtils";
+import { useTranslation } from "react-i18next";
 
 interface ActivityItemProps {
   item: Activity;
@@ -30,6 +32,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
       outputRange: [1, 0],
       extrapolate: "clamp",
     });
+
     return (
       <Animated.View
         style={[
@@ -46,6 +49,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
       </Animated.View>
     );
   };
+  const { t } = useTranslation();
 
   return (
     <Swipeable renderRightActions={renderRightActions}>
@@ -65,9 +69,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
             {getActivityMessage(item.type)}
           </Text>
           <Text style={styles.timestamp}>
-            {formatDistanceToNow(new Date(item.createdAt), {
-              addSuffix: true,
-            })}
+            {getTranslatableTimeString(new Date(item.createdAt), t)}
           </Text>
         </View>
         {item.type === "product_like" && item.product && (

@@ -1,211 +1,93 @@
-import React, { useCallback, useRef } from "react";
+import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { NavigationProp } from "@react-navigation/native";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import {
-  GestureResponderEvent,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { MainStackParamList } from "../interfaces/auth/navigation";
+import { useSelector } from "react-redux";
+import { useQueryClient } from "react-query";
+import { RootState } from "../redux/redux";
 import { colors } from "../colors/colors";
 import HomeScreen from "../pages/home/home";
 import SearchScreen from "../pages/search/search";
 import SellScreen from "../pages/sell/sell";
 import ActivityScreen from "../pages/activity/activity";
 import ProfileScreen from "../pages/profile/profile";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "../redux/redux";
-import { setUnseenActivitiesCount } from "../redux/useSlice"; // Make sure this import is correct
-import { useQueryClient } from "react-query";
+import {
+  HomeIcon,
+  SearchIcon,
+  SellIcon,
+  ActivityIcon,
+  ProfileIcon,
+} from "./TabBarIcons";
+import TabBarButton from "./TabBarButton";
+import { MainStackParamList } from "../interfaces/auth/navigation";
 
 const Tab = createBottomTabNavigator<MainStackParamList>();
 
-const MainTabs = () => {
+type TabScreenConfig = {
+  name: keyof MainStackParamList;
+  component: React.ComponentType<any>;
+  icon: React.ComponentType<any>;
+};
+
+const tabScreens: TabScreenConfig[] = [
+  { name: "Home", component: HomeScreen, icon: HomeIcon },
+  { name: "Search", component: SearchScreen, icon: SearchIcon },
+  { name: "Sell", component: SellScreen, icon: SellIcon },
+  { name: "Activity", component: ActivityScreen, icon: ActivityIcon },
+  { name: "Profile", component: ProfileScreen, icon: ProfileIcon },
+];
+
+const MainTabs: React.FC = () => {
   const queryClient = useQueryClient();
   const unseenActivitiesCount = useSelector(
     (state: RootState) => state.user.unseenActivitiesCount
-  );
-  const handleActivityPress = useCallback(() => {
-    if (unseenActivitiesCount > 0) {
-      queryClient.invalidateQueries("activities");
-    }
-  }, [unseenActivitiesCount, queryClient]);
-
-  const dispatch = useDispatch();
-
-  const lastTapTimeRef = useRef<{ [key: string]: number }>({});
-
-  const handleDoubleTap = useCallback(
-    (navigation: NavigationProp<MainStackParamList>, routeName: string) => {
-      const now = Date.now();
-      const DOUBLE_PRESS_DELAY = 300;
-      if (now - (lastTapTimeRef.current[routeName] || 0) < DOUBLE_PRESS_DELAY) {
-        navigation.setParams({ [`refresh${routeName}`]: Date.now() });
-      }
-      lastTapTimeRef.current[routeName] = now;
-    },
-    []
-  );
-
-  const renderTabBarButton = (
-    props: any,
-    navigation: NavigationProp<MainStackParamList>,
-    routeName: string
-  ) => (
-    <TouchableOpacity
-      {...props}
-      onPress={(e: GestureResponderEvent) => {
-        handleDoubleTap(navigation, routeName);
-        if (props.onPress) {
-          props.onPress(e);
-        }
-      }}
-    />
   );
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          if (route.name === "Home") {
-            return (
-              <Ionicons
-                name={focused ? "home-sharp" : "home-outline"}
-                size={size}
-                color={color}
-              />
-            );
-          } else if (route.name === "Search") {
-            return (
-              <Ionicons
-                name={focused ? "search-sharp" : "search-outline"}
-                size={size}
-                color={color}
-              />
-            );
-          } else if (route.name === "Sell") {
-            return (
-              <FontAwesome
-                name={focused ? "plus-square" : "plus-square-o"}
-                size={size}
-                color={color}
-              />
-            );
-          } else if (route.name === "Activity") {
-            return (
-              <View>
-                <Ionicons
-                  name={
-                    focused ? "notifications-sharp" : "notifications-outline"
-                  }
-                  size={size}
-                  color={color}
-                />
-                {unseenActivitiesCount > 0 && !focused && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {unseenActivitiesCount}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            );
-          } else if (route.name === "Profile") {
-            return (
-              <FontAwesome
-                name={focused ? "user" : "user-o"}
-                size={size}
-                color={color}
-              />
-            );
-          }
-          return null;
+          const IconComponent = tabScreens.find(
+            (screen) => screen.name === route.name
+          )?.icon;
+          return IconComponent ? (
+            <IconComponent
+              focused={focused}
+              color={color}
+              size={size}
+              unseenCount={unseenActivitiesCount}
+            />
+          ) : null;
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.secondary,
-        tabBarStyle: {
-          // You can add more styles for the tab bar here
-        },
-        tabBarLabelStyle: {
-          // You can add styles for the tab labels here
-        },
-        gestureEnabled: false, // This disables the swipe-back gesture
+        gestureEnabled: false,
         swipeEnabled: false,
       })}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={({ navigation }) => ({
-          tabBarButton: (props) =>
-            renderTabBarButton(props, navigation, "Home"),
-        })}
-      />
-      <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={({ navigation }) => ({
-          tabBarButton: (props) =>
-            renderTabBarButton(props, navigation, "Search"),
-        })}
-      />
-      <Tab.Screen name="Sell" component={SellScreen} />
-      <Tab.Screen
-        name="Activity"
-        component={ActivityScreen}
-        options={({ navigation }) => ({
-          tabBarButton: (props) =>
-            renderTabBarButton(props, navigation, "Activity"),
-
-          tabBarIcon: ({ focused, color, size }) => (
-            <View>
-              <Ionicons
-                name={focused ? "notifications-sharp" : "notifications-outline"}
-                size={size}
-                color={color}
+      {tabScreens.map(({ name, component }) => (
+        <Tab.Screen
+          key={name}
+          name={name}
+          component={component}
+          options={({ navigation }) => ({
+            tabBarButton: (props) => (
+              <TabBarButton
+                props={props}
+                navigation={navigation}
+                routeName={name}
               />
-              {unseenActivitiesCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unseenActivitiesCount}</Text>
-                </View>
-              )}
-            </View>
-          ),
-        })}
-        initialParams={{ unseenCount: unseenActivitiesCount }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={({ navigation }) => ({
-          tabBarButton: (props) =>
-            renderTabBarButton(props, navigation, "Profile"),
-        })}
-      />
+            ),
+          })}
+          listeners={{
+            tabPress: () => {
+              if (name === "Activity" && unseenActivitiesCount > 0) {
+                queryClient.invalidateQueries("activities");
+              }
+            },
+          }}
+        />
+      ))}
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  badge: {
-    position: "absolute",
-    right: -6,
-    top: -3,
-    backgroundColor: "red",
-    borderRadius: 9,
-    width: 18,
-    height: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-});
 
 export default MainTabs;

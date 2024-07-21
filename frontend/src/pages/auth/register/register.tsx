@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -22,7 +22,7 @@ import { RegisterFormData } from "../../../interfaces/auth/auth";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 
-import { registerSchema } from "../../../schema/auth";
+import { createRegisterSchema } from "../../../schema/auth";
 
 type RegisterScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
@@ -32,17 +32,22 @@ type RegisterScreenNavigationProp = StackNavigationProp<
 const RegisterScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
+
+  const registerSchema = useMemo(() => createRegisterSchema(t), [t]);
+
   const {
     control,
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm({
+  } = useForm<RegisterFormData>({
     resolver: yupResolver(registerSchema),
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const onSubmit = async (data: RegisterFormData) => {
     setIsSubmitting(true);
     try {
@@ -201,7 +206,11 @@ const RegisterScreen = () => {
         disabled={isSubmitting}
       >
         {isSubmitting ? (
-          <ActivityIndicator size="small" style={styles.activityIndicator} />
+          <ActivityIndicator
+            size="small"
+            color="white"
+            style={styles.activityIndicator}
+          />
         ) : (
           <Text style={styles.buttonText}>{t("auth.registerButton")}</Text>
         )}
@@ -213,7 +222,6 @@ const RegisterScreen = () => {
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

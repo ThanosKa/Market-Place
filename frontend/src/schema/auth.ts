@@ -1,39 +1,47 @@
 import * as Yup from "yup";
+import { TFunction } from "i18next"; // Make sure to import this
 
-export const registerSchema = Yup.object().shape({
-  email: Yup.string()
-    .email("Invalid email address")
-    .required("Email is required"),
-  firstName: Yup.string().required("First name is required"),
-  lastName: Yup.string().required("Last name is required"),
-  password: Yup.string().required("Password is required"),
-  confirmPassword: Yup.string()
-    .required("Confirm password is required")
-    .oneOf([Yup.ref("password")], "Passwords must match"),
-});
+export const createForgotPasswordSchema = (t: TFunction) =>
+  Yup.object().shape({
+    email: Yup.string()
+      .email(t("auth.invalidEmail"))
+      .required(t("auth.emailRequired")),
+  });
 
-export const loginSchema = Yup.object().shape({
-  email: Yup.string()
-    .email("Invalid email address")
-    .required("Email is required"),
-  password: Yup.string().required("Password is required"),
-});
+export const createLoginSchema = (t: TFunction) =>
+  Yup.object().shape({
+    email: Yup.string()
+      .email(t("auth.invalidEmail"))
+      .required(t("auth.emailRequired")),
+    password: Yup.string().required(t("auth.passwordRequired")),
+  });
 
-export const changePasswordSchema = Yup.object().shape({
-  currentPassword: Yup.string().required("Current password is required"),
-  newPassword: Yup.string()
-    // .matches(
-    //   /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!$@%])[A-Za-z\d!$@%]{6,}$/,
-    //   "Password must be at least 6 characters long, contain at least one letter, one number, and one special character"
-    // )
-    .required("New password is required"),
-  confirmNewPassword: Yup.string()
-    .test(
-      "confirmPassword",
-      "Passwords must match",
-      (value, context) => value === context.parent.newPassword
-    )
-    .required("Confirm new password is required"),
-});
+export const createRegisterSchema = (t: TFunction) =>
+  Yup.object().shape({
+    email: Yup.string()
+      .email(t("auth.invalidEmail"))
+      .required(t("auth.emailRequired")),
+    firstName: Yup.string().required(t("auth.firstNameRequired")),
+    lastName: Yup.string().required(t("auth.lastNameRequired")),
+    password: Yup.string().required(t("auth.passwordRequired")),
+    confirmPassword: Yup.string()
+      .required(t("auth.confirmPasswordRequired"))
+      .oneOf([Yup.ref("password")], t("auth.passwordsMustMatch")),
+  });
 
-export type ChangePasswordFormData = Yup.InferType<typeof changePasswordSchema>;
+export const createChangePasswordSchema = (t: TFunction) =>
+  Yup.object().shape({
+    currentPassword: Yup.string().required(t("auth.currentPasswordRequired")),
+    newPassword: Yup.string().required(t("auth.newPasswordRequired")),
+    confirmNewPassword: Yup.string()
+      .test(
+        "confirmPassword",
+        t("auth.passwordsMustMatch"),
+        (value, context) => value === context.parent.newPassword
+      )
+      .required(t("auth.confirmNewPasswordRequired")),
+  });
+
+export type ChangePasswordFormData = Yup.InferType<
+  ReturnType<typeof createChangePasswordSchema>
+>;

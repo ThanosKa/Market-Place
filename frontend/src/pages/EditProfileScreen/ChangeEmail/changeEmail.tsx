@@ -23,6 +23,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import Toast from "react-native-toast-message";
 import { Animated } from "react-native";
+import { useLoggedUser } from "../../../hooks/useLoggedUser";
 
 type ChangeEmailScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -49,10 +50,7 @@ const ChangeEmailScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const emailInputRef = useRef<TextInput>(null);
 
-  const { data: userData, isLoading: userLoading } = useQuery(
-    "loggedUser",
-    getLoggedUser
-  );
+  const { data: userData, isLoading: userLoading } = useLoggedUser(); // Add this line
 
   const {
     control,

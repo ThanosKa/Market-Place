@@ -13,7 +13,6 @@ export const UnseenActivitiesProvider: React.FC<
 > = ({ children }) => {
   const dispatch = useDispatch();
   const { data: userData, isLoading } = useLoggedUser();
-  console.log("UnseenActivitiesProvider");
   useEffect(() => {
     if (userData?.data.user.activities.unseenCount !== undefined) {
       dispatch(

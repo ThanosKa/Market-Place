@@ -12,3 +12,12 @@ export const categories = [
   { id: "man", label: "mens-fashion", value: "menFashion" },
   { id: "bed-outline", label: "furniture", value: "furniture" },
 ];
+
+export const conditions = [
+  { id: "sparkles-outline", label: "brand-new", value: "brandNew" },
+  { id: "cube-outline", label: "new-open-box", value: "newOpenBox" },
+  { id: "refresh-outline", label: "refurbished", value: "refurbished" },
+  { id: "hand-left-outline", label: "used", value: "used" },
+  { id: "construct-outline", label: "parts-only", value: "partsOnly" },
+  { id: "open-outline", label: "open-box", value: "openBox" },
+];

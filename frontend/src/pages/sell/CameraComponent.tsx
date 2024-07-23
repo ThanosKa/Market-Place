@@ -15,12 +15,13 @@ interface CameraComponentProps {
   onCapture: (uri: string) => void;
   onClose: () => void;
   onPickImages: (uris: string[]) => void;
+  currentImageCount: number;
 }
-
 const CameraComponent: React.FC<CameraComponentProps> = ({
   onCapture,
   onClose,
   onPickImages,
+  currentImageCount,
 }) => {
   const { t } = useTranslation();
   const [type, setType] = useState<CameraType>(CameraType.back);
@@ -54,21 +55,25 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
       }
     }
   };
-
+  const handleClose = () => {
+    console.log("Close button pressed");
+    onClose();
+  };
   const handlePickImages = async () => {
     setIsSelectingImages(true);
     try {
+      const remainingSlots = 5 - currentImageCount;
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 1,
-        selectionLimit: 5,
+        selectionLimit: remainingSlots,
       });
 
       if (!result.canceled && result.assets) {
         const selectedUris = result.assets.map((asset) => asset.uri);
         console.log("Images selected from gallery:", selectedUris);
-        onPickImages(selectedUris);
+        onPickImages(selectedUris.slice(0, remainingSlots));
       } else {
         console.log("Image selection cancelled or no images selected");
       }
@@ -78,7 +83,6 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
       setIsSelectingImages(false);
     }
   };
-
   return (
     <View style={styles.fullScreenContainer}>
       <Camera
@@ -88,7 +92,11 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
         flashMode={flash}
       >
         <View style={styles.cameraTopContainer}>
-          <TouchableOpacity style={styles.cameraButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.cameraButton}
+            onPress={handleClose}
+            activeOpacity={0.7}
+          >
             <Ionicons name="close" size={32} color="white" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.cameraButton} onPress={toggleFlash}>
@@ -133,16 +141,7 @@ const styles = StyleSheet.create({
   fullScreenCamera: {
     flex: 1,
   },
-  cameraTopContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1,
-  },
+
   cameraBottomContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -156,8 +155,19 @@ const styles = StyleSheet.create({
   },
   cameraButton: {
     backgroundColor: "rgba(0,0,0,0.6)",
-    padding: 15,
+    padding: 20,
     borderRadius: 30,
+    zIndex: 2,
+  },
+  cameraTopContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 20,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2, // Increased from 1
   },
   captureButton: {
     width: 70,

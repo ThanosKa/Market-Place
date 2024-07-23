@@ -1,22 +1,24 @@
+// SellScreen.tsx
+
 import React, {
   useState,
   useRef,
   forwardRef,
   useImperativeHandle,
+  useEffect,
 } from "react";
 import {
   View,
-  TouchableOpacity,
-  Text,
   Alert,
   StyleSheet,
-  SafeAreaView,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "react-query";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import * as ImagePicker from "expo-image-picker";
 import { axiosFormDataInstance } from "../../services/axiosConfig";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import CameraComponent from "./CameraComponent";
@@ -28,17 +30,40 @@ export interface SellScreenRef {
   resetState: () => void;
 }
 
-const MainSellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
-  const { t } = useTranslation();
+const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+  const { t } = useTranslation();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [images, setImages] = useState<string[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(true);
+  const [formData, setFormData] = useState<ProductFormData>({
+    title: "",
+    price: "",
+    category: null,
+    condition: null,
+  });
+
+  useEffect(() => {
+    setIsCameraOpen(true);
+  }, []);
 
   const resetState = () => {
     setImages([]);
     setIsCameraOpen(true);
+    setFormData({
+      title: "",
+      price: "",
+      category: null,
+      condition: null,
+    });
   };
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: !isCameraOpen,
+    });
+  }, [navigation, isCameraOpen]);
 
   useImperativeHandle(ref, () => ({
     resetState,
@@ -48,9 +73,6 @@ const MainSellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
     (formData: FormData) => axiosFormDataInstance.post("/products", formData),
     {
       onSuccess: () => {
-        // Alert.alert(t("Success"), t("Product listed successfully"));
-        resetState();
-        handleCloseCamera(); // Add this line to call handleCloseCamera on success
         Toast.show({
           type: "success",
           text1: t("success"),
@@ -58,9 +80,9 @@ const MainSellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
           position: "bottom",
           bottomOffset: 110,
         });
+        navigation.navigate("Home", { refreshHome: Date.now() });
       },
       onError: (error) => {
-        // console.error("Error submitting product:", error);
         Alert.alert(t("Error"), t("Failed to list product. Please try again."));
       },
     }
@@ -75,6 +97,7 @@ const MainSellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
     setImages((prevImages) => [...prevImages, ...selectedUris].slice(0, 5));
     setIsCameraOpen(false);
   };
+
   const handleRemoveImage = (index: number) => {
     setImages((prevImages) => {
       const newImages = prevImages.filter((_, i) => i !== index);
@@ -87,18 +110,20 @@ const MainSellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
 
   const handleCloseCamera = () => {
     setIsCameraOpen(false);
-    navigation.navigate("Home", {
-      searchQuery: undefined,
-      refreshHome: Date.now(),
-    });
+    if (images.length === 0) {
+      navigation.navigate("Home", {
+        searchQuery: undefined,
+        refreshHome: undefined,
+      });
+    }
   };
 
-  const handleSubmit = (formData: ProductFormData) => {
+  const handleSubmit = (submittedFormData: ProductFormData) => {
     if (
-      !formData.title ||
-      !formData.price ||
-      !formData.category ||
-      !formData.condition ||
+      !submittedFormData.title ||
+      !submittedFormData.price ||
+      !submittedFormData.category ||
+      !submittedFormData.condition ||
       images.length === 0
     ) {
       Alert.alert(
@@ -109,10 +134,10 @@ const MainSellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
     }
 
     const submitFormData = new FormData();
-    submitFormData.append("title", formData.title);
-    submitFormData.append("price", formData.price);
-    submitFormData.append("category", formData.category as string);
-    submitFormData.append("condition", formData.condition as string);
+    submitFormData.append("title", submittedFormData.title);
+    submitFormData.append("price", submittedFormData.price);
+    submitFormData.append("category", submittedFormData.category as string);
+    submitFormData.append("condition", submittedFormData.condition as string);
 
     images.forEach((image, index) => {
       submitFormData.append("images", {
@@ -131,27 +156,34 @@ const MainSellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
         onCapture={handleCapture}
         onClose={handleCloseCamera}
         onPickImages={handlePickImages}
+        currentImageCount={images.length}
       />
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ImageGallery
-        images={images}
-        onRemoveImage={handleRemoveImage}
-        onOpenCamera={() => setIsCameraOpen(true)}
-      />
-      {images.length === 0 && (
-        <TouchableOpacity
-          style={styles.retakeButton}
-          onPress={() => setIsCameraOpen(true)}
-        >
-          <Text style={styles.retakeButtonText}>{t("Re-take photos")}</Text>
-        </TouchableOpacity>
-      )}
-      <ProductForm onSubmit={handleSubmit} isLoading={mutation.isLoading} />
-    </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ImageGallery
+          images={images}
+          onRemoveImage={handleRemoveImage}
+          onOpenCamera={() => setIsCameraOpen(true)}
+        />
+        <ProductForm
+          onSubmit={handleSubmit}
+          isLoading={mutation.isLoading}
+          formData={formData}
+          setFormData={setFormData}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 });
 
@@ -160,19 +192,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  retakeButton: {
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-    marginVertical: 10,
-    marginHorizontal: 20,
-  },
-  retakeButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
 });
 
-export default MainSellScreen;
+export default SellScreen;

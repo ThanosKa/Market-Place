@@ -35,4 +35,5 @@ export type MainStackParamList = {
   EditProfile: undefined;
   ChangeEmailScreen: undefined;
   ChangePasswordScreen: undefined;
+  SellProduct: undefined;
 };

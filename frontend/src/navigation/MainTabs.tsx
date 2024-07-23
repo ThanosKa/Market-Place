@@ -6,7 +6,6 @@ import { RootState } from "../redux/redux";
 import { colors } from "../colors/colors";
 import HomeScreen from "../pages/home/home";
 import SearchScreen from "../pages/search/search";
-import SellScreen, { SellScreenRef } from "../pages/sell/sell";
 import ActivityScreen from "../pages/activity/activity";
 import ProfileScreen from "../pages/profile/profile";
 import {
@@ -18,7 +17,9 @@ import {
 } from "./TabBarIcons";
 import TabBarButton from "./TabBarButton";
 import { MainStackParamList } from "../interfaces/auth/navigation";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
+import SellProductScreen from "../pages/sell/TabSellScreen"; // Update this import
+import { StackNavigationProp } from "@react-navigation/stack";
 
 const Tab = createBottomTabNavigator<MainStackParamList>();
 
@@ -31,29 +32,17 @@ type TabScreenConfig = {
 const tabScreens: TabScreenConfig[] = [
   { name: "Home", component: HomeScreen, icon: HomeIcon },
   { name: "Search", component: SearchScreen, icon: SearchIcon },
-  { name: "Sell", component: SellScreen, icon: SellIcon },
+  { name: "Sell", component: SellProductScreen, icon: SellIcon }, // Update this line
   { name: "Activity", component: ActivityScreen, icon: ActivityIcon },
   { name: "Profile", component: ProfileScreen, icon: ProfileIcon },
 ];
-
-const SellScreenWrapper = () => {
-  const sellScreenRef = useRef<SellScreenRef>(null);
-  const isFocused = useIsFocused();
-
-  useEffect(() => {
-    if (!isFocused && sellScreenRef.current) {
-      sellScreenRef.current.resetState();
-    }
-  }, [isFocused]);
-
-  return <SellScreen ref={sellScreenRef} />;
-};
 
 const MainTabs: React.FC = () => {
   const queryClient = useQueryClient();
   const unseenActivitiesCount = useSelector(
     (state: RootState) => state.user.unseenActivitiesCount
   );
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
   return (
     <Tab.Navigator
@@ -75,16 +64,14 @@ const MainTabs: React.FC = () => {
         tabBarInactiveTintColor: colors.secondary,
         gestureEnabled: false,
         swipeEnabled: false,
-        // Hide header and tab bar for Sell screen
-        headerShown: route.name !== "Sell",
-        tabBarStyle: route.name === "Sell" ? { display: "none" } : undefined,
+        headerShown: true,
       })}
     >
       {tabScreens.map(({ name, component }) => (
         <Tab.Screen
           key={name}
           name={name}
-          component={name === "Sell" ? SellScreenWrapper : component}
+          component={component}
           options={({ navigation }) => ({
             tabBarButton: (props) => (
               <TabBarButton
@@ -95,8 +82,11 @@ const MainTabs: React.FC = () => {
             ),
           })}
           listeners={{
-            tabPress: () => {
-              if (name === "Activity" && unseenActivitiesCount > 0) {
+            tabPress: (e) => {
+              if (name === "Sell") {
+                e.preventDefault();
+                navigation.navigate("SellProduct");
+              } else if (name === "Activity" && unseenActivitiesCount > 0) {
                 queryClient.invalidateQueries("activities");
               }
             },

@@ -15,10 +15,13 @@ import UserProfileScreen from "../pages/UserProfile/userProfile";
 import { UnseenActivitiesProvider } from "../components/UnseenActivities/UnseenActivities";
 import { useLoggedUser } from "../hooks/useLoggedUser";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
+import SellScreen from "../pages/sell/SellScreen";
 const MainStack = createStackNavigator<MainStackParamList>();
 
 const MainNavigator = () => {
   const { refetch } = useLoggedUser();
+  const { t } = useTranslation();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -65,15 +68,43 @@ const MainNavigator = () => {
           })}
         />
         <MainStack.Screen name="Chat" component={ChatScreen} />
-        <MainStack.Screen name="Likes" component={LikesPage} />
+        {/* <MainStack.Screen name="Likes" component={LikesPage} /> */}
         <MainStack.Screen name="Messages" component={MessageScreen} />
-
+        <MainStack.Screen
+          name="Likes"
+          component={LikesPage}
+          options={({ navigation }) => ({
+            headerShown: true,
+            headerTitle: t("favorites"),
+            headerTitleAlign: "center",
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 15 }}
+              >
+                <Ionicons
+                  name="chevron-back-sharp"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ),
+            headerStyle: {
+              backgroundColor: "white",
+              elevation: 0, // for Android
+              shadowOpacity: 0, // for iOS
+              borderBottomWidth: 0, // for iOS
+            },
+            headerTintColor: colors.primary,
+          })}
+        />
         <MainStack.Screen
           name="EditProfile"
           component={EditProfileScreen}
           options={({ navigation }) => ({
             headerShown: true,
-            headerTitle: "Edit Profile",
+            headerTitle: t("edit-profile"),
+
             headerTitleAlign: "center",
             headerLeft: () => (
               <TouchableOpacity
@@ -102,7 +133,8 @@ const MainNavigator = () => {
           component={ChangePasswordScreen}
           options={({ navigation }) => ({
             headerShown: true,
-            headerTitle: "Change password",
+            headerTitle: t("change-password"),
+
             headerTitleAlign: "center",
             headerLeft: () => (
               <TouchableOpacity
@@ -131,7 +163,8 @@ const MainNavigator = () => {
           component={ChangeEmailScreen}
           options={({ navigation }) => ({
             headerShown: true,
-            headerTitle: "Change email",
+            headerTitle: t("change-email"),
+
             headerTitleAlign: "center",
             headerLeft: () => (
               <TouchableOpacity
@@ -146,6 +179,35 @@ const MainNavigator = () => {
               </TouchableOpacity>
             ),
             headerBackTitle: " ",
+            headerStyle: {
+              backgroundColor: "white",
+            },
+            headerTintColor: colors.primary,
+            headerTitleStyle: {
+              fontWeight: "bold",
+            },
+          })}
+        />
+        <MainStack.Screen
+          name="SellProduct"
+          component={SellScreen}
+          options={({ navigation }) => ({
+            headerShown: true,
+            headerTitle: t("sell-product"),
+
+            headerTitleAlign: "center",
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 15 }}
+              >
+                <Ionicons
+                  name="chevron-back-sharp"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ),
             headerStyle: {
               backgroundColor: "white",
             },

@@ -13,7 +13,6 @@ import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useQueryClient } from "react-query";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
-import Header from "../../components/UserProfile/header";
 import TabSelector from "../../components/TabSelector/tabSelector";
 import { useLoggedUser } from "../../hooks/useLoggedUser";
 import RenderLikedProducts from "./products";
@@ -24,12 +23,13 @@ type LikesPagePropScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
   "Likes"
 >;
+
 type Props = {
   route: LikesPageProp;
   navigation: LikesPagePropScreenNavigationProp;
 };
 
-const LikesPage: React.FC<Props> = ({ navigation }) => {
+const LikesPage: React.FC<Props> = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<
     "liked-products" | "liked-profiles"
@@ -38,8 +38,6 @@ const LikesPage: React.FC<Props> = ({ navigation }) => {
 
   const queryClient = useQueryClient();
   const { data: userData, isLoading, refetch, error } = useLoggedUser();
-
-  const handleBackPress = () => navigation.goBack();
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -69,7 +67,6 @@ const LikesPage: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Header onBackPress={handleBackPress} />
       <TabSelector
         tabs={[
           { key: "liked-products", label: t("liked-products") },

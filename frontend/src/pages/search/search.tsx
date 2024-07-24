@@ -7,7 +7,12 @@ import {
   RefreshControl,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "react-query";
 import debounce from "lodash.debounce";
 import { RouteProp, useRoute } from "@react-navigation/native";
 
@@ -40,7 +45,6 @@ const SearchScreen = () => {
   const [isFocused, setIsFocused] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const debouncedSearch = useCallback(
     debounce((text: string) => {
@@ -58,13 +62,24 @@ const SearchScreen = () => {
   const {
     data: productsData,
     isLoading: productsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     refetch: refetchProducts,
-  } = useQuery(
+  } = useInfiniteQuery(
     ["products", debouncedSearchQuery],
-    () => getProducts({ search: debouncedSearchQuery }),
+    ({ pageParam = 1 }) =>
+      getProducts({ search: debouncedSearchQuery, page: pageParam, limit: 10 }),
     {
-      staleTime: 0,
-      cacheTime: 0,
+      getNextPageParam: (lastPage) => {
+        if (
+          lastPage.data.page <
+          Math.ceil(lastPage.data.total / lastPage.data.limit)
+        ) {
+          return lastPage.data.page + 1;
+        }
+        return undefined;
+      },
       enabled: !isFocused || (isFocused && debouncedSearchQuery.length > 0),
     }
   );
@@ -95,7 +110,8 @@ const SearchScreen = () => {
     },
   });
 
-  const products = productsData?.data.products || [];
+  const products =
+    productsData?.pages?.flatMap((page) => page.data.products) || [];
   const recentSearches = recentSearchesData?.data.recentSearches || [];
 
   const handleShowSearch = () => {
@@ -142,12 +158,16 @@ const SearchScreen = () => {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setIsLoading(true);
     Promise.all([refetchProducts(), refetchRecentSearches()]).then(() => {
       setRefreshing(false);
-      setIsLoading(false);
     });
   }, [refetchProducts, refetchRecentSearches]);
+
+  const loadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
 
   const refreshControl = (
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -173,7 +193,13 @@ const SearchScreen = () => {
           {productsLoading ? (
             <ActivityIndicator size="small" color={colors.secondary} />
           ) : products.length > 0 ? (
-            <ProductGrid products={products} refreshControl={refreshControl} />
+            <ProductGrid
+              products={products}
+              refreshControl={refreshControl}
+              loadMore={loadMore}
+              hasMore={!!hasNextPage}
+              isLoadingMore={isFetchingNextPage}
+            />
           ) : (
             <Text style={styles.emptyMessage}>{t("no-products-found")}</Text>
           )}
@@ -183,7 +209,7 @@ const SearchScreen = () => {
       {isFocused && searchQuery.length === 0 && (
         <RecentSearches
           recentSearches={recentSearches}
-          isLoading={recentSearchesLoading || isLoading}
+          isLoading={recentSearchesLoading}
           onClickRecentSearch={handleClickRecentSearch}
           onDeleteRecentSearch={handleDeleteRecentSearch}
           onClearAllRecentSearches={handleClearAllRecentSearches}
@@ -193,12 +219,15 @@ const SearchScreen = () => {
 
       {isFocused && searchQuery.length > 0 && (
         <>
-          {productsLoading || isLoading ? (
+          {productsLoading ? (
             <ActivityIndicator size="small" color={colors.secondary} />
           ) : products.length > 0 ? (
             <SearchResults
               products={products}
               onClickSearchedProduct={handleClickSearchedProduct}
+              loadMore={loadMore}
+              hasMore={!!hasNextPage}
+              isLoadingMore={isFetchingNextPage}
             />
           ) : (
             <Text style={styles.emptyMessage}>
@@ -224,12 +253,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.secondary,
     fontWeight: "bold",
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });
 

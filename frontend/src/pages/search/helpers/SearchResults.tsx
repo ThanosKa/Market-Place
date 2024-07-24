@@ -1,4 +1,3 @@
-// SearchResults.tsx
 import React from "react";
 import {
   FlatList,
@@ -7,18 +6,26 @@ import {
   View,
   Text,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { Product } from "../../../interfaces/product";
 import { BASE_URL } from "../../../services/axiosConfig";
+import { colors } from "../../../colors/colors";
 
 interface SearchResultsProps {
   products: Product[];
   onClickSearchedProduct: (productId: string) => void;
+  loadMore: () => void;
+  hasMore: boolean;
+  isLoadingMore: boolean;
 }
 
 const SearchResults: React.FC<SearchResultsProps> = ({
   products,
   onClickSearchedProduct,
+  loadMore,
+  hasMore,
+  isLoadingMore,
 }) => {
   const renderSearchResult = ({ item }: { item: Product }) => (
     <TouchableOpacity
@@ -41,12 +48,28 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     </TouchableOpacity>
   );
 
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    return (
+      <View style={styles.footerContainer}>
+        <ActivityIndicator size="small" color={colors.secondary} />
+      </View>
+    );
+  };
+
   return (
     <FlatList
       data={products}
       renderItem={renderSearchResult}
       keyExtractor={(item) => item._id}
       style={styles.searchResults}
+      onEndReached={() => {
+        if (hasMore) {
+          loadMore();
+        }
+      }}
+      onEndReachedThreshold={0.1}
+      ListFooterComponent={renderFooter}
     />
   );
 };
@@ -78,6 +101,10 @@ const styles = StyleSheet.create({
   resultOwner: {
     fontSize: 14,
     color: "#666",
+  },
+  footerContainer: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
 });
 

@@ -106,18 +106,23 @@ export const getUserReviews = async (req: Request, res: Response) => {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
     const { page = 1, limit = 10 } = req.query;
 
-    const reviews = await Review.find({ reviewer: userId })
+    const reviews = await Review.find({
+      $or: [{ reviewer: userId }, { reviewee: userId }],
+    })
+      .populate("reviewer", "firstName lastName profilePicture")
       .populate("reviewee", "firstName lastName profilePicture")
       .populate("product", "title images")
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
 
-    const totalReviews = await Review.countDocuments({ reviewer: userId });
+    const totalReviews = await Review.countDocuments({
+      $or: [{ reviewer: userId }, { reviewee: userId }],
+    });
 
     res.json({
       success: 1,
-      message: "User reviews retrieved successfully",
+      message: "All user reviews retrieved successfully",
       data: {
         reviews,
         page: Number(page),

@@ -4,7 +4,6 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
-  Text,
   TouchableOpacity,
 } from "react-native";
 import { useTranslation } from "react-i18next";

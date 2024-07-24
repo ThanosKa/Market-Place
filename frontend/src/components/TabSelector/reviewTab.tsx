@@ -1,15 +1,16 @@
-// components/ReviewsTab.tsx
 import React from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, ActivityIndicator } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Review } from "../../interfaces/review";
 import ReviewItem from "../Reviews/ReviewItem";
+import { colors } from "../../colors/colors";
 
 type Props = {
   reviews: Review[];
   user?: boolean;
   firstName?: string;
   lastName?: string;
+  isLoading: boolean;
 };
 
 const ReviewsTab: React.FC<Props> = ({
@@ -17,10 +18,19 @@ const ReviewsTab: React.FC<Props> = ({
   user,
   firstName,
   lastName,
+  isLoading,
 }) => {
+  // console.log("reviews", reviews);
   const { t } = useTranslation();
 
-  console.log(user, firstName, lastName);
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color={colors.secondary} />
+      </View>
+    );
+  }
+
   if (reviews.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -60,6 +70,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: "#666",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

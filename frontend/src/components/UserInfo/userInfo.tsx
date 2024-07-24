@@ -10,9 +10,10 @@ import { Feather } from "@expo/vector-icons"; // Add this import
 
 type Props = {
   user: User;
+  totalProducts: number;
 };
 
-const UserInfo: React.FC<Props> = ({ user }) => {
+const UserInfo: React.FC<Props> = ({ user, totalProducts }) => {
   const { t } = useTranslation();
 
   const renderStars = (rating: number) => {
@@ -75,10 +76,14 @@ const UserInfo: React.FC<Props> = ({ user }) => {
         ) : (
           <Text style={styles.noReviews}>{t("no-reviews")}</Text>
         )}
-        <Text style={styles.userStat}>
-          {t("for-sale")}:{" "}
-          <Text style={styles.statValue}>{user.products.length}</Text>
-        </Text>
+        {totalProducts > 0 ? (
+          <Text style={styles.userStat}>
+            {t("for-sale")}:{" "}
+            <Text style={styles.statValue}>{totalProducts}</Text>
+          </Text>
+        ) : (
+          <Text style={styles.userStat}>{t("nothing-sale")}</Text>
+        )}
       </View>
     </View>
   );

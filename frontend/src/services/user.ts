@@ -93,18 +93,6 @@ export const getUserById = async (
   }
 };
 
-interface UserDetailsResponse {
-  success: number;
-  message: string;
-  data: {
-    user: User;
-    page: number;
-    limit: number;
-    totalProducts: number;
-    totalPages: number;
-  };
-}
-
 export const getUserDetails = async () => {
   const response = await axiosInstance.get("/users/details");
   return response.data;

@@ -5,10 +5,9 @@ import { ScrollView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import ProductItem from "./productItem";
 import { Product } from "../../interfaces/product";
-import { useMutation, useQueryClient } from "react-query";
-import { toggleLikeProduct } from "../../services/likes";
+import { useMutation, useQueryClient, useQuery } from "react-query";
+import { toggleLikeProduct, getLikedProducts } from "../../services/likes";
 import { colors } from "../../colors/colors";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
 
 type Props = {
   products: Product[];
@@ -17,11 +16,12 @@ type Props = {
 const ProductGrid: React.FC<Props> = ({ products }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { data: userData } = useLoggedUser(); // Add this line
-  console.log(userData?.data.user.activities.unseenCount);
+
+  const { data: likedProducts } = useQuery("likedProducts", getLikedProducts);
+
   const toggleLikeMutation = useMutation(toggleLikeProduct, {
     onSettled: () => {
-      queryClient.invalidateQueries("loggedUser");
+      queryClient.invalidateQueries("likedProducts");
     },
   });
 
@@ -30,9 +30,7 @@ const ProductGrid: React.FC<Props> = ({ products }) => {
   };
 
   // Create a Set of liked product IDs for efficient lookup
-  const likedProductIds = new Set(
-    userData?.data?.user?.likedProducts?.map((p) => p._id) || []
-  );
+  const likedProductIds = new Set(likedProducts?.map((p) => p._id) || []);
 
   return (
     <ScrollView>

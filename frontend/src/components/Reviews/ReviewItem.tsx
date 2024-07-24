@@ -1,4 +1,3 @@
-// components/ReviewItem.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
@@ -19,8 +18,8 @@ type Props = {
 const ReviewItem: React.FC<Props> = ({ review }) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
   const [isCurrentUser, setIsCurrentUser] = useState(false);
-
   const { t } = useTranslation();
+
   const handleUserPress = async (userId: string) => {
     const loggedUserId = await getUserId();
     if (loggedUserId === userId) {
@@ -30,6 +29,7 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
       navigation.navigate("UserProfile", { userId });
     }
   };
+
   useEffect(() => {
     const checkCurrentUser = async () => {
       const loggedUserId = await getUserId();
@@ -37,6 +37,7 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
     };
     checkCurrentUser();
   }, [review.reviewer._id]);
+
   return (
     <View style={styles.outerContainer}>
       <View style={styles.reviewContainer}>
@@ -45,9 +46,7 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
             <Image
               source={{
                 uri:
-                  review.product &&
-                  review.product.images &&
-                  review.product.images.length > 0
+                  review.product.images && review.product.images.length > 0
                     ? `${BASE_URL}${review.product.images[0]}`
                     : undefined,
               }}
@@ -61,11 +60,9 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
                 style={styles.reviewerImage}
               />
             ) : (
-              <>
-                <View style={styles.reviewerImageUndef}>
-                  <UndefProfPicture size={40} iconSize={20} />
-                </View>
-              </>
+              <View style={styles.reviewerImageUndef}>
+                <UndefProfPicture size={40} iconSize={20} />
+              </View>
             )}
           </View>
           <View style={styles.reviewInfoContainer}>

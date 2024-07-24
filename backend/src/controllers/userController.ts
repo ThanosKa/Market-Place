@@ -133,7 +133,6 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
             "title price images category condition seller likes createdAt updatedAt",
         },
       });
-
     if (!user) {
       return res.status(404).json({
         success: 0,
@@ -142,9 +141,12 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
       });
     }
 
-    const reviews = await Review.find({ reviewee: user._id })
+    const reviews = await Review.find({
+      $or: [{ reviewer: userId }, { reviewee: userId }],
+    })
       .populate("reviewer", "firstName lastName profilePicture")
-      .populate("product")
+      .populate("reviewee", "firstName lastName profilePicture")
+      .populate("product", "title images")
       .sort({ createdAt: -1 });
 
     const activities = await Activity.find({ user: user._id })
@@ -160,7 +162,6 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
     const userWithReviewsAndActivities = {
       ...user.toObject(),
       createdAt: user.createdAt,
-
       reviews,
       activities: {
         items: activities,

@@ -21,7 +21,12 @@ import ListingsTab from "../../components/TabSelector/listingTab";
 import ProfileTab from "../../components/TabSelector/profileTab";
 import { User } from "../../interfaces/user";
 import ReviewsTab from "../../components/TabSelector/reviewTab";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
+import { useQuery } from "react-query";
+import {
+  getUserDetails,
+  getUserProducts,
+  getUserReviews,
+} from "../../services/user";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
@@ -41,28 +46,48 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [initialUserData, setInitialUserData] = useState<User | null>(null);
 
   const {
-    data: userData,
+    data: userDetails,
     isLoading: userLoading,
-    refetch,
-  } = useLoggedUser({
-    search: activeTab === "listings" ? searchQuery : undefined,
+    refetch: refetchUserDetails,
+  } = useQuery("userDetails", getUserDetails);
+
+  const {
+    data: userProducts,
+    isLoading: productsLoading,
+    refetch: refetchUserProducts,
+  } = useQuery(
+    ["userProducts", searchQuery],
+    () => getUserProducts(searchQuery ? { search: searchQuery } : {}),
+    { enabled: activeTab === "listings" }
+  );
+
+  const {
+    data: userReviews,
+    isLoading: reviewsLoading,
+    refetch: refetchUserReviews,
+  } = useQuery("userReviews", () => getUserReviews(), {
+    enabled: activeTab === "reviews",
   });
 
   useFocusEffect(
     useCallback(() => {
-      refetch();
+      refetchUserDetails();
       setActiveTab("profile");
-    }, [refetch])
+    }, [refetchUserDetails])
   );
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await refetch();
+    await refetchUserDetails();
+    if (activeTab === "listings") {
+      await refetchUserProducts();
+    } else if (activeTab === "reviews") {
+      await refetchUserReviews();
+    }
     setIsRefreshing(false);
-  }, [refetch]);
+  }, [activeTab, refetchUserDetails, refetchUserProducts, refetchUserReviews]);
 
   useEffect(() => {
     if (route.params?.refreshProfile) {
@@ -70,23 +95,23 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [route.params?.refreshProfile, onRefresh]);
 
-  useEffect(() => {
-    if (userData?.data?.user && !initialUserData) {
-      setInitialUserData(userData.data.user);
+  const handleSearch = useCallback(() => {
+    if (activeTab === "listings") {
+      refetchUserProducts();
     }
-  }, [userData, initialUserData]);
-
-  const user = userData?.data?.user || initialUserData;
+  }, [activeTab, refetchUserProducts]);
 
   const renderContent = () => {
-    if (userLoading && !initialUserData) {
+    if (userLoading && !userDetails) {
       return <ActivityIndicator size="small" color={colors.secondary} />;
     }
 
-    if (!user) {
+    if (!userDetails) {
       return <Text>Error loading user data</Text>;
     }
 
+    const user: User = userDetails.data.user;
+    const totalProducts = userDetails.data.totalProducts;
     const tabs = [
       { key: "profile", label: t("profile") },
       { key: "listings", label: t("listings") },
@@ -99,7 +124,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
         }
       >
-        <UserInfo user={user} />
+        <UserInfo user={user} totalProducts={totalProducts} />
         <TabSelector
           tabs={tabs}
           activeTab={activeTab}
@@ -110,14 +135,20 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         )}
         {activeTab === "listings" && (
           <ListingsTab
-            products={user.products}
+            products={userProducts?.data?.products || []}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            onSearch={() => refetch()}
-            isLoading={userLoading}
+            onSearch={handleSearch}
+            isLoading={productsLoading}
           />
         )}
-        {activeTab === "reviews" && <ReviewsTab user reviews={user.reviews} />}
+        {activeTab === "reviews" && (
+          <ReviewsTab
+            user
+            reviews={userReviews?.data?.reviews || []}
+            isLoading={reviewsLoading}
+          />
+        )}
       </ScrollView>
     );
   };

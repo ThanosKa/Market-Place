@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  LayoutChangeEvent,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +19,10 @@ type Props = {
   setSearchQuery: (query: string) => void;
   onSearch: () => void;
   isLoading: boolean;
+  loadMore: () => void;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLayout: (event: LayoutChangeEvent) => void;
 };
 
 const ListingsTab: React.FC<Props> = ({
@@ -26,6 +31,10 @@ const ListingsTab: React.FC<Props> = ({
   setSearchQuery,
   onSearch,
   isLoading,
+  loadMore,
+  hasMore,
+  isLoadingMore,
+  onLayout,
 }) => {
   const { t } = useTranslation();
 
@@ -40,7 +49,7 @@ const ListingsTab: React.FC<Props> = ({
   };
 
   return (
-    <View style={styles.listingsContainer}>
+    <View style={styles.listingsContainer} onLayout={onLayout}>
       <View style={styles.searchContainer}>
         <Ionicons
           name="search"
@@ -69,7 +78,14 @@ const ListingsTab: React.FC<Props> = ({
           <ActivityIndicator size="small" color={colors.secondary} />
         </View>
       ) : (
-        <ProductGrid products={products} />
+        <>
+          <ProductGrid products={products} />
+          {isLoadingMore && (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color={colors.secondary} />
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -101,6 +117,11 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 20,
+  },
+  loadingMoreContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
   },
 });
 

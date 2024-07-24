@@ -1,5 +1,11 @@
 import React from "react";
-import { View, StyleSheet, Text, ActivityIndicator } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text,
+  ActivityIndicator,
+  LayoutChangeEvent,
+} from "react-native";
 import { useTranslation } from "react-i18next";
 import { Review } from "../../interfaces/review";
 import ReviewItem from "../Reviews/ReviewItem";
@@ -7,10 +13,14 @@ import { colors } from "../../colors/colors";
 
 type Props = {
   reviews: Review[];
+  isLoading: boolean;
+  loadMore: () => void;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLayout: (event: LayoutChangeEvent) => void;
   user?: boolean;
   firstName?: string;
   lastName?: string;
-  isLoading: boolean;
 };
 
 const ReviewsTab: React.FC<Props> = ({
@@ -19,8 +29,11 @@ const ReviewsTab: React.FC<Props> = ({
   firstName,
   lastName,
   isLoading,
+  loadMore,
+  hasMore,
+  isLoadingMore,
+  onLayout,
 }) => {
-  // console.log("reviews", reviews);
   const { t } = useTranslation();
 
   if (isLoading) {
@@ -48,10 +61,22 @@ const ReviewsTab: React.FC<Props> = ({
   }
 
   return (
-    <View style={styles.reviewsContainer}>
+    <View style={styles.reviewsContainer} onLayout={onLayout}>
       {reviews.map((review) => (
         <ReviewItem key={review._id} review={review} />
       ))}
+      {isLoadingMore && (
+        <View style={styles.loadingMoreContainer}>
+          <ActivityIndicator size="small" color={colors.secondary} />
+        </View>
+      )}
+      {hasMore && !isLoadingMore && (
+        <View style={styles.loadMoreContainer}>
+          <Text style={styles.loadMoreText} onPress={loadMore}>
+            {t("load-more")}
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -75,6 +100,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingMoreContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  loadMoreContainer: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  loadMoreText: {
+    color: colors.primary,
+    fontSize: 16,
   },
 });
 

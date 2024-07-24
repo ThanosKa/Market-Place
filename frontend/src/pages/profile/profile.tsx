@@ -6,6 +6,9 @@ import {
   Text,
   ActivityIndicator,
   RefreshControl,
+  LayoutChangeEvent,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -21,7 +24,7 @@ import ListingsTab from "../../components/TabSelector/listingTab";
 import ProfileTab from "../../components/TabSelector/profileTab";
 import { User } from "../../interfaces/user";
 import ReviewsTab from "../../components/TabSelector/reviewTab";
-import { useQuery } from "react-query";
+import { useInfiniteQuery, useQuery } from "react-query";
 import {
   getUserDetails,
   getUserProducts,
@@ -46,6 +49,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [scrollPosition, setScrollPosition] = useState(0);
 
   const {
     data: userDetails,
@@ -57,19 +62,53 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     data: userProducts,
     isLoading: productsLoading,
     refetch: refetchUserProducts,
-  } = useQuery(
+    fetchNextPage: fetchNextProductsPage,
+    hasNextPage: hasNextProductsPage,
+    isFetchingNextPage: isFetchingNextProductsPage,
+  } = useInfiniteQuery(
     ["userProducts", searchQuery],
-    () => getUserProducts(searchQuery ? { search: searchQuery } : {}),
-    { enabled: activeTab === "listings" }
+    ({ pageParam = 1 }) =>
+      getUserProducts({
+        ...(searchQuery ? { search: searchQuery } : {}),
+        page: pageParam,
+        limit: 10,
+      }),
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.data.page < lastPage.data.totalPages) {
+          return lastPage.data.page + 1;
+        }
+        return undefined;
+      },
+      enabled: activeTab === "listings",
+    }
   );
 
   const {
     data: userReviews,
     isLoading: reviewsLoading,
     refetch: refetchUserReviews,
-  } = useQuery("userReviews", () => getUserReviews(), {
-    enabled: activeTab === "reviews",
-  });
+    fetchNextPage: fetchNextReviewsPage,
+    hasNextPage: hasNextReviewsPage,
+    isFetchingNextPage: isFetchingNextReviewsPage,
+  } = useInfiniteQuery(
+    "userReviews",
+    ({ pageParam = 1 }) => getUserReviews({ page: pageParam, limit: 10 }),
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.data.page < lastPage.data.totalPages) {
+          return lastPage.data.page + 1;
+        }
+        return undefined;
+      },
+      enabled: activeTab === "reviews",
+    }
+  );
+
+  const allProducts =
+    userProducts?.pages?.flatMap((page) => page.data.products) || [];
+  const allReviews =
+    userReviews?.pages?.flatMap((page) => page.data.reviews) || [];
 
   useFocusEffect(
     useCallback(() => {
@@ -101,28 +140,67 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [activeTab, refetchUserProducts]);
 
-  const renderContent = () => {
-    if (userLoading && !userDetails) {
-      return <ActivityIndicator size="small" color={colors.secondary} />;
+  const handleContentLayout = (event: LayoutChangeEvent) => {
+    setContentHeight(event.nativeEvent.layout.height);
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const currentPosition = event.nativeEvent.contentOffset.y;
+    setScrollPosition(currentPosition);
+
+    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+    const contentHeight = event.nativeEvent.contentSize.height;
+    const isCloseToBottom =
+      contentHeight - currentPosition - scrollViewHeight < 200;
+
+    if (isCloseToBottom) {
+      if (
+        activeTab === "listings" &&
+        hasNextProductsPage &&
+        !isFetchingNextProductsPage
+      ) {
+        fetchNextProductsPage();
+      } else if (
+        activeTab === "reviews" &&
+        hasNextReviewsPage &&
+        !isFetchingNextReviewsPage
+      ) {
+        fetchNextReviewsPage();
+      }
     }
-
-    if (!userDetails) {
-      return <Text>Error loading user data</Text>;
-    }
-
-    const user: User = userDetails.data.user;
-    const totalProducts = userDetails.data.totalProducts;
-    const tabs = [
-      { key: "profile", label: t("profile") },
-      { key: "listings", label: t("listings") },
-      { key: "reviews", label: t("reviews") },
-    ];
-
+  };
+  if (userLoading && !userDetails) {
     return (
+      <View style={styles.container}>
+        <ActivityIndicator size="small" color={colors.secondary} />
+      </View>
+    );
+  }
+
+  if (!userDetails) {
+    return (
+      <View style={styles.container}>
+        <Text>Error loading user data</Text>
+      </View>
+    );
+  }
+
+  const user: User = userDetails.data.user;
+  const totalProducts = userDetails.data.totalProducts;
+  const tabs = [
+    { key: "profile", label: t("profile") },
+    { key: "listings", label: t("listings") },
+    { key: "reviews", label: t("reviews") },
+  ];
+
+  return (
+    <View style={styles.container}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
         }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <UserInfo user={user} totalProducts={totalProducts} />
         <TabSelector
@@ -135,25 +213,31 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         )}
         {activeTab === "listings" && (
           <ListingsTab
-            products={userProducts?.data?.products || []}
+            products={allProducts}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             onSearch={handleSearch}
             isLoading={productsLoading}
+            loadMore={fetchNextProductsPage}
+            hasMore={!!hasNextProductsPage}
+            isLoadingMore={isFetchingNextProductsPage}
+            onLayout={handleContentLayout}
           />
         )}
         {activeTab === "reviews" && (
           <ReviewsTab
             user
-            reviews={userReviews?.data?.reviews || []}
+            reviews={allReviews}
             isLoading={reviewsLoading}
+            loadMore={fetchNextReviewsPage}
+            hasMore={!!hasNextReviewsPage}
+            isLoadingMore={isFetchingNextReviewsPage}
+            onLayout={handleContentLayout}
           />
         )}
       </ScrollView>
-    );
-  };
-
-  return <View style={styles.container}>{renderContent()}</View>;
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

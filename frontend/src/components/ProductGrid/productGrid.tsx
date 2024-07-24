@@ -1,14 +1,24 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "react-query";
-import { Product, GetProductsParams } from "../../interfaces/product";
+import { useInfiniteQuery, useMutation, useQueryClient } from "react-query";
+import {
+  Product,
+  ProductsResponse,
+  GetProductsParams,
+} from "../../interfaces/product";
 import ProductCard from "../ProductCard/productCard";
 import { BASE_URL } from "../../services/axiosConfig";
 import { getProducts } from "../../services/product";
 import { toggleLikeProduct } from "../../services/likes";
-import { getLoggedUser } from "../../services/user";
 import { useLoggedUser } from "../../hooks/useLoggedUser";
+import { colors } from "../../colors/colors";
 
 interface ProductGridProps {
   onRefreshComplete: () => void;
@@ -25,7 +35,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const queryClient = useQueryClient();
 
   const queryParams: GetProductsParams = useMemo(() => {
-    const params: GetProductsParams = {};
+    const params: GetProductsParams = { limit: 10 };
     if (selectedCategories.length > 0) {
       params.category = selectedCategories;
     }
@@ -34,10 +44,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
   const { data: userData, isLoading: userLoading } = useLoggedUser();
 
-  const { data, isLoading, error } = useQuery(
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<ProductsResponse, Error>(
     ["products", queryParams],
-    () => getProducts(queryParams),
+    ({ pageParam = 1 }) => getProducts({ ...queryParams, page: pageParam }),
     {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.data.page * lastPage.data.limit < lastPage.data.total) {
+          return lastPage.data.page + 1;
+        }
+        return undefined;
+      },
       onSettled: onRefreshComplete,
     }
   );
@@ -81,7 +104,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return <Text>{t("error-fetching-products")}</Text>;
   }
 
-  const products = data?.data.products || [];
+  const products = data?.pages.flatMap((page) => page.data.products) || [];
 
   if (products.length === 0) {
     return <Text style={styles.noProductsText}>{t("no-products-found")}</Text>;
@@ -91,25 +114,25 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     toggleLikeMutation.mutate(productId);
   };
 
-  const renderProduct = ({ item }: { item: Product }) => (
+  const renderProduct = (product: Product) => (
     <ProductCard
-      key={item._id}
+      key={product._id}
       userImage={
-        item.seller.profilePicture
-          ? `${BASE_URL}/${item.seller.profilePicture}`
+        product.seller.profilePicture
+          ? `${BASE_URL}/${product.seller.profilePicture}`
           : null
       }
-      userName={`${item.seller.firstName} ${item.seller.lastName}`}
-      userId={item.seller._id}
+      userName={`${product.seller.firstName} ${product.seller.lastName}`}
+      userId={product.seller._id}
       productImage={
-        item.images.length > 0 ? `${BASE_URL}${item.images[0]}` : null
+        product.images.length > 0 ? `${BASE_URL}${product.images[0]}` : null
       }
-      title={item.title}
-      price={`$${item.price}`}
-      condition={t(item.condition)}
-      isLiked={likedProducts.includes(item._id)}
-      onLikeToggle={() => toggleLike(item._id)}
-      isDisabled={disabledButtons.includes(item._id)}
+      title={product.title}
+      price={`$${product.price}`}
+      condition={t(product.condition)}
+      isLiked={likedProducts.includes(product._id)}
+      onLikeToggle={() => toggleLike(product._id)}
+      isDisabled={disabledButtons.includes(product._id)}
     />
   );
 
@@ -119,10 +142,25 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       <View style={styles.gridContainer}>
         {products.map((product) => (
           <View key={product._id} style={styles.productWrapper}>
-            {renderProduct({ item: product })}
+            {renderProduct(product)}
           </View>
         ))}
       </View>
+      {hasNextPage && (
+        <TouchableOpacity
+          style={styles.loadMoreButton}
+          onPress={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
+          <View style={styles.loadMoreContent}>
+            {isFetchingNextPage ? (
+              <ActivityIndicator size="small" color={colors.secondary} />
+            ) : (
+              <Text style={styles.loadMoreText}>{t("load-more")}</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -149,6 +187,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginTop: 20,
+  },
+  loadMoreButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    // padding: 10,
+    // marginTop: 10,
+  },
+  loadMoreContent: {
+    paddingBottom: 30,
+  },
+  loadMoreText: {
+    color: colors.secondary,
+    fontSize: 16,
   },
 });
 

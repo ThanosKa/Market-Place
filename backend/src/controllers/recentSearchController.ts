@@ -72,16 +72,29 @@ export const addRecentSearch = async (req: Request, res: Response) => {
 export const getRecentSearches = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const skip = (page - 1) * limit;
 
     const recentSearches = await RecentSearch.find({ user: userId })
       .sort({ createdAt: -1 })
-      .limit(10)
+      .skip(skip)
+      .limit(limit)
       .populate("product", "title price condition images");
+
+    const total = await RecentSearch.countDocuments({ user: userId });
 
     res.json({
       success: 1,
       message: "Recent searches retrieved successfully",
-      data: { recentSearches },
+      data: {
+        recentSearches,
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error("Error in getRecentSearches:", error);

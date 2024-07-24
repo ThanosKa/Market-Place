@@ -1,4 +1,3 @@
-// RecentSearches.tsx
 import React from "react";
 import {
   View,
@@ -22,6 +21,9 @@ interface RecentSearchesProps {
   onDeleteRecentSearch: (id: string) => void;
   onClearAllRecentSearches: () => void;
   clearingAllRecentSearches: boolean;
+  loadMore: () => void;
+  hasMore: boolean;
+  isLoadingMore: boolean;
 }
 
 const RecentSearches: React.FC<RecentSearchesProps> = ({
@@ -31,13 +33,20 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
   onDeleteRecentSearch,
   onClearAllRecentSearches,
   clearingAllRecentSearches,
+  loadMore,
+  hasMore,
+  isLoadingMore,
 }) => {
   const { t } = useTranslation();
 
   const renderRecentSearch = ({ item }: { item: RecentSearch }) => (
     <TouchableOpacity
-      style={styles.recentSearchItem}
+      style={[
+        styles.recentSearchItem,
+        clearingAllRecentSearches && styles.recentSearchItemClearing,
+      ]}
       onPress={() => onClickRecentSearch(item.product._id)}
+      disabled={clearingAllRecentSearches}
     >
       <Image
         source={{
@@ -51,25 +60,34 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
       <View style={styles.recentSearchInfo}>
         <Text style={styles.recentSearchTitle}>{item.product.title}</Text>
         <Text style={styles.recentSearchDetails}>
-          {`$${item.product.price} • ${item.product.condition}`}
+          {`$${item.product.price} • ${t(item.product.condition)}`}
         </Text>
       </View>
       <TouchableOpacity
         style={styles.deleteRecentSearch}
         onPress={() => onDeleteRecentSearch(item._id)}
+        disabled={clearingAllRecentSearches}
       >
         <EvilIcons name="close" size={20} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
 
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+    return (
+      <View style={styles.footerContainer}>
+        <ActivityIndicator size="small" color={colors.secondary} />
+      </View>
+    );
+  };
+
   if (isLoading) {
     return <ActivityIndicator size="small" color={colors.secondary} />;
   }
 
   if (recentSearches.length === 0) {
-    return;
-    <Text style={styles.emptyMessage}>{t("search-for-products")}</Text>;
+    return <Text style={styles.emptyMessage}>{t("search-for-products")}</Text>;
   }
 
   return (
@@ -92,6 +110,13 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
         renderItem={renderRecentSearch}
         keyExtractor={(item) => item._id}
         style={styles.recentSearchesList}
+        onEndReached={() => {
+          if (hasMore) {
+            loadMore();
+          }
+        }}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={renderFooter}
       />
     </View>
   );
@@ -101,6 +126,10 @@ const styles = StyleSheet.create({
   recentSearchesContainer: {
     flex: 1,
     paddingHorizontal: 10,
+  },
+  footerContainer: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
   recentSearchesHeader: {
     flexDirection: "row",
@@ -125,6 +154,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+  },
+  recentSearchItemClearing: {
+    opacity: 0.5,
   },
   recentSearchImage: {
     width: 40,

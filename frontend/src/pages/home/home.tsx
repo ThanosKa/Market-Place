@@ -61,6 +61,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId]
     );
+    // Reset the page when categories change
+    queryClient.resetQueries(["products"]);
   };
   // const { refetch: refetchUser } = useLoggedUser(undefined, { staleTime: 0 });
 

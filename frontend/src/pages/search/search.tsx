@@ -87,10 +87,26 @@ const SearchScreen = () => {
   const {
     data: recentSearchesData,
     isLoading: recentSearchesLoading,
+    fetchNextPage: fetchNextRecentSearchesPage,
+    hasNextPage: hasNextRecentSearchesPage,
+    isFetchingNextPage: isFetchingNextRecentSearchesPage,
     refetch: refetchRecentSearches,
-  } = useQuery("recentSearches", getRecentSearches, {
-    enabled: isFocused && searchQuery.length === 0,
-  });
+  } = useInfiniteQuery(
+    "recentSearches",
+    ({ pageParam = 1 }) => getRecentSearches({ page: pageParam, limit: 10 }),
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.data.page < lastPage.data.totalPages) {
+          return lastPage.data.page + 1;
+        }
+        return undefined;
+      },
+      enabled: isFocused && searchQuery.length === 0,
+    }
+  );
+  const recentSearches =
+    recentSearchesData?.pages?.flatMap((page) => page.data.recentSearches) ||
+    [];
 
   const addRecentSearchMutation = useMutation(addRecentSearch, {
     onSuccess: () => {
@@ -109,10 +125,14 @@ const SearchScreen = () => {
       refetchRecentSearches();
     },
   });
+  const loadMoreRecentSearches = () => {
+    if (hasNextRecentSearchesPage && !isFetchingNextRecentSearchesPage) {
+      fetchNextRecentSearchesPage();
+    }
+  };
 
   const products =
     productsData?.pages?.flatMap((page) => page.data.products) || [];
-  const recentSearches = recentSearchesData?.data.recentSearches || [];
 
   const handleShowSearch = () => {
     setShowSearchBar(true);
@@ -214,6 +234,9 @@ const SearchScreen = () => {
           onDeleteRecentSearch={handleDeleteRecentSearch}
           onClearAllRecentSearches={handleClearAllRecentSearches}
           clearingAllRecentSearches={deleteAllRecentSearchesMutation.isLoading}
+          loadMore={loadMoreRecentSearches}
+          hasMore={!!hasNextRecentSearchesPage}
+          isLoadingMore={isFetchingNextRecentSearchesPage}
         />
       )}
 

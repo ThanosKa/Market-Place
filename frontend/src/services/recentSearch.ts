@@ -6,8 +6,11 @@ import {
 } from "../interfaces/recentSearch";
 import axiosInstance from "./axiosConfig";
 
-export const getRecentSearches = async (): Promise<RecentSearchesResponse> => {
-  const response = await axiosInstance.get("/recent");
+export const getRecentSearches = async (params?: {
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await axiosInstance.get("/recent", { params });
   return response.data;
 };
 

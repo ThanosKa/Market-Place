@@ -5,6 +5,7 @@ import Product from "../models/Product";
 
 import { createActivity } from "./activityController";
 import Activity from "../models/Activity";
+import { formatUserData } from "../utils/formatUserData";
 
 export const toggleLikeProduct = async (req: Request, res: Response) => {
   try {
@@ -135,6 +136,82 @@ export const toggleLikeUser = async (req: Request, res: Response) => {
       success: 1,
       message: "User like toggled successfully",
       data: { liked },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: 0, message: "Server error", data: null });
+  }
+};
+
+export const getLikedProducts = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+    const user = await User.findById(userId)
+      .select("likedProducts")
+      .populate({
+        path: "likedProducts",
+        model: Product,
+        select:
+          "title price images category condition seller likes createdAt updatedAt",
+        populate: {
+          path: "seller",
+          model: User,
+          select: "firstName lastName profilePicture",
+        },
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    res.json({
+      success: 1,
+      message: "Liked products retrieved successfully",
+      data: { likedProducts: user.likedProducts },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: 0, message: "Server error", data: null });
+  }
+};
+
+export const getLikedProfiles = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+    const user = await User.findById(userId)
+      .select("likedUsers")
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
+        populate: {
+          path: "products",
+          model: Product,
+          select:
+            "title price images category condition seller likes createdAt updatedAt",
+        },
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    const formattedLikedUsers = user.likedUsers.map((likedUser: any) =>
+      formatUserData(likedUser)
+    );
+
+    res.json({
+      success: 1,
+      message: "Liked profiles retrieved successfully",
+      data: { likedUsers: formattedLikedUsers },
     });
   } catch (err) {
     console.error(err);

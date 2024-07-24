@@ -17,25 +17,26 @@ import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
 
 type Props = {
-  userData: any;
+  likedProductsData: Product[] | undefined;
   queryClient: any;
 };
 
-const RenderLikedProducts: React.FC<Props> = ({ userData, queryClient }) => {
+const RenderLikedProducts: React.FC<Props> = ({
+  likedProductsData,
+  queryClient,
+}) => {
   const { t } = useTranslation();
   const [removingProducts, setRemovingProducts] = useState<string[]>([]);
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
 
   const toggleProductLikeMutation = useMutation(toggleLikeProduct, {
     onSuccess: () => {
-      queryClient.invalidateQueries("loggedUser");
+      queryClient.invalidateQueries("likedProducts");
     },
   });
 
   const handleToggleProductLike = useCallback(
     (productId: string) => {
-      if (!userData?.data?.user) return;
-
       setRemovingProducts((prev) => [...prev, productId]);
       if (!fadeAnims.current[productId]) {
         fadeAnims.current[productId] = new Animated.Value(1);
@@ -45,22 +46,8 @@ const RenderLikedProducts: React.FC<Props> = ({ userData, queryClient }) => {
         duration: 500,
         useNativeDriver: true,
       }).start(() => {
-        queryClient.setQueryData("loggedUser", (oldData: any) => {
-          if (!oldData || !oldData.data || !oldData.data.user) {
-            return oldData;
-          }
-          return {
-            ...oldData,
-            data: {
-              ...oldData.data,
-              user: {
-                ...oldData.data.user,
-                likedProducts: oldData.data.user.likedProducts.filter(
-                  (p: Product) => p._id !== productId
-                ),
-              },
-            },
-          };
+        queryClient.setQueryData("likedProducts", (oldData: Product[]) => {
+          return oldData.filter((p) => p._id !== productId);
         });
 
         setRemovingProducts((prev) => prev.filter((id) => id !== productId));
@@ -72,17 +59,15 @@ const RenderLikedProducts: React.FC<Props> = ({ userData, queryClient }) => {
           if (fadeAnims.current[productId]) {
             fadeAnims.current[productId].setValue(1);
           }
-          queryClient.invalidateQueries("loggedUser");
+          queryClient.invalidateQueries("likedProducts");
         },
       });
     },
-    [toggleProductLikeMutation, queryClient, userData]
+    [toggleProductLikeMutation, queryClient]
   );
 
   const renderProductItem = useCallback(
     ({ item }: { item: Product }) => {
-      const isLiked =
-        item.likes?.includes(userData?.data?.user?.id || "") || false;
       const isRemoving = removingProducts.includes(item._id);
 
       if (!fadeAnims.current[item._id]) {
@@ -103,11 +88,7 @@ const RenderLikedProducts: React.FC<Props> = ({ userData, queryClient }) => {
               onPress={() => handleToggleProductLike(item._id)}
               disabled={isRemoving}
             >
-              <AntDesign
-                name={isLiked ? "heart" : "hearto"}
-                size={18}
-                color={isLiked ? "red" : "black"}
-              />
+              <AntDesign name="heart" size={18} color="red" />
             </TouchableOpacity>
           </View>
           <Text style={styles.productTitle} numberOfLines={1}>
@@ -116,14 +97,12 @@ const RenderLikedProducts: React.FC<Props> = ({ userData, queryClient }) => {
         </Animated.View>
       );
     },
-    [userData, handleToggleProductLike, removingProducts]
+    [handleToggleProductLike, removingProducts]
   );
 
-  const likedProducts = userData?.data?.user?.likedProducts || [];
-
-  return likedProducts.length > 0 ? (
+  return likedProductsData && likedProductsData.length > 0 ? (
     <FlatList
-      data={likedProducts}
+      data={likedProductsData}
       renderItem={renderProductItem}
       keyExtractor={(item) => item._id}
       numColumns={2}

@@ -8,60 +8,61 @@ import {
   TouchableOpacity,
   Animated,
 } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useMutation } from "react-query";
 import { useTranslation } from "react-i18next";
-import { LikedUser } from "../../interfaces/user";
 import { toggleLikeUser } from "../../services/likes";
 import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
-import { Ionicons } from "@expo/vector-icons";
+import { LikedUser } from "../../interfaces/user";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { useNavigation } from "@react-navigation/native";
+import { getUserId } from "../../services/authStorage";
 
 type Props = {
-  userData: any;
+  likedProfilesData: LikedUser[];
   queryClient: any;
 };
 
-const RenderLikedProfiles: React.FC<Props> = ({ userData, queryClient }) => {
+const RenderLikedProfiles: React.FC<Props> = ({
+  likedProfilesData,
+  queryClient,
+}) => {
   const { t } = useTranslation();
   const [removingUsers, setRemovingUsers] = useState<string[]>([]);
-  const userFadeAnims = useRef<{ [key: string]: Animated.Value }>({});
+  const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
   const toggleUserLikeMutation = useMutation(toggleLikeUser, {
     onSuccess: () => {
-      queryClient.invalidateQueries("loggedUser");
+      queryClient.invalidateQueries("likedProfiles");
     },
   });
 
+  const handleUserPress = async (userId: string) => {
+    const loggedUserId = await getUserId();
+    if (loggedUserId === userId) {
+      navigation.navigate("MainTabs");
+      navigation.navigate("Profile", { refreshProfile: Date.now() });
+    } else {
+      navigation.navigate("UserProfile", { userId });
+    }
+  };
+
   const handleToggleUserLike = useCallback(
     (userId: string) => {
-      if (!userData?.data?.user) return;
-
       setRemovingUsers((prev) => [...prev, userId]);
-      if (!userFadeAnims.current[userId]) {
-        userFadeAnims.current[userId] = new Animated.Value(1);
+      if (!fadeAnims.current[userId]) {
+        fadeAnims.current[userId] = new Animated.Value(1);
       }
-      Animated.timing(userFadeAnims.current[userId], {
+      Animated.timing(fadeAnims.current[userId], {
         toValue: 0,
         duration: 500,
         useNativeDriver: true,
       }).start(() => {
-        queryClient.setQueryData("loggedUser", (oldData: any) => {
-          if (!oldData || !oldData.data || !oldData.data.user) {
-            return oldData;
-          }
-          return {
-            ...oldData,
-            data: {
-              ...oldData.data,
-              user: {
-                ...oldData.data.user,
-                likedUsers: oldData.data.user.likedUsers.filter(
-                  (u: LikedUser) => u._id !== userId
-                ),
-              },
-            },
-          };
+        queryClient.setQueryData("likedProfiles", (oldData: LikedUser[]) => {
+          return oldData.filter((user) => user.id !== userId);
         });
 
         setRemovingUsers((prev) => prev.filter((id) => id !== userId));
@@ -70,71 +71,63 @@ const RenderLikedProfiles: React.FC<Props> = ({ userData, queryClient }) => {
       toggleUserLikeMutation.mutate(userId, {
         onError: () => {
           setRemovingUsers((prev) => prev.filter((id) => id !== userId));
-          if (userFadeAnims.current[userId]) {
-            userFadeAnims.current[userId].setValue(1);
+          if (fadeAnims.current[userId]) {
+            fadeAnims.current[userId].setValue(1);
           }
-          queryClient.invalidateQueries("loggedUser");
+          queryClient.invalidateQueries("likedProfiles");
         },
       });
     },
-    [toggleUserLikeMutation, queryClient, userData]
+    [toggleUserLikeMutation, queryClient]
   );
+
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    const stars = [];
+
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(
+          <Ionicons key={i} name="star" size={16} color={colors.starYellow} />
+        );
+      } else if (i === fullStars && halfStar) {
+        stars.push(
+          <Ionicons
+            key={i}
+            name="star-half"
+            size={16}
+            color={colors.starYellow}
+          />
+        );
+      } else {
+        stars.push(
+          <Ionicons
+            key={i}
+            name="star-outline"
+            size={16}
+            color={colors.starYellow}
+          />
+        );
+      }
+    }
+
+    return stars;
+  };
 
   const renderProfileItem = useCallback(
     ({ item }: { item: LikedUser }) => {
-      const productCount = item.products?.length || 0;
-      const productsToShow = item.products?.slice(0, 4) || [];
-      const isRemoving = removingUsers.includes(item._id);
+      const productCount = item.products.length;
+      const productsToShow = item.products.slice(0, 4);
+      const isRemoving = removingUsers.includes(item.id);
 
-      if (!userFadeAnims.current[item._id]) {
-        userFadeAnims.current[item._id] = new Animated.Value(1);
+      if (!fadeAnims.current[item.id]) {
+        fadeAnims.current[item.id] = new Animated.Value(1);
       }
-
-      const renderStars = (rating: number) => {
-        const fullStars = Math.floor(rating);
-        const halfStar = rating % 1 >= 0.5;
-        const stars = [];
-
-        for (let i = 0; i < 5; i++) {
-          if (i < fullStars) {
-            stars.push(
-              <Ionicons
-                key={i}
-                name="star"
-                size={16}
-                color={colors.starYellow}
-              />
-            );
-          } else if (i === fullStars && halfStar) {
-            stars.push(
-              <Ionicons
-                key={i}
-                name="star-half"
-                size={16}
-                color={colors.starYellow}
-              />
-            );
-          } else {
-            stars.push(
-              <Ionicons
-                key={i}
-                name="star-outline"
-                size={16}
-                color={colors.starYellow}
-              />
-            );
-          }
-        }
-
-        return stars;
-      };
 
       return (
         <Animated.View
-          style={[
-            styles.profileItem,
-            { opacity: userFadeAnims.current[item._id] },
-          ]}
+          style={[styles.profileItem, { opacity: fadeAnims.current[item.id] }]}
         >
           {productCount > 0 ? (
             <View style={styles.productGrid}>
@@ -171,17 +164,29 @@ const RenderLikedProfiles: React.FC<Props> = ({ userData, queryClient }) => {
             </View>
           )}
           <View style={styles.profileDetails}>
-            <View style={styles.profileNameContainer}>
-              <Text style={styles.profileName}>
-                {`${item.firstName} ${item.lastName}`}
-              </Text>
-              <TouchableOpacity
-                onPress={() => handleToggleUserLike(item._id)}
-                disabled={isRemoving}
-              >
-                <AntDesign name="heart" size={18} color="red" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => handleUserPress(item.id)}>
+              <View style={styles.profileNameContainer}>
+                <View style={styles.profileImageNameContainer}>
+                  <Image
+                    source={{ uri: `${BASE_URL}/${item.profilePicture}` }}
+                    style={styles.profileImage}
+                  />
+                  <Text
+                    style={styles.profileName}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {`${item.firstName} ${item.lastName}`}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleToggleUserLike(item.id)}
+                  disabled={isRemoving}
+                >
+                  <AntDesign name="heart" size={18} color="red" />
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
             <View style={styles.ratingContainer}>
               {item.reviewCount > 0 ? (
                 <>
@@ -196,16 +201,21 @@ const RenderLikedProfiles: React.FC<Props> = ({ userData, queryClient }) => {
         </Animated.View>
       );
     },
-    [handleToggleUserLike, removingUsers, t]
+    [
+      handleToggleUserLike,
+      removingUsers,
+      t,
+      navigation,
+      handleUserPress,
+      renderStars,
+    ]
   );
 
-  const likedUsers = userData?.data?.user?.likedUsers || [];
-
-  return likedUsers.length > 0 ? (
+  return likedProfilesData && likedProfilesData.length > 0 ? (
     <FlatList
-      data={likedUsers}
+      data={likedProfilesData}
       renderItem={renderProfileItem}
-      keyExtractor={(item) => item._id}
+      keyExtractor={(item) => item.id}
       numColumns={2}
       columnWrapperStyle={styles.profileRow}
     />
@@ -291,16 +301,39 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     textAlign: "center",
   },
-  profileName: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+
   emptyMessage: {
     fontSize: 16,
     textAlign: "center",
     marginTop: 20,
     color: colors.secondary,
     padding: 20,
+  },
+
+  profileDetails: {
+    padding: 10,
+  },
+  profileNameContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  profileImageNameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  profileImage: {
+    width: 25,
+    height: 25,
+    borderRadius: 12.5,
+    marginRight: 10,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    flex: 1,
   },
   ratingContainer: {
     flexDirection: "row",
@@ -315,15 +348,6 @@ const styles = StyleSheet.create({
   noReviews: {
     fontSize: 14,
     color: colors.secondary,
-  },
-  profileDetails: {
-    padding: 10,
-  },
-  profileNameContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
   },
 });
 

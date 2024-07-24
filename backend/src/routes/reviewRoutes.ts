@@ -1,13 +1,15 @@
 // routes/reviewRoutes.ts
 import express from "express";
+
+import { auth } from "../middleware/auth";
 import {
   createReview,
   deleteReview,
   getCurrentUserReviewForUser,
   getReviewsForUser,
+  getUserReviews,
   updateReview,
-} from "../controllers/reviwController";
-import { auth } from "../middleware/auth";
+} from "../controllers/reviewController";
 
 const router = express.Router();
 
@@ -15,6 +17,11 @@ router.post("/", auth, createReview);
 router.put("/:reviewId", auth, updateReview);
 router.delete("/:reviewId", auth, deleteReview);
 router.get("/user/:userId", getReviewsForUser);
-router.get("/user/:userId/myreview", auth, getCurrentUserReviewForUser);
+router.get("/", auth, getUserReviews);
 
+router.get(
+  "/user/:userId/product/:productId",
+  auth,
+  getCurrentUserReviewForUser
+);
 export default router;

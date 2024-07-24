@@ -254,3 +254,146 @@ export const deleteProduct = async (req: Request, res: Response) => {
     res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
+
+export const getUserProducts = async (req: Request, res: Response) => {
+  try {
+    const {
+      search,
+      category,
+      condition,
+      minPrice,
+      maxPrice,
+      sort = "createdAt",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const productFilter: mongoose.FilterQuery<IProduct> = { seller: userId };
+
+    if (typeof search === "string") {
+      productFilter.title = { $regex: search, $options: "i" };
+    }
+    if (category) {
+      productFilter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
+    }
+    if (typeof condition === "string") {
+      productFilter.condition = condition;
+    }
+    if (minPrice || maxPrice) {
+      productFilter.price = {};
+      if (minPrice) productFilter.price.$gte = Number(minPrice);
+      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+    }
+
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate({
+        path: "products",
+        match: productFilter,
+        options: {
+          sort: { [sort as string]: order as mongoose.SortOrder },
+          skip: (Number(page) - 1) * Number(limit),
+          limit: Number(limit),
+        },
+        model: Product,
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    const totalProducts = await Product.countDocuments({
+      seller: userId,
+      ...productFilter,
+    });
+
+    res.json({
+      success: 1,
+      message: "User products retrieved successfully",
+      data: {
+        products: user.products,
+        page: Number(page),
+        limit: Number(limit),
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+export const getUserByIdProducts = async (req: Request, res: Response) => {
+  try {
+    const {
+      search,
+      category,
+      condition,
+      minPrice,
+      maxPrice,
+      sort = "createdAt",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const userId = new mongoose.Types.ObjectId(req.params.id);
+    const productFilter: mongoose.FilterQuery<IProduct> = { seller: userId };
+
+    if (typeof search === "string") {
+      productFilter.title = { $regex: search, $options: "i" };
+    }
+    if (category) {
+      productFilter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
+    }
+    if (typeof condition === "string") {
+      productFilter.condition = condition;
+    }
+    if (minPrice || maxPrice) {
+      productFilter.price = {};
+      if (minPrice) productFilter.price.$gte = Number(minPrice);
+      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+    }
+
+    const products = await Product.find(productFilter)
+      .sort({ [sort as string]: order as mongoose.SortOrder })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    const totalProducts = await Product.countDocuments(productFilter);
+
+    res.json({
+      success: 1,
+      message: "User products retrieved successfully",
+      data: {
+        products,
+        page: Number(page),
+        limit: Number(limit),
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};

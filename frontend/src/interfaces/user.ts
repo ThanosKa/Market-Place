@@ -3,6 +3,7 @@ import { Product } from "./product";
 import { Review } from "./review";
 
 export interface LikedUser {
+  id: string;
   _id: string;
   email: string;
   firstName: string;
@@ -13,6 +14,7 @@ export interface LikedUser {
   updatedAt: string;
   averageRating: number;
   reviewCount: number;
+  profilePicture: string;
 }
 export interface ActivityProduct {
   _id: string;

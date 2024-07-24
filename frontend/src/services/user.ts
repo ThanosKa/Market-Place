@@ -9,7 +9,6 @@ export interface ApiResponse {
   };
 }
 
-// Get logged-in user
 export const getLoggedUser = async (params?: {
   search?: string;
   category?: string | string[];
@@ -62,8 +61,6 @@ export const editUser = async (
   }
 };
 
-// Get user by ID
-// services/user.ts
 export const getUserById = async (
   userId: string,
   params?: {
@@ -94,4 +91,81 @@ export const getUserById = async (
   } catch (error) {
     throw error;
   }
+};
+
+interface UserDetailsResponse {
+  success: number;
+  message: string;
+  data: {
+    user: User;
+    page: number;
+    limit: number;
+    totalProducts: number;
+    totalPages: number;
+  };
+}
+
+export const getUserDetails = async () => {
+  const response = await axiosInstance.get("/users/details");
+  return response.data;
+};
+
+export const getUserProducts = async (params?: {
+  search?: string;
+  category?: string | string[];
+  condition?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await axiosInstance.get("/products/user", { params });
+  return response.data;
+};
+
+export const getUserReviews = async (params?: {
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+}) => {
+  const response = await axiosInstance.get("/reviews", { params });
+  return response.data;
+};
+
+export const getUserProductsById = async (
+  userId: string,
+  params?: {
+    search?: string;
+    category?: string | string[];
+    condition?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: string;
+    order?: "asc" | "desc";
+    page?: number;
+    limit?: number;
+  }
+) => {
+  const response = await axiosInstance.get(`/products/user/${userId}`, {
+    params,
+  });
+  return response.data;
+};
+
+export const getReviewsForUser = async (
+  userId: string,
+  params?: {
+    page?: number;
+    limit?: number;
+    sort?: string;
+    order?: "asc" | "desc";
+  }
+) => {
+  const response = await axiosInstance.get(`/reviews/user/${userId}`, {
+    params,
+  });
+  return response.data;
 };

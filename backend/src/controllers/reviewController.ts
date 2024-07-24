@@ -2,12 +2,13 @@
 import { Request, Response } from "express";
 import Review from "../models/Review";
 import User from "../models/User";
-
+import Product from "../models/Product"; // Assuming you have a Product model
 import { createActivity } from "./activityController";
+import mongoose from "mongoose";
 
 export const createReview = async (req: Request, res: Response) => {
   try {
-    const { revieweeId, rating, comment } = req.body;
+    const { revieweeId, productId, rating, comment } = req.body;
     const reviewerId = (req as any).userId;
 
     // Check if revieweeId is a valid user
@@ -16,6 +17,19 @@ export const createReview = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: 0,
         message: "User to be reviewed not found",
+        data: null,
+      });
+    }
+
+    // Check if productId is valid and belongs to the reviewee
+    const product = await Product.findOne({
+      _id: productId,
+      seller: revieweeId,
+    });
+    if (!product) {
+      return res.status(404).json({
+        success: 0,
+        message: "Product not found or doesn't belong to the reviewee",
         data: null,
       });
     }
@@ -31,12 +45,13 @@ export const createReview = async (req: Request, res: Response) => {
     const existingReview = await Review.findOne({
       reviewer: reviewerId,
       reviewee: revieweeId,
+      product: productId,
     });
 
     if (existingReview) {
       return res.status(400).json({
         success: 0,
-        message: "You have already reviewed this user",
+        message: "You have already reviewed this product for this user",
         data: null,
       });
     }
@@ -44,6 +59,7 @@ export const createReview = async (req: Request, res: Response) => {
     const newReview = new Review({
       reviewer: reviewerId,
       reviewee: revieweeId,
+      product: productId,
       rating,
       comment,
     });
@@ -58,21 +74,20 @@ export const createReview = async (req: Request, res: Response) => {
     reviewee.reviewCount = newReviewCount;
     await reviewee.save();
 
-    // Populate the reviewer information
-    const populatedReview = await Review.findById(newReview._id).populate(
-      "reviewer",
-      "firstName lastName email username profilePicture"
-    );
+    // Populate the reviewer and product information
+    const populatedReview = await Review.findById(newReview._id)
+      .populate("reviewer", "firstName lastName email username profilePicture")
+      .populate("product", "title images");
 
     // Create an activity for the reviewee
     await createActivity(
       revieweeId,
       "review",
       reviewerId,
-      `New review: ${comment.substring(0, 50)}${
+      `New review for product ${product.title}: ${comment.substring(0, 50)}${
         comment.length > 50 ? "..." : ""
       }`,
-      newReview._id.toString() // Adding review ID as an identifier
+      newReview._id.toString()
     );
 
     res.status(201).json({
@@ -85,17 +100,70 @@ export const createReview = async (req: Request, res: Response) => {
     res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
+
+export const getUserReviews = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+    const { page = 1, limit = 10 } = req.query;
+
+    const reviews = await Review.find({ reviewer: userId })
+      .populate("reviewee", "firstName lastName profilePicture")
+      .populate("product", "title images")
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    const totalReviews = await Review.countDocuments({ reviewer: userId });
+
+    res.json({
+      success: 1,
+      message: "User reviews retrieved successfully",
+      data: {
+        reviews,
+        page: Number(page),
+        limit: Number(limit),
+        totalReviews,
+        totalPages: Math.ceil(totalReviews / Number(limit)),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
 export const getReviewsForUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId;
+    const {
+      page = 1,
+      limit = 10,
+      sort = "createdAt",
+      order = "desc",
+    } = req.query;
+
     const reviews = await Review.find({ reviewee: userId })
       .populate("reviewer", "firstName lastName profilePicture")
-      .sort({ createdAt: -1 });
+      .populate("product", "title images")
+      .sort({ [sort as string]: order as mongoose.SortOrder })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    const totalReviews = await Review.countDocuments({ reviewee: userId });
 
     res.json({
       success: 1,
       message: "Reviews retrieved successfully",
-      data: { reviews },
+      data: {
+        reviews,
+        page: Number(page),
+        limit: Number(limit),
+        totalReviews,
+        totalPages: Math.ceil(totalReviews / Number(limit)),
+      },
     });
   } catch (err) {
     console.error(err);

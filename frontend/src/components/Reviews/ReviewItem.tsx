@@ -1,19 +1,42 @@
 // components/ReviewItem.tsx
-import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
 import { Review } from "../../interfaces/review";
 import { BASE_URL } from "../../services/axiosConfig";
+import UndefProfPicture from "../UndefProfPicture/UndefProfPicture";
+import { getUserId } from "../../services/authStorage";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { useNavigation } from "@react-navigation/native";
 
 type Props = {
   review: Review;
 };
 
 const ReviewItem: React.FC<Props> = ({ review }) => {
-  const { t } = useTranslation();
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+  const [isCurrentUser, setIsCurrentUser] = useState(false);
 
+  const { t } = useTranslation();
+  const handleUserPress = async (userId: string) => {
+    const loggedUserId = await getUserId();
+    if (loggedUserId === userId) {
+      navigation.navigate("MainTabs");
+      navigation.navigate("Profile", { refreshProfile: Date.now() });
+    } else {
+      navigation.navigate("UserProfile", { userId });
+    }
+  };
+  useEffect(() => {
+    const checkCurrentUser = async () => {
+      const loggedUserId = await getUserId();
+      setIsCurrentUser(loggedUserId === review.reviewer._id);
+    };
+    checkCurrentUser();
+  }, [review.reviewer._id]);
   return (
     <View style={styles.outerContainer}>
       <View style={styles.reviewContainer}>
@@ -30,14 +53,20 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
               }}
               style={styles.reviewProductImage}
             />
-            <Image
-              source={{
-                uri: review.reviewer.profilePicture
-                  ? `${BASE_URL}/${review.reviewer.profilePicture}`
-                  : undefined,
-              }}
-              style={styles.reviewerImage}
-            />
+            {review.reviewer.profilePicture ? (
+              <Image
+                source={{
+                  uri: `${BASE_URL}/${review.reviewer.profilePicture}`,
+                }}
+                style={styles.reviewerImage}
+              />
+            ) : (
+              <>
+                <View style={styles.reviewerImageUndef}>
+                  <UndefProfPicture size={40} iconSize={20} />
+                </View>
+              </>
+            )}
           </View>
           <View style={styles.reviewInfoContainer}>
             <View style={styles.reviewHeader}>
@@ -57,12 +86,19 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
             </View>
             <Text style={styles.reviewComment}>{review.comment}</Text>
             <View style={styles.reviewFooter}>
-              <Text>
+              <View style={styles.reviewerInfo}>
                 <Text style={styles.byText}>{t("by")}</Text>
-                <Text style={styles.reviewerName}>
-                  {` ${review.reviewer.firstName} ${review.reviewer.lastName}`}
-                </Text>
-              </Text>
+                <TouchableOpacity
+                  onPress={() => handleUserPress(review.reviewer._id)}
+                >
+                  <Text style={styles.reviewerName}>
+                    {` ${review.reviewer.firstName} ${review.reviewer.lastName}`}
+                    {isCurrentUser && (
+                      <Text style={styles.youText}> ({t("you")})</Text>
+                    )}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.purchaseDate}>
                 {new Date(review.createdAt).toLocaleDateString()}
               </Text>
@@ -98,6 +134,14 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 8,
   },
+  reviewerInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  youText: {
+    fontWeight: "normal",
+    color: colors.secondary,
+  },
   reviewerImage: {
     position: "absolute",
     bottom: -10,
@@ -107,6 +151,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: "#fff",
+  },
+  reviewerImageUndef: {
+    position: "absolute",
+    bottom: -10,
+    borderColor: "#fff",
+    borderWidth: 2,
+    borderRadius: 25,
+    right: -10,
   },
   reviewInfoContainer: {
     flex: 1,

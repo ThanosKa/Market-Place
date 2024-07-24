@@ -15,3 +15,16 @@ export const formatUserData = (user: any) => ({
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
+
+export const formatUserProfileData = (user: any) => ({
+  id: user._id,
+  email: user.email,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  profilePicture: user.profilePicture || null,
+  bio: user.bio || null,
+  averageRating: user.averageRating,
+  reviewCount: user.reviewCount,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+});

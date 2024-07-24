@@ -5,7 +5,7 @@ export interface IReview extends Document {
   _id: mongoose.Types.ObjectId;
   reviewer: mongoose.Types.ObjectId;
   reviewee: mongoose.Types.ObjectId;
-  product: mongoose.Types.ObjectId; // Add this line
+  product: mongoose.Types.ObjectId;
   rating: number;
   comment?: string;
 }
@@ -23,7 +23,6 @@ const ReviewSchema: Schema = new Schema(
       required: true,
     },
     product: {
-      // Add this field
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,

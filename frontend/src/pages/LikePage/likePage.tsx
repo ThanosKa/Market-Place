@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -10,11 +10,11 @@ import {
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-import { useQueryClient } from "react-query";
+import { useQuery, useQueryClient } from "react-query";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
 import TabSelector from "../../components/TabSelector/tabSelector";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
+import { getLikedProducts, getLikedProfiles } from "../../services/likes";
 import RenderLikedProducts from "./products";
 import RenderLikedProfiles from "./profiles";
 
@@ -37,30 +37,69 @@ const LikesPage: React.FC<Props> = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: userData, isLoading, refetch, error } = useLoggedUser();
 
+  const {
+    data: likedProductsData,
+    isLoading: isLoadingProducts,
+    refetch: refetchProducts,
+    error: productsError,
+  } = useQuery(["likedProducts"], () => getLikedProducts(), {
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime: 1000 * 60 * 30, // 30 minutes
+  });
+  const {
+    data: likedProfilesData,
+    isLoading: isLoadingProfiles,
+    refetch: refetchProfiles,
+    error: profilesError,
+  } = useQuery(["likedProfiles"], () => getLikedProfiles(), {
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime: 1000 * 60 * 30, // 30 minutes
+  });
+  useEffect(() => {
+    refetchProducts();
+    refetchProfiles();
+  }, [refetchProducts, refetchProfiles]);
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await refetch();
+    if (activeTab === "liked-products") {
+      await refetchProducts();
+    } else {
+      await refetchProfiles();
+    }
     setIsRefreshing(false);
-  }, [refetch]);
+  }, [activeTab, refetchProducts, refetchProfiles]);
 
   const renderContent = () => {
-    if (isLoading) {
-      return <ActivityIndicator size="small" color={colors.primary} />;
-    }
-
-    if (error) {
-      return <Text style={styles.errorText}>{t("errorLoadingData")}</Text>;
-    }
-
     if (activeTab === "liked-products") {
+      if (isLoadingProducts) {
+        return <ActivityIndicator size="small" color={colors.primary} />;
+      }
+
+      if (productsError) {
+        return <Text style={styles.errorText}>{t("errorLoadingData")}</Text>;
+      }
+
       return (
-        <RenderLikedProducts userData={userData} queryClient={queryClient} />
+        <RenderLikedProducts
+          likedProductsData={likedProductsData}
+          queryClient={queryClient}
+        />
       );
     } else {
+      if (isLoadingProfiles) {
+        return <ActivityIndicator size="small" color={colors.primary} />;
+      }
+
+      if (profilesError) {
+        return <Text style={styles.errorText}>{t("errorLoadingData")}</Text>;
+      }
+
       return (
-        <RenderLikedProfiles userData={userData} queryClient={queryClient} />
+        <RenderLikedProfiles
+          likedProfilesData={likedProfilesData || []}
+          queryClient={queryClient}
+        />
       );
     }
   };
@@ -76,20 +115,13 @@ const LikesPage: React.FC<Props> = () => {
         setActiveTab={setActiveTab as (tab: string) => void}
       />
       <View style={styles.headerMargin} />
-      {isLoading ? (
-        <ActivityIndicator size="large" color={colors.primary} />
-      ) : (
-        <FlatList
-          data={[{ key: "content" }]}
-          renderItem={() => renderContent()}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-            />
-          }
-        />
-      )}
+      <FlatList
+        data={[{ key: "content" }]}
+        renderItem={() => renderContent()}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+      />
     </View>
   );
 };

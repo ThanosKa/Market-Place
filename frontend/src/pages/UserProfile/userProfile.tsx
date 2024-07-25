@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -7,6 +7,9 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  LayoutChangeEvent,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -19,14 +22,20 @@ import { colors } from "../../colors/colors";
 import UserInfo from "../../components/UserInfo/userInfo";
 import TabSelector from "../../components/TabSelector/tabSelector";
 import ListingsTab from "../../components/TabSelector/listingTab";
-import { User } from "../../interfaces/user";
 import ReviewsTab from "../../components/TabSelector/reviewTab";
 import AboutTab from "../../components/TabSelector/aboutTab";
-import { useUserById } from "../../hooks/useUserById";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
-import { useMutation, useQueryClient } from "react-query";
-import { toggleLikeUser } from "../../services/likes";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "react-query";
+import { getUserById } from "../../services/user";
+import { getUserProductsById } from "../../services/product";
+import { getReviewsForUser } from "../../services/reviews";
+import { toggleLikeUser, getLikedProfiles } from "../../services/likes";
 import { AntDesign } from "@expo/vector-icons";
+import { User, LikedUser } from "../../interfaces/user";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
@@ -44,33 +53,93 @@ type Props = {
 const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const userId = route.params.userId;
 
   const [activeTab, setActiveTab] = useState<string>("about");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
 
-  const userId = route.params.userId;
+  const { data: likedProfiles, refetch: refetchLikedProfiles } = useQuery<
+    LikedUser[]
+  >("likedProfiles", getLikedProfiles);
+
   const {
-    data: userData,
+    data: userDetails,
     isLoading: userLoading,
-    refetch,
-  } = useUserById(userId, {
-    search: activeTab === "listings" ? searchQuery : undefined,
-  });
-  const { data: loggedUserData } = useLoggedUser();
+    refetch: refetchUserDetails,
+  } = useQuery(["userDetails", userId], () => getUserById(userId));
+
+  const {
+    data: userProducts,
+    isLoading: productsLoading,
+    refetch: refetchUserProducts,
+    fetchNextPage: fetchNextProductsPage,
+    hasNextPage: hasNextProductsPage,
+    isFetchingNextPage: isFetchingNextProductsPage,
+  } = useInfiniteQuery(
+    ["userProducts", userId, searchQuery],
+    ({ pageParam = 1 }) =>
+      getUserProductsById(userId, {
+        ...(searchQuery ? { search: searchQuery } : {}),
+        page: pageParam,
+        limit: 10,
+      }),
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.data.page < lastPage.data.totalPages) {
+          return lastPage.data.page + 1;
+        }
+        return undefined;
+      },
+      enabled: activeTab === "listings",
+    }
+  );
+
+  const {
+    data: userReviews,
+    isLoading: reviewsLoading,
+    refetch: refetchUserReviews,
+    fetchNextPage: fetchNextReviewsPage,
+    hasNextPage: hasNextReviewsPage,
+    isFetchingNextPage: isFetchingNextReviewsPage,
+  } = useInfiniteQuery(
+    ["userReviews", userId],
+    ({ pageParam = 1 }) =>
+      getReviewsForUser(userId, { page: pageParam, limit: 10 }),
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.data.page < lastPage.data.totalPages) {
+          return lastPage.data.page + 1;
+        }
+        return undefined;
+      },
+      enabled: activeTab === "reviews",
+    }
+  );
 
   const toggleUserLikeMutation = useMutation(toggleLikeUser, {
     onSuccess: () => {
-      queryClient.invalidateQueries("loggedUser");
+      queryClient.invalidateQueries("likedProfiles");
     },
   });
 
-  const user = userData?.data?.user;
+  useEffect(() => {
+    setActiveTab("about");
+  }, []);
 
-  const userName = useMemo(() => {
-    return user ? { firstName: user.firstName, lastName: user.lastName } : null;
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      refetchUserDetails();
+      refetchLikedProfiles();
+    }, [refetchUserDetails, refetchLikedProfiles])
+  );
+
+  const allProducts =
+    userProducts?.pages?.flatMap((page) => page.data.products) || [];
+  const allReviews =
+    userReviews?.pages?.flatMap((page) => page.data.reviews) || [];
 
   const handleToggleLike = useCallback(() => {
     if (userId) {
@@ -81,18 +150,59 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await refetch();
+    await refetchUserDetails();
+    await refetchLikedProfiles();
+    if (activeTab === "listings") {
+      await refetchUserProducts();
+    } else if (activeTab === "reviews") {
+      await refetchUserReviews();
+    }
     setIsRefreshing(false);
-  }, [refetch]);
+  }, [
+    activeTab,
+    refetchUserDetails,
+    refetchLikedProfiles,
+    refetchUserProducts,
+    refetchUserReviews,
+  ]);
+
+  const handleSearch = useCallback(() => {
+    if (activeTab === "listings") {
+      refetchUserProducts();
+    }
+  }, [activeTab, refetchUserProducts]);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 20;
+    if (
+      layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - paddingToBottom
+    ) {
+      if (
+        activeTab === "listings" &&
+        hasNextProductsPage &&
+        !isFetchingNextProductsPage
+      ) {
+        fetchNextProductsPage();
+      } else if (
+        activeTab === "reviews" &&
+        hasNextReviewsPage &&
+        !isFetchingNextReviewsPage
+      ) {
+        fetchNextReviewsPage();
+      }
+    }
+  };
 
   useEffect(() => {
-    if (loggedUserData?.data?.user && userId) {
-      const isUserLiked = loggedUserData.data.user.likedUsers.some(
-        (likedUser: any) => likedUser._id === userId
+    if (likedProfiles && userId) {
+      const isUserLiked = likedProfiles.some(
+        (likedUser) => likedUser._id === userId
       );
       setIsLiked(isUserLiked);
     }
-  }, [loggedUserData, userId]);
+  }, [likedProfiles, userId]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -111,41 +221,45 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     });
   }, [navigation, isLiked, handleToggleLike]);
 
-  useEffect(() => {
-    if (userName) {
-      navigation.setParams(userName);
-    }
-  }, [navigation, userName]);
+  const handleContentLayout = (event: LayoutChangeEvent) => {
+    setContentHeight(event.nativeEvent.layout.height);
+  };
 
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-      setActiveTab("about");
-    }, [refetch])
-  );
-
-  const renderContent = () => {
-    if (userLoading && !user) {
-      return <ActivityIndicator size="small" color={colors.secondary} />;
-    }
-
-    if (!user) {
-      return <Text>Error loading user data</Text>;
-    }
-
-    const tabs = [
-      { key: "about", label: t("about") },
-      { key: "listings", label: t("listings") },
-      { key: "reviews", label: t("reviews") },
-    ];
-
+  if (userLoading && !userDetails) {
     return (
+      <View style={styles.container}>
+        <ActivityIndicator size="small" color={colors.secondary} />
+      </View>
+    );
+  }
+
+  if (!userDetails) {
+    return (
+      <View style={styles.container}>
+        <Text>Error loading user data</Text>
+      </View>
+    );
+  }
+
+  const user: User = userDetails.data.user;
+  const totalProducts = userDetails.data.totalProducts;
+
+  const tabs = [
+    { key: "about", label: t("about") },
+    { key: "listings", label: t("listings") },
+    { key: "reviews", label: t("reviews") },
+  ];
+
+  return (
+    <View style={styles.container}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
         }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        <UserInfo user={user} />
+        <UserInfo user={user} totalProducts={totalProducts} />
         <TabSelector
           tabs={tabs}
           activeTab={activeTab}
@@ -154,26 +268,33 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         {activeTab === "about" && <AboutTab user={user} />}
         {activeTab === "listings" && (
           <ListingsTab
-            products={user.products}
+            products={allProducts}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            onSearch={() => refetch()}
-            isLoading={userLoading}
+            onSearch={handleSearch}
+            isLoading={productsLoading}
+            loadMore={fetchNextProductsPage}
+            hasMore={!!hasNextProductsPage}
+            isLoadingMore={isFetchingNextProductsPage}
+            onLayout={handleContentLayout}
           />
         )}
         {activeTab === "reviews" && (
           <ReviewsTab
             user={false}
-            reviews={user.reviews}
+            reviews={allReviews}
+            isLoading={reviewsLoading}
+            loadMore={fetchNextReviewsPage}
+            hasMore={!!hasNextReviewsPage}
+            isLoadingMore={isFetchingNextReviewsPage}
+            onLayout={handleContentLayout}
             firstName={user.firstName}
             lastName={user.lastName}
           />
         )}
       </ScrollView>
-    );
-  };
-
-  return <View style={styles.container}>{renderContent()}</View>;
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

@@ -101,28 +101,23 @@ export const createReview = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserReviews = async (req: Request, res: Response) => {
+export const getReviewsForLoggedUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
     const { page = 1, limit = 10 } = req.query;
 
-    const reviews = await Review.find({
-      $or: [{ reviewer: userId }, { reviewee: userId }],
-    })
+    const reviews = await Review.find({ reviewee: userId })
       .populate("reviewer", "firstName lastName profilePicture")
-      .populate("reviewee", "firstName lastName profilePicture")
       .populate("product", "title images")
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
 
-    const totalReviews = await Review.countDocuments({
-      $or: [{ reviewer: userId }, { reviewee: userId }],
-    });
+    const totalReviews = await Review.countDocuments({ reviewee: userId });
 
     res.json({
       success: 1,
-      message: "All user reviews retrieved successfully",
+      message: "Reviews for logged user retrieved successfully",
       data: {
         reviews,
         page: Number(page),
@@ -140,20 +135,16 @@ export const getUserReviews = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getReviewsForUser = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.userId;
-    const {
-      page = 1,
-      limit = 10,
-      sort = "createdAt",
-      order = "desc",
-    } = req.query;
+    const userId = new mongoose.Types.ObjectId(req.params.userId);
+    const { page = 1, limit = 10 } = req.query;
 
     const reviews = await Review.find({ reviewee: userId })
       .populate("reviewer", "firstName lastName profilePicture")
       .populate("product", "title images")
-      .sort({ [sort as string]: order as mongoose.SortOrder })
+      .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
 
@@ -161,7 +152,7 @@ export const getReviewsForUser = async (req: Request, res: Response) => {
 
     res.json({
       success: 1,
-      message: "Reviews retrieved successfully",
+      message: "Reviews for user retrieved successfully",
       data: {
         reviews,
         page: Number(page),
@@ -172,40 +163,50 @@ export const getReviewsForUser = async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: 0, message: "Server error", data: null });
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
   }
 };
-export const getCurrentUserReviewForUser = async (
-  req: Request,
-  res: Response
-) => {
+
+export const getReviewsDoneByUser = async (req: Request, res: Response) => {
   try {
-    const targetUserId = req.params.userId; // The user being reviewed
-    const currentUserId = (req as any).userId; // The user who left the review
+    const userId = new mongoose.Types.ObjectId(req.params.userId);
+    const { page = 1, limit = 10 } = req.query;
 
-    const review = await Review.findOne({
-      reviewer: currentUserId,
-      reviewee: targetUserId,
-    }).populate("reviewer", "firstName lastName profilePicture");
+    const reviews = await Review.find({ reviewer: userId })
+      .populate("reviewee", "firstName lastName profilePicture")
+      .populate("product", "title images")
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
 
-    if (!review) {
-      return res.status(404).json({
-        success: 0,
-        message: "Review not found",
-        data: null,
-      });
-    }
+    const totalReviews = await Review.countDocuments({ reviewer: userId });
 
     res.json({
       success: 1,
-      message: "Review retrieved successfully",
-      data: { review },
+      message: "Reviews done by user retrieved successfully",
+      data: {
+        reviews,
+        page: Number(page),
+        limit: Number(limit),
+        totalReviews,
+        totalPages: Math.ceil(totalReviews / Number(limit)),
+      },
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: 0, message: "Server error", data: null });
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
   }
 };
+
+// Keep existing updateReview and deleteReview functions...
 export const updateReview = async (req: Request, res: Response) => {
   try {
     const { reviewId } = req.params;

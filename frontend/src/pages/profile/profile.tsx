@@ -25,11 +25,9 @@ import ProfileTab from "../../components/TabSelector/profileTab";
 import { User } from "../../interfaces/user";
 import ReviewsTab from "../../components/TabSelector/reviewTab";
 import { useInfiniteQuery, useQuery } from "react-query";
-import {
-  getUserDetails,
-  getUserProducts,
-  getUserReviews,
-} from "../../services/user";
+import { getUserDetails } from "../../services/user";
+import { getUserProducts } from "../../services/product";
+import { getUserReviews } from "../../services/reviews";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 

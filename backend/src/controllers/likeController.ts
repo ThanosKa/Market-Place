@@ -152,7 +152,7 @@ export const getLikedProducts = async (req: Request, res: Response) => {
         path: "likedProducts",
         model: Product,
         select:
-          "title price images category condition seller likes createdAt updatedAt",
+          "title price images category condition seller createdAt updatedAt",
         populate: {
           path: "seller",
           model: User,
@@ -187,12 +187,11 @@ export const getLikedProfiles = async (req: Request, res: Response) => {
       .populate({
         path: "likedUsers",
         model: User,
-        select: "-password",
+        select: "firstName lastName profilePicture averageRating reviewCount",
         populate: {
           path: "products",
           model: Product,
-          select:
-            "title price images category condition seller likes createdAt updatedAt",
+          select: "_id images",
         },
       });
 
@@ -204,9 +203,18 @@ export const getLikedProfiles = async (req: Request, res: Response) => {
       });
     }
 
-    const formattedLikedUsers = user.likedUsers.map((likedUser: any) =>
-      formatUserData(likedUser)
-    );
+    const formattedLikedUsers = user.likedUsers.map((likedUser: any) => ({
+      _id: likedUser._id,
+      firstName: likedUser.firstName,
+      lastName: likedUser.lastName,
+      profilePicture: likedUser.profilePicture,
+      averageRating: likedUser.averageRating,
+      reviewCount: likedUser.reviewCount,
+      products: likedUser.products.map((product: any) => ({
+        _id: product._id,
+        images: product.images,
+      })),
+    }));
 
     res.json({
       success: 1,

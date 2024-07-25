@@ -61,99 +61,12 @@ export const editUser = async (
   }
 };
 
-export const getUserById = async (
-  userId: string,
-  params?: {
-    search?: string;
-    category?: string | string[];
-    condition?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sort?: string;
-    order?: "asc" | "desc";
-    page?: number;
-    limit?: number;
-  }
-): Promise<ApiResponse> => {
-  try {
-    let url = `/users/${userId}`;
-    if (params) {
-      const queryString = new URLSearchParams(
-        Object.entries(params).filter(([_, value]) => value !== undefined) as [
-          string,
-          string
-        ][]
-      ).toString();
-      url += `?${queryString}`;
-    }
-    const response = await axiosInstance.get<ApiResponse>(url);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+export const getUserById = async (userId: string) => {
+  const response = await axiosInstance.get(`/users/${userId}`);
+  return response.data;
 };
 
 export const getUserDetails = async () => {
   const response = await axiosInstance.get("/users/details");
-  return response.data;
-};
-
-export const getUserProducts = async (params?: {
-  search?: string;
-  category?: string | string[];
-  condition?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  sort?: string;
-  order?: "asc" | "desc";
-  page?: number;
-  limit?: number;
-}) => {
-  const response = await axiosInstance.get("/products/user", { params });
-  return response.data;
-};
-
-export const getUserReviews = async (params?: {
-  page?: number;
-  limit?: number;
-  sort?: string;
-  order?: "asc" | "desc";
-}) => {
-  const response = await axiosInstance.get("/reviews", { params });
-  return response.data;
-};
-
-export const getUserProductsById = async (
-  userId: string,
-  params?: {
-    search?: string;
-    category?: string | string[];
-    condition?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sort?: string;
-    order?: "asc" | "desc";
-    page?: number;
-    limit?: number;
-  }
-) => {
-  const response = await axiosInstance.get(`/products/user/${userId}`, {
-    params,
-  });
-  return response.data;
-};
-
-export const getReviewsForUser = async (
-  userId: string,
-  params?: {
-    page?: number;
-    limit?: number;
-    sort?: string;
-    order?: "asc" | "desc";
-  }
-) => {
-  const response = await axiosInstance.get(`/reviews/user/${userId}`, {
-    params,
-  });
   return response.data;
 };

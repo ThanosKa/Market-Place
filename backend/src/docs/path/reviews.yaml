@@ -13,10 +13,13 @@
             type: object
             required:
               - revieweeId
+              - productId
               - rating
               - comment
             properties:
               revieweeId:
+                type: string
+              productId:
                 type: string
               rating:
                 type: number
@@ -40,11 +43,40 @@
       "401":
         $ref: "#/components/responses/Unauthorized"
       "404":
-        description: User to be reviewed not found
+        description: User to be reviewed or product not found
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+  get:
+    summary: Get reviews for logged-in user
+    tags:
+      - Reviews
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Number of items per page
+    responses:
+      "200":
+        description: Reviews retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewsListResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
       "500":
         $ref: "#/components/responses/ServerError"
 
@@ -139,7 +171,7 @@
 
 /api/reviews/user/{userId}:
   get:
-    summary: Get reviews for a user
+    summary: Get reviews for a specific user
     tags:
       - Reviews
     parameters:
@@ -148,6 +180,16 @@
         required: true
         schema:
           type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Number of items per page
     responses:
       "200":
         description: Reviews retrieved successfully
@@ -158,34 +200,34 @@
       "500":
         $ref: "#/components/responses/ServerError"
 
-/api/reviews/user/{userId}/myreview:
+/api/reviews/done-by/{userId}:
   get:
-    summary: Get current user's review for a specific user
+    summary: Get reviews done by a specific user
     tags:
       - Reviews
-    security:
-      - BearerAuth: []
     parameters:
       - in: path
         name: userId
         required: true
         schema:
           type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Number of items per page
     responses:
       "200":
-        description: Review retrieved successfully
+        description: Reviews retrieved successfully
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ReviewResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        description: Review not found
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "#/components/schemas/ReviewsListResponse"
       "500":
         $ref: "#/components/responses/ServerError"
 
@@ -200,6 +242,8 @@ components:
           $ref: "#/components/schemas/User"
         reviewee:
           type: string
+        product:
+          $ref: "#/components/schemas/Product"
         rating:
           type: number
           minimum: 1
@@ -242,6 +286,14 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Review"
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalReviews:
+              type: integer
+            totalPages:
+              type: integer
 
     User:
       type: object
@@ -258,6 +310,18 @@ components:
           type: string
         profilePicture:
           type: string
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
 
     ErrorResponse:
       type: object

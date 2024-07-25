@@ -16,33 +16,7 @@
         $ref: "#/components/responses/Unauthorized"
       "500":
         $ref: "#/components/responses/ServerError"
-/api/users/{id}:
-  get:
-    summary: Get user by ID
-    tags:
-      - Users
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-      - $ref: "#/components/parameters/ProductFilterParams"
-    responses:
-      "200":
-        description: User retrieved successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+
   put:
     summary: Edit user
     tags:
@@ -69,6 +43,7 @@
         $ref: "#/components/responses/NotFound"
       "500":
         $ref: "#/components/responses/ServerError"
+
   delete:
     summary: Delete user
     tags:
@@ -88,6 +63,7 @@
         $ref: "#/components/responses/NotFound"
       "500":
         $ref: "#/components/responses/ServerError"
+
 /api/users/me:
   get:
     summary: Get logged in user
@@ -110,6 +86,55 @@
         $ref: "#/components/responses/NotFound"
       "500":
         $ref: "#/components/responses/ServerError"
+
+/api/users/details:
+  get:
+    summary: Get user details
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: User details retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserDetailsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/users/{id}:
+  get:
+    summary: Get user by ID
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: User retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserDetailsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
 components:
   parameters:
     ProductFilterParams:
@@ -158,6 +183,7 @@ components:
         schema:
           type: integer
         default: 10
+
   schemas:
     User:
       type: object
@@ -174,31 +200,6 @@ components:
           type: string
         profilePicture:
           type: string
-        products:
-          type: array
-          items:
-            $ref: "#/components/schemas/PopulatedProduct"
-        likedProducts:
-          type: array
-          items:
-            $ref: "#/components/schemas/Product"
-        likedUsers:
-          type: array
-          items:
-            $ref: "#/components/schemas/User"
-        reviews:
-          type: array
-          items:
-            $ref: "#/components/schemas/Review"
-        activities:
-          type: object
-          properties:
-            items:
-              type: array
-              items:
-                $ref: "#/components/schemas/Activity"
-            unseenCount:
-              type: number
         averageRating:
           type: number
         reviewCount:
@@ -206,6 +207,7 @@ components:
         createdAt:
           type: string
           format: date-time
+
     UserEditRequest:
       type: object
       properties:
@@ -226,6 +228,7 @@ components:
         profilePicture:
           type: string
           format: binary
+
     UsersResponse:
       type: object
       properties:
@@ -241,6 +244,7 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/User"
+
     UserResponse:
       type: object
       properties:
@@ -262,6 +266,23 @@ components:
               type: number
             totalPages:
               type: number
+
+    UserDetailsResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/User"
+            totalProducts:
+              type: number
+
     UserEditResponse:
       type: object
       properties:
@@ -288,86 +309,7 @@ components:
                   type: string
                 profilePicture:
                   type: string
-    Product:
-      type: object
-      properties:
-        _id:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        price:
-          type: number
-        images:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        condition:
-          type: string
-    PopulatedProduct:
-      type: object
-      properties:
-        _id:
-          type: string
-        title:
-          type: string
-        price:
-          type: number
-        images:
-          type: array
-          items:
-            type: string
-        category:
-          type: string
-        condition:
-          type: string
-        seller:
-          $ref: "#/components/schemas/User"
-        likes:
-          type: number
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-    Review:
-      type: object
-      properties:
-        _id:
-          type: string
-        reviewer:
-          $ref: "#/components/schemas/User"
-        rating:
-          type: number
-        comment:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-    Activity:
-      type: object
-      properties:
-        _id:
-          type: string
-        user:
-          type: string
-        type:
-          type: string
-        sender:
-          $ref: "#/components/schemas/User"
-        content:
-          type: string
-        product:
-          $ref: "#/components/schemas/Product"
-        read:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
+
     ErrorResponse:
       type: object
       properties:
@@ -378,6 +320,7 @@ components:
           type: string
         data:
           type: null
+
     SuccessResponse:
       type: object
       properties:
@@ -388,6 +331,7 @@ components:
           type: string
         data:
           type: null
+
   responses:
     BadRequest:
       description: Bad request
@@ -413,6 +357,7 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
+
   securitySchemes:
     BearerAuth:
       type: http

@@ -48,6 +48,17 @@
       - Recent Searches
     security:
       - BearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Number of items per page
     responses:
       "200":
         description: Recent searches retrieved successfully
@@ -162,6 +173,14 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/RecentSearch"
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
 
     DeletedRecentSearchResponse:
       type: object

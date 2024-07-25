@@ -66,6 +66,82 @@
       "500":
         $ref: "#/components/responses/ServerError"
 
+/api/likes/products:
+  get:
+    summary: Get liked products
+    tags:
+      - Likes
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Liked products retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: number
+                  enum: [1]
+                message:
+                  type: string
+                data:
+                  type: object
+                  properties:
+                    likedProducts:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/Product"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/likes/profiles:
+  get:
+    summary: Get liked profiles
+    tags:
+      - Likes
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Liked profiles retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: number
+                  enum: [1]
+                message:
+                  type: string
+                data:
+                  type: object
+                  properties:
+                    likedUsers:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/LikedUser"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
 components:
   schemas:
     LikeResponse:
@@ -81,6 +157,71 @@ components:
           properties:
             liked:
               type: boolean
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        price:
+          type: number
+        images:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        condition:
+          type: string
+        seller:
+          $ref: "#/components/schemas/UserBasic"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LikedUser:
+      type: object
+      properties:
+        _id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        profilePicture:
+          type: string
+        averageRating:
+          type: number
+        reviewCount:
+          type: number
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              images:
+                type: array
+                items:
+                  type: string
+
+    UserBasic:
+      type: object
+      properties:
+        _id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        profilePicture:
+          type: string
 
     ErrorResponse:
       type: object

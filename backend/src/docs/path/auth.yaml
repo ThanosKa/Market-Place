@@ -65,15 +65,7 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                  enum: [0]
-                message:
-                  type: string
-                data:
-                  type: null
+              $ref: "#/components/schemas/ErrorResponse"
       "500":
         description: Server error
         content:

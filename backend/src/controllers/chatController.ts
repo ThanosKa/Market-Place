@@ -45,10 +45,67 @@ export const createChat = async (req: Request, res: Response) => {
 
 export const getUserChats = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
-    const chats = await Chat.find({ participants: userId })
-      .populate("participants", "firstName lastName email")
-      .sort({ updatedAt: -1 });
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const chats = await Chat.aggregate([
+      { $match: { participants: userId } },
+      { $sort: { updatedAt: -1 } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "participants",
+          foreignField: "_id",
+          as: "participantDetails",
+        },
+      },
+      {
+        $addFields: {
+          otherParticipant: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$participantDetails",
+                  as: "participant",
+                  cond: { $ne: ["$$participant._id", userId] },
+                },
+              },
+              0,
+            ],
+          },
+          lastMessage: { $arrayElemAt: ["$messages", -1] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          "otherParticipant._id": 1,
+          "otherParticipant.firstName": 1,
+          "otherParticipant.lastName": 1,
+          "otherParticipant.profilePicture": 1,
+          lastMessage: {
+            content: "$lastMessage.content",
+            sender: "$lastMessage.sender",
+            timestamp: "$lastMessage.timestamp",
+            seen: "$lastMessage.seen",
+            isOwnMessage: { $eq: ["$lastMessage.sender", userId] },
+          },
+          unreadCount: {
+            $size: {
+              $filter: {
+                input: "$messages",
+                as: "message",
+                cond: {
+                  $and: [
+                    { $ne: ["$$message.sender", userId] },
+                    { $eq: ["$$message.seen", false] },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    ]);
 
     res.json({
       success: 1,
@@ -64,17 +121,83 @@ export const getUserChats = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getChatMessages = async (req: Request, res: Response) => {
   try {
     const chatId = req.params.chatId;
-    const userId = (req as any).userId;
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
 
-    const chat = await Chat.findOne({ _id: chatId, participants: userId })
-      .populate("participants", "firstName lastName email")
-      .populate("messages.sender", "firstName lastName email");
+    const chat = await Chat.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(chatId),
+          participants: userId,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "participants",
+          foreignField: "_id",
+          as: "participantDetails",
+        },
+      },
+      {
+        $addFields: {
+          otherParticipant: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$participantDetails",
+                  as: "participant",
+                  cond: { $ne: ["$$participant._id", userId] },
+                },
+              },
+              0,
+            ],
+          },
+          messages: {
+            $map: {
+              input: "$messages",
+              as: "message",
+              in: {
+                _id: "$$message._id",
+                content: "$$message.content",
+                images: "$$message.images",
+                timestamp: "$$message.timestamp",
+                seen: "$$message.seen",
+                isOwnMessage: { $eq: ["$$message.sender", userId] },
+                sender: {
+                  $cond: [
+                    { $eq: ["$$message.sender", userId] },
+                    null,
+                    {
+                      _id: "$otherParticipant._id",
+                      firstName: "$otherParticipant.firstName",
+                      lastName: "$otherParticipant.lastName",
+                      profilePicture: "$otherParticipant.profilePicture",
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          otherParticipant: {
+            _id: 1,
+            firstName: 1,
+            lastName: 1,
+            profilePicture: 1,
+          },
+          messages: 1,
+        },
+      },
+    ]);
 
-    if (!chat) {
+    if (!chat || chat.length === 0) {
       return res.status(404).json({
         success: 0,
         message: "Chat not found",
@@ -83,17 +206,23 @@ export const getChatMessages = async (req: Request, res: Response) => {
     }
 
     // Mark unseen messages as seen
-    chat.messages.forEach((message) => {
-      if (message.sender.toString() !== userId && !message.seen) {
-        message.seen = true;
+    await Chat.updateMany(
+      {
+        _id: new mongoose.Types.ObjectId(chatId),
+        "messages.sender": { $ne: userId },
+        "messages.seen": false,
+      },
+      { $set: { "messages.$[elem].seen": true } },
+      {
+        arrayFilters: [{ "elem.sender": { $ne: userId }, "elem.seen": false }],
+        multi: true,
       }
-    });
-    await chat.save();
+    );
 
     res.json({
       success: 1,
       message: "Chat messages retrieved successfully",
-      data: { chat },
+      data: chat[0],
     });
   } catch (err) {
     console.error(err);
@@ -121,15 +250,24 @@ export const sendMessage = async (req: Request, res: Response) => {
       });
     }
 
+    let images: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      images = (req.files as Express.Multer.File[]).map(
+        (file) => `/uploads/${file.filename}`
+      );
+    }
+
     const newMessage: IMessage = {
       _id: new mongoose.Types.ObjectId(),
       sender: new mongoose.Types.ObjectId(userId),
       content,
+      images,
       timestamp: new Date(),
       seen: false,
     };
 
     chat.messages.push(newMessage);
+    chat.updatedAt = new Date(); // Update the chat's updatedAt field
     await chat.save();
 
     // Populate the sender information
@@ -150,7 +288,7 @@ export const sendMessage = async (req: Request, res: Response) => {
         `New message: ${content.substring(0, 50)}${
           content.length > 50 ? "..." : ""
         }`,
-        chatId.toString() // Adding chatId as an identifier
+        chatId.toString()
       );
     }
 
@@ -168,6 +306,7 @@ export const sendMessage = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const editMessage = async (req: Request, res: Response) => {
   try {
     const { chatId, messageId } = req.params;
@@ -204,7 +343,21 @@ export const editMessage = async (req: Request, res: Response) => {
       });
     }
 
-    message.content = content;
+    // Update content if provided
+    if (content) {
+      message.content = content;
+    }
+
+    // Handle image updates
+    if (req.files && Array.isArray(req.files)) {
+      const newImages = (req.files as Express.Multer.File[]).map(
+        (file) => `/uploads/${file.filename}`
+      );
+
+      // Replace existing images or add new ones
+      message.images = newImages;
+    }
+
     message.edited = true;
     await chat.save();
 
@@ -299,6 +452,38 @@ export const markMessagesAsSeen = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "Messages marked as seen",
+      data: null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const deleteChat = async (req: Request, res: Response) => {
+  try {
+    const chatId = req.params.chatId;
+    const userId = (req as any).userId;
+
+    const chat = await Chat.findOne({ _id: chatId, participants: userId });
+
+    if (!chat) {
+      return res.status(404).json({
+        success: 0,
+        message: "Chat not found",
+        data: null,
+      });
+    }
+
+    await Chat.deleteOne({ _id: chatId });
+
+    res.json({
+      success: 1,
+      message: "Chat deleted successfully",
       data: null,
     });
   } catch (err) {

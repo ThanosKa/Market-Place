@@ -11,6 +11,10 @@ export type RootStackParamList = {
 };
 
 export type MainStackParamList = {
+  Chat: { chatId: string };
+
+  Messages: undefined;
+  Likes: undefined;
   MainTabs: undefined;
   Home: {
     searchQuery?: string;
@@ -29,9 +33,7 @@ export type MainStackParamList = {
     lastName?: string;
     isLiked?: boolean;
   };
-  Chat: { userId: string };
-  Likes: undefined;
-  Messages: undefined;
+
   EditProfile: undefined;
   ChangeEmailScreen: undefined;
   ChangePasswordScreen: undefined;

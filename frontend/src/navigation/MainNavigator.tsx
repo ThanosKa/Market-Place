@@ -2,9 +2,7 @@ import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { MainStackParamList } from "../interfaces/auth/navigation";
 import MainTabs from "./MainTabs";
-import ChatScreen from "../components/Chat/chat";
 import LikesPage from "../pages/LikePage/likePage";
-import MessageScreen from "../components/Messages/messageScreen";
 import EditProfileScreen from "../pages/EditProfileScreen/editProfile";
 import ChangeEmailScreen from "../pages/EditProfileScreen/ChangeEmail/changeEmail";
 import { Text, TouchableOpacity } from "react-native";
@@ -17,6 +15,8 @@ import { useLoggedUser } from "../hooks/useLoggedUser";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import SellScreen from "../pages/sell/SellScreen";
+import ChatScreen from "../pages/ChatScreen/chatScreen";
+import MessageScreen from "../pages/MessagesScreen/MessagesScreen";
 const MainStack = createStackNavigator<MainStackParamList>();
 
 const MainNavigator = () => {
@@ -67,9 +67,62 @@ const MainNavigator = () => {
             headerTintColor: colors.primary,
           })}
         />
-        <MainStack.Screen name="Chat" component={ChatScreen} />
-        {/* <MainStack.Screen name="Likes" component={LikesPage} /> */}
-        <MainStack.Screen name="Messages" component={MessageScreen} />
+        <MainStack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={({ navigation }) => ({
+            headerShown: true,
+            headerTitle: t("messages"),
+            headerTitleAlign: "left",
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 15 }}
+              >
+                <Ionicons
+                  name="chevron-back-sharp"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ),
+            headerStyle: {
+              backgroundColor: "white",
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 0,
+            },
+            headerTintColor: colors.primary,
+          })}
+        />
+        <MainStack.Screen
+          name="Messages"
+          component={MessageScreen}
+          options={({ navigation }) => ({
+            headerShown: true,
+            headerTitle: t("messages"),
+            headerTitleAlign: "center",
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 15 }}
+              >
+                <Ionicons
+                  name="chevron-back-sharp"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ),
+            headerStyle: {
+              backgroundColor: "white",
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 0,
+            },
+            headerTintColor: colors.primary,
+          })}
+        />
         <MainStack.Screen
           name="Likes"
           component={LikesPage}

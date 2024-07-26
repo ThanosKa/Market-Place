@@ -4,6 +4,7 @@ export interface IMessage {
   _id: mongoose.Types.ObjectId;
   sender: mongoose.Types.ObjectId;
   content: string;
+  images: string[];
   timestamp: Date;
   seen: boolean;
   edited?: boolean;
@@ -12,6 +13,8 @@ export interface IMessage {
 export interface IChat extends Document {
   participants: mongoose.Types.ObjectId[];
   messages: IMessage[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const MessageSchema: Schema = new Schema(
@@ -22,6 +25,7 @@ const MessageSchema: Schema = new Schema(
       required: true,
     },
     content: { type: String, required: true },
+    images: [{ type: String }],
     timestamp: { type: Date, default: Date.now },
     seen: { type: Boolean, default: false },
     edited: { type: Boolean, default: false },

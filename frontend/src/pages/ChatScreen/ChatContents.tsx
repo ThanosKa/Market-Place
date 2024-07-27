@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -64,7 +64,15 @@ const ChatContents: React.FC<ChatContentsProps> = ({
       });
     }
   };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: false });
+      }
+    }, 100);
 
+    return () => clearTimeout(timer);
+  }, [messages.length]);
   const renderMessage = ({
     item,
     index,
@@ -157,6 +165,7 @@ const ChatContents: React.FC<ChatContentsProps> = ({
         }
         onContentSizeChange={onContentSizeChange}
         onLayout={onLayout}
+        extraData={messages.length}
       />
     </View>
   );

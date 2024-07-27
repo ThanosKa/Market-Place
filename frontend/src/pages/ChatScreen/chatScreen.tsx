@@ -101,16 +101,19 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     console.log("Images selected:", uris);
   }, []);
 
-  const handleDelete = useCallback(
+  const handleDeleteAndScroll = useCallback(
     async (messageId: string) => {
       try {
         await deleteMessageMutation.mutateAsync(messageId);
-        setMessageDeleted(true);
+        // After deleting, scroll to the bottom
+        setTimeout(() => {
+          scrollToBottom(flatListRef, chatDetails?.messages.length || 0, false);
+        }, 100);
       } catch (error) {
         console.error("Error deleting message:", error);
       }
     },
-    [deleteMessageMutation]
+    [deleteMessageMutation, chatDetails?.messages.length]
   );
   if (isLoading) {
     return (
@@ -147,7 +150,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         onLayout={handleContentSizeChange}
         isLoading={isLoading}
         refetch={refetch}
-        onDelete={handleDelete}
+        onDelete={handleDeleteAndScroll}
       />
       <ChatInput
         onSendMessage={handleSendMessage}

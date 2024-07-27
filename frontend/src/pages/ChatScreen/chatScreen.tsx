@@ -1,20 +1,26 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Image,
   KeyboardAvoidingView,
   Platform,
+  Text,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { BASE_URL } from "../../services/axiosConfig";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
-import { useChatMessages, useSendMessage, scrollToBottom } from "./chatUtils";
+import {
+  useChatMessages,
+  useSendMessage,
+  useDeleteMessage,
+  scrollToBottom,
+} from "./chatUtils";
 import ChatContents from "./ChatContents";
 import ChatInput from "./ChatInput";
+import CameraComponent from "../sell/CameraComponent";
 
 type ChatScreenRouteProp = RouteProp<MainStackParamList, "Chat">;
 type ChatScreenNavigationProp = StackNavigationProp<MainStackParamList, "Chat">;
@@ -26,11 +32,13 @@ interface ChatScreenProps {
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const { chatId } = route.params;
   const flatListRef = useRef(null);
-
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [messageDeleted, setMessageDeleted] = useState(false);
   const { data: chatDetails, isLoading, refetch } = useChatMessages(chatId);
   const sendMessageMutation = useSendMessage(chatId);
+  const deleteMessageMutation = useDeleteMessage(chatId);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (chatDetails) {
       navigation.setOptions({
         headerTitle: () => (
@@ -59,7 +67,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       });
     }
   }, [chatDetails, navigation]);
-
+  useEffect(() => {
+    if (messageDeleted) {
+      scrollToBottom(flatListRef, chatDetails?.messages.length || 0, false);
+      setMessageDeleted(false);
+    }
+  }, [messageDeleted, chatDetails?.messages.length]);
   const handleSendMessage = useCallback(
     (message: string) => {
       sendMessageMutation.mutate(message);
@@ -71,11 +84,50 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     scrollToBottom(flatListRef, chatDetails?.messages.length || 0, false);
   }, [chatDetails?.messages.length]);
 
+  const handleOpenCamera = useCallback(() => {
+    setIsCameraOpen(true);
+  }, []);
+
+  const handleCloseCamera = useCallback(() => {
+    setIsCameraOpen(false);
+  }, []);
+
+  const handleCaptureImage = useCallback((uri: string) => {
+    console.log("Image captured:", uri);
+    setIsCameraOpen(false);
+  }, []);
+
+  const handleSelectImages = useCallback((uris: string[]) => {
+    console.log("Images selected:", uris);
+  }, []);
+
+  const handleDelete = useCallback(
+    async (messageId: string) => {
+      try {
+        await deleteMessageMutation.mutateAsync(messageId);
+        setMessageDeleted(true);
+      } catch (error) {
+        console.error("Error deleting message:", error);
+      }
+    },
+    [deleteMessageMutation]
+  );
   if (isLoading) {
     return (
       <View style={styles.centered}>
         <Text>Loading...</Text>
       </View>
+    );
+  }
+
+  if (isCameraOpen) {
+    return (
+      <CameraComponent
+        onCapture={handleCaptureImage}
+        onClose={handleCloseCamera}
+        onPickImages={handleSelectImages}
+        currentImageCount={0}
+      />
     );
   }
 
@@ -87,14 +139,21 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     >
       <ChatContents
         messages={chatDetails?.messages || []}
-        otherParticipant={chatDetails?.otherParticipant || {}}
+        otherParticipant={{
+          profilePicture: chatDetails?.otherParticipant?.profilePicture,
+        }}
         flatListRef={flatListRef}
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleContentSizeChange}
         isLoading={isLoading}
         refetch={refetch}
+        onDelete={handleDelete}
       />
-      <ChatInput onSendMessage={handleSendMessage} />
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        onOpenCamera={handleOpenCamera}
+        onSelectImages={handleSelectImages}
+      />
     </KeyboardAvoidingView>
   );
 };

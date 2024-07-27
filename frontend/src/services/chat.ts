@@ -90,7 +90,7 @@ export const editMessage = async (
       success: number;
       message: string;
       data: { message: ChatMessage };
-    }>(`/chat/${chatId}/messages/${messageId}`, formData, {
+    }>(`/chats/${chatId}/messages/${messageId}`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -107,7 +107,7 @@ export const deleteMessage = async (
   messageId: string
 ): Promise<void> => {
   try {
-    await axiosInstance.delete(`/chat/${chatId}/messages/${messageId}`);
+    await axiosInstance.delete(`/chats/${chatId}/messages/${messageId}`);
   } catch (error) {
     console.error("Error deleting message:", error);
     throw error;

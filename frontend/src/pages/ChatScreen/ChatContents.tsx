@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   StyleSheet,
   Dimensions,
   RefreshControl,
+  Pressable,
+  Animated,
 } from "react-native";
 import { ChatMessage } from "../../interfaces/chat";
 import { BASE_URL } from "../../services/axiosConfig";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
+import MessageOptions from "./MessageOption";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -24,6 +27,7 @@ interface ChatContentsProps {
   onLayout: () => void;
   isLoading: boolean;
   refetch: () => void;
+  onDelete: (messageId: string) => Promise<void>;
 }
 
 const ChatContents: React.FC<ChatContentsProps> = ({
@@ -34,7 +38,33 @@ const ChatContents: React.FC<ChatContentsProps> = ({
   onLayout,
   isLoading,
   refetch,
+  onDelete,
 }) => {
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null
+  );
+  const fadeAnims = useRef(
+    new Map(messages.map((m) => [m._id, new Animated.Value(1)]))
+  ).current;
+
+  const handlePress = (messageId: string) => {
+    setSelectedMessageId(messageId === selectedMessageId ? null : messageId);
+  };
+
+  const handleDelete = async (messageId: string) => {
+    const fadeAnim = fadeAnims.get(messageId);
+    if (fadeAnim) {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(async () => {
+        await onDelete(messageId);
+        setSelectedMessageId(null);
+      });
+    }
+  };
+
   const renderMessage = ({
     item,
     index,
@@ -46,75 +76,105 @@ const ChatContents: React.FC<ChatContentsProps> = ({
       index === messages.length - 1 ||
       messages[index + 1].isOwnMessage !== item.isOwnMessage;
 
+    const isSelected = selectedMessageId === item._id;
+    const fadeAnim = fadeAnims.get(item._id) || new Animated.Value(1);
+
     return (
-      <View
-        style={[
-          styles.messageContainer,
-          item.isOwnMessage
-            ? styles.ownMessageContainer
-            : styles.otherMessageContainer,
-        ]}
-      >
-        {!item.isOwnMessage && isLastMessage && (
-          <View style={styles.avatarContainer}>
-            {otherParticipant.profilePicture ? (
-              <Image
-                source={{
-                  uri: `${BASE_URL}/${otherParticipant.profilePicture}`,
-                }}
-                style={styles.messageAvatar}
-              />
-            ) : (
-              <UndefProfPicture size={28} iconSize={14} />
-            )}
-          </View>
-        )}
+      <Animated.View style={[styles.messageWrapper, { opacity: fadeAnim }]}>
         <View
           style={[
-            styles.messageBubble,
-            item.isOwnMessage ? styles.ownMessage : styles.otherMessage,
-            !item.isOwnMessage && !isLastMessage && styles.otherMessageAligned,
+            styles.messageRow,
+            item.isOwnMessage ? styles.ownMessageRow : styles.otherMessageRow,
           ]}
         >
-          <Text
-            style={[
-              styles.messageText,
+          {!item.isOwnMessage && isLastMessage && (
+            <View style={styles.avatarContainer}>
+              {otherParticipant.profilePicture ? (
+                <Image
+                  source={{
+                    uri: `${BASE_URL}/${otherParticipant.profilePicture}`,
+                  }}
+                  style={styles.messageAvatar}
+                />
+              ) : (
+                <UndefProfPicture size={28} iconSize={14} />
+              )}
+            </View>
+          )}
+          <Pressable
+            onPress={() => handlePress(item._id)}
+            style={({ pressed }) => [
+              styles.messageContainer,
               item.isOwnMessage
-                ? styles.ownMessageText
-                : styles.otherMessageText,
+                ? styles.ownMessageContainer
+                : styles.otherMessageContainer,
+              pressed && styles.messagePressed,
             ]}
           >
-            {item.content}
-          </Text>
+            <View
+              style={[
+                styles.messageBubble,
+                item.isOwnMessage ? styles.ownMessage : styles.otherMessage,
+                !item.isOwnMessage &&
+                  !isLastMessage &&
+                  styles.otherMessageAligned,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  item.isOwnMessage
+                    ? styles.ownMessageText
+                    : styles.otherMessageText,
+                ]}
+              >
+                {item.content}
+              </Text>
+            </View>
+          </Pressable>
+          {isSelected && item.isOwnMessage && (
+            <MessageOptions
+              message={item}
+              isOwnMessage={item.isOwnMessage}
+              onDelete={() => handleDelete(item._id)}
+            />
+          )}
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
   return (
-    <FlatList
-      ref={flatListRef}
-      data={messages}
-      renderItem={renderMessage}
-      keyExtractor={(item) => item._id}
-      contentContainerStyle={styles.messageList}
-      refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-      }
-      onContentSizeChange={onContentSizeChange}
-      onLayout={onLayout}
-    />
+    <View style={styles.container}>
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.messageList}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+        }
+        onContentSizeChange={onContentSizeChange}
+        onLayout={onLayout}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   messageList: {
     paddingHorizontal: 16,
     paddingTop: 8,
   },
+  messagePressed: {
+    opacity: 0.7,
+  },
   messageContainer: {
     flexDirection: "row",
-    marginBottom: 4,
     maxWidth: SCREEN_WIDTH * 0.8,
   },
   ownMessageContainer: {
@@ -158,6 +218,20 @@ const styles = StyleSheet.create({
   },
   otherMessageText: {
     color: "#262626",
+  },
+  messageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ownMessageRow: {
+    justifyContent: "flex-end",
+  },
+  otherMessageRow: {
+    justifyContent: "flex-start",
+  },
+  messageWrapper: {
+    marginBottom: 4,
+    overflow: "hidden",
   },
 });
 

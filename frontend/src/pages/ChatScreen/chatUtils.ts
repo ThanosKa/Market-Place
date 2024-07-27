@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "react-query";
-import { getChatMessages, sendMessage } from "../../services/chat";
+import {
+  deleteMessage,
+  getChatMessages,
+  sendMessage,
+} from "../../services/chat";
 import { ChatMessage } from "../../interfaces/chat";
 import { FlatList } from "react-native";
 
@@ -29,4 +33,38 @@ export const scrollToBottom = (
       animated,
     });
   }
+};
+export const formatMessageTime = (
+  timestamp: Date | string | number
+): string => {
+  if (timestamp === undefined || timestamp === null) {
+    return "";
+  }
+
+  let date: Date;
+
+  if (typeof timestamp === "string") {
+    date = new Date(timestamp);
+  } else if (typeof timestamp === "number") {
+    date = new Date(timestamp);
+  } else if (timestamp instanceof Date) {
+    date = timestamp;
+  } else {
+    return "";
+  }
+
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
+
+export const useDeleteMessage = (chatId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation((messageId: string) => deleteMessage(chatId, messageId), {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["chatMessages", chatId]);
+    },
+  });
 };

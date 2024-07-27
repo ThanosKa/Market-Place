@@ -28,6 +28,16 @@ export interface Chat {
   unreadCount: number;
 }
 
+export interface PaginatedChatDetails {
+  _id: string;
+  otherParticipant: User;
+  messages: ChatMessage[];
+  currentPage: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export interface ChatDetails {
   _id: string;
   otherParticipant: User;

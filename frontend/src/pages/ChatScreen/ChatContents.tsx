@@ -79,6 +79,7 @@ const ChatContents: React.FC<ChatContentsProps> = ({
 
     return () => clearTimeout(timer);
   }, [messages.length]);
+
   const renderMessage = ({
     item,
     index,
@@ -87,9 +88,7 @@ const ChatContents: React.FC<ChatContentsProps> = ({
     index: number;
   }) => {
     const isLastMessage =
-      index === messages.length - 1 ||
-      messages[index + 1].isOwnMessage !== item.isOwnMessage;
-
+      index === 0 || messages[index - 1].isOwnMessage !== item.isOwnMessage;
     const isSelected = selectedMessageId === item._id;
     const fadeAnim = fadeAnims.get(item._id) || new Animated.Value(1);
 
@@ -162,7 +161,7 @@ const ChatContents: React.FC<ChatContentsProps> = ({
     <View style={styles.container}>
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={messages.slice().reverse()}
         renderItem={renderMessage}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.messageList}
@@ -171,7 +170,7 @@ const ChatContents: React.FC<ChatContentsProps> = ({
         }
         onContentSizeChange={onContentSizeChange}
         onLayout={onLayout}
-        extraData={messages.length}
+        // inverted
       />
     </View>
   );

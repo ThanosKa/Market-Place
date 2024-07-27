@@ -125,6 +125,9 @@ export const getChatMessages = async (req: Request, res: Response) => {
   try {
     const chatId = req.params.chatId;
     const userId = new mongoose.Types.ObjectId((req as any).userId);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
 
     const chat = await Chat.aggregate([
       {
@@ -155,6 +158,19 @@ export const getChatMessages = async (req: Request, res: Response) => {
               0,
             ],
           },
+          messages: {
+            $slice: [
+              {
+                $reverseArray: "$messages",
+              },
+              skip,
+              limit,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
           messages: {
             $map: {
               input: "$messages",
@@ -193,6 +209,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
             profilePicture: 1,
           },
           messages: 1,
+          totalMessages: { $size: "$messages" },
         },
       },
     ]);
@@ -219,10 +236,23 @@ export const getChatMessages = async (req: Request, res: Response) => {
       }
     );
 
+    const totalMessages = await Chat.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(chatId) } },
+      { $project: { messageCount: { $size: "$messages" } } },
+    ]);
+
+    const totalPages = Math.ceil(totalMessages[0].messageCount / limit);
+
     res.json({
       success: 1,
       message: "Chat messages retrieved successfully",
-      data: chat[0],
+      data: {
+        ...chat[0],
+        currentPage: page,
+        totalPages: totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
     });
   } catch (err) {
     console.error(err);
@@ -233,7 +263,6 @@ export const getChatMessages = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;

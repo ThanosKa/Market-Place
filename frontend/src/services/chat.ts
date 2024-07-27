@@ -1,4 +1,9 @@
-import { Chat, ChatDetails, ChatMessage } from "../interfaces/chat";
+import {
+  Chat,
+  ChatDetails,
+  ChatMessage,
+  PaginatedChatDetails,
+} from "../interfaces/chat";
 import axiosInstance from "./axiosConfig";
 
 export const createChat = async (participantId: string): Promise<Chat> => {
@@ -29,13 +34,22 @@ export const getUserChats = async (): Promise<Chat[]> => {
   }
 };
 
-export const getChatMessages = async (chatId: string): Promise<ChatDetails> => {
+export const getChatMessages = async (
+  chatId: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<PaginatedChatDetails> => {
   try {
     const response = await axiosInstance.get<{
       success: number;
       message: string;
-      data: ChatDetails;
-    }>(`/chats/${chatId}/messages`);
+      data: PaginatedChatDetails;
+    }>(`/chats/${chatId}/messages`, {
+      params: {
+        page,
+        limit,
+      },
+    });
     return response.data.data;
   } catch (error) {
     console.error("Error fetching chat messages:", error);

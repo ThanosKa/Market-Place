@@ -75,9 +75,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   }, [messageDeleted, chatDetails?.messages.length]);
   const handleSendMessage = useCallback(
     (message: string) => {
-      sendMessageMutation.mutate(message);
+      sendMessageMutation.mutate(message, {
+        onSuccess: () => {
+          scrollToBottom(flatListRef, chatDetails?.messages.length || 0, true);
+        },
+      });
     },
-    [sendMessageMutation]
+    [sendMessageMutation, chatDetails?.messages.length]
   );
 
   const handleContentSizeChange = useCallback(() => {

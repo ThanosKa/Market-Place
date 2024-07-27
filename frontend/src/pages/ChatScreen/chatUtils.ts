@@ -16,12 +16,46 @@ export const useChatMessages = (chatId: string) => {
 export const useSendMessage = (chatId: string) => {
   const queryClient = useQueryClient();
   return useMutation((content: string) => sendMessage(chatId, content, []), {
-    onSuccess: () => {
+    onMutate: async (newMessage) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries(["chatMessages", chatId]);
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData([
+        "chatMessages",
+        chatId,
+      ]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(["chatMessages", chatId], (old: any) => {
+        const newMessageObject = {
+          _id: Date.now().toString(), // Temporary ID
+          content: newMessage,
+          isOwnMessage: true,
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          ...old,
+          messages: [...(old?.messages || []), newMessageObject],
+        };
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousMessages };
+    },
+    onError: (err, newMessage, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(
+        ["chatMessages", chatId],
+        context?.previousMessages
+      );
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure we have the correct data
       queryClient.invalidateQueries(["chatMessages", chatId]);
     },
   });
 };
-
 export const scrollToBottom = (
   flatListRef: React.RefObject<FlatList<ChatMessage>>,
   messagesLength: number,

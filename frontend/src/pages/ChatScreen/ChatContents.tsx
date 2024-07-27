@@ -46,7 +46,13 @@ const ChatContents: React.FC<ChatContentsProps> = ({
   const fadeAnims = useRef(
     new Map(messages.map((m) => [m._id, new Animated.Value(1)]))
   ).current;
-
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (!fadeAnims.has(message._id)) {
+        fadeAnims.set(message._id, new Animated.Value(1));
+      }
+    });
+  }, [messages, fadeAnims]);
   const handlePress = (messageId: string) => {
     setSelectedMessageId(messageId === selectedMessageId ? null : messageId);
   };

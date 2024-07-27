@@ -104,6 +104,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const handleDeleteAndScroll = useCallback(
     async (messageId: string) => {
       try {
+        console.log("Delete", messageId);
         await deleteMessageMutation.mutateAsync(messageId);
         // After deleting, scroll to the bottom
         setTimeout(() => {
@@ -113,7 +114,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         console.error("Error deleting message:", error);
       }
     },
-    [deleteMessageMutation, chatDetails?.messages.length]
+    [deleteMessageMutation, chatDetails?.messages.length, flatListRef]
   );
   if (isLoading) {
     return (

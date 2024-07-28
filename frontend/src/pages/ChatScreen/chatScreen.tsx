@@ -6,6 +6,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Text,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  FlatList,
+  Pressable,
+  Dimensions,
 } from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -21,6 +26,7 @@ import {
 import ChatContents from "./ChatContents";
 import ChatInput from "./ChatInput";
 import CameraComponent from "../sell/CameraComponent";
+import { AntDesign } from "@expo/vector-icons";
 
 type ChatScreenRouteProp = RouteProp<MainStackParamList, "Chat">;
 type ChatScreenNavigationProp = StackNavigationProp<MainStackParamList, "Chat">;
@@ -29,24 +35,35 @@ interface ChatScreenProps {
   navigation: ChatScreenNavigationProp;
 }
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const { chatId } = route.params;
-  const flatListRef = useRef(null);
+  const flatListRef = useRef<FlatList | null>(null);
+  const [isLoadingOldMessages, setIsLoadingOldMessages] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [messageDeleted, setMessageDeleted] = useState(false);
-  const { data: chatDetails, isLoading, refetch } = useChatMessages(chatId);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+  } = useChatMessages(chatId);
   const sendMessageMutation = useSendMessage(chatId);
   const deleteMessageMutation = useDeleteMessage(chatId);
 
-  React.useEffect(() => {
-    if (chatDetails) {
+  useEffect(() => {
+    if (data?.pages[0]) {
       navigation.setOptions({
         headerTitle: () => (
           <View style={styles.headerTitle}>
-            {chatDetails.otherParticipant.profilePicture ? (
+            {data.pages[0].otherParticipant.profilePicture ? (
               <Image
                 source={{
-                  uri: `${BASE_URL}/${chatDetails.otherParticipant.profilePicture}`,
+                  uri: `${BASE_URL}/${data.pages[0].otherParticipant.profilePicture}`,
                 }}
                 style={styles.headerAvatar}
               />
@@ -57,8 +74,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
             )}
             <View>
               <Text style={styles.headerName}>
-                {chatDetails.otherParticipant.firstName}{" "}
-                {chatDetails.otherParticipant.lastName}
+                {data.pages[0].otherParticipant.firstName}{" "}
+                {data.pages[0].otherParticipant.lastName}
               </Text>
               <Text style={styles.headerStatus}>Active now</Text>
             </View>
@@ -66,27 +83,35 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         ),
       });
     }
-  }, [chatDetails, navigation]);
+  }, [data, navigation]);
+
   useEffect(() => {
     if (messageDeleted) {
-      scrollToBottom(flatListRef, chatDetails?.messages.length || 0, false);
+      scrollToBottom(flatListRef, data?.pages[0]?.messages.length || 0, false);
       setMessageDeleted(false);
     }
-  }, [messageDeleted, chatDetails?.messages.length]);
+  }, [messageDeleted, data?.pages[0]?.messages.length]);
+
   const handleSendMessage = useCallback(
     (message: string) => {
       sendMessageMutation.mutate(message, {
         onSuccess: () => {
-          scrollToBottom(flatListRef, chatDetails?.messages.length || 0, true);
+          scrollToBottom(
+            flatListRef,
+            data?.pages[0]?.messages.length || 0,
+            true
+          );
         },
       });
     },
-    [sendMessageMutation, chatDetails?.messages.length]
+    [sendMessageMutation, data?.pages[0]?.messages.length]
   );
 
   const handleContentSizeChange = useCallback(() => {
-    scrollToBottom(flatListRef, chatDetails?.messages.length || 0, false);
-  }, [chatDetails?.messages.length]);
+    if (!isLoadingOldMessages) {
+      scrollToBottom(flatListRef, data?.pages[0]?.messages.length || 0, false);
+    }
+  }, [data?.pages[0]?.messages.length, isLoadingOldMessages]);
 
   const handleOpenCamera = useCallback(() => {
     setIsCameraOpen(true);
@@ -110,16 +135,37 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       try {
         console.log("Delete", messageId);
         await deleteMessageMutation.mutateAsync(messageId);
-        // After deleting, scroll to the bottom
-        setTimeout(() => {
-          scrollToBottom(flatListRef, chatDetails?.messages.length || 0, false);
-        }, 100);
+        setMessageDeleted(true);
       } catch (error) {
         console.error("Error deleting message:", error);
       }
     },
-    [deleteMessageMutation, chatDetails?.messages.length, flatListRef]
+    [deleteMessageMutation]
   );
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const currentOffset = event.nativeEvent.contentOffset.y;
+      setShowScrollButton(currentOffset <= 500);
+    },
+    []
+  );
+
+  const handleScrollToBottom = useCallback(() => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      setIsLoadingOldMessages(true);
+      fetchNextPage().then(() => {
+        setIsLoadingOldMessages(false);
+      });
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const allMessages = data ? data.pages.flatMap((page) => page.messages) : [];
+
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -146,18 +192,24 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       <ChatContents
-        messages={chatDetails?.messages || []}
-        otherParticipant={{
-          profilePicture: chatDetails?.otherParticipant?.profilePicture,
-        }}
+        messages={allMessages}
+        otherParticipant={data?.pages[0]?.otherParticipant || {}}
         navigation={navigation}
         flatListRef={flatListRef}
-        onContentSizeChange={handleContentSizeChange}
-        onLayout={handleContentSizeChange}
         isLoading={isLoading}
-        refetch={refetch}
+        isFetchingNextPage={isFetchingNextPage}
+        onLoadMore={handleLoadMore}
         onDelete={handleDeleteAndScroll}
+        refetch={refetch}
+        onScroll={handleScroll}
+        isLoadingOldMessages={isLoadingOldMessages}
+        hasNextPage={hasNextPage}
       />
+      {showScrollButton && (
+        <Pressable style={styles.scrollButton} onPress={handleScrollToBottom}>
+          <AntDesign name="arrowdown" size={24} color="#000" />
+        </Pressable>
+      )}
       <ChatInput
         onSendMessage={handleSendMessage}
         onOpenCamera={handleOpenCamera}
@@ -195,6 +247,22 @@ const styles = StyleSheet.create({
   headerStatus: {
     fontSize: 12,
     color: "#8e8e8e",
+  },
+  scrollButton: {
+    position: "absolute",
+    bottom: 100,
+    left: (SCREEN_WIDTH - 50) / 2,
+    backgroundColor: "white",
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
 });
 

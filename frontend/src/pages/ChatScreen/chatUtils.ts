@@ -4,15 +4,31 @@ import {
   getChatMessages,
   sendMessage,
 } from "../../services/chat";
-import { ChatMessage } from "../../interfaces/chat";
+import { ChatMessage, PaginatedChatDetails } from "../../interfaces/chat";
 import { FlatList } from "react-native";
 
-export const useChatMessages = (chatId: string) => {
-  return useQuery(["chatMessages", chatId], () => getChatMessages(chatId), {
-    refetchInterval: 5000,
-  });
-};
+import { useInfiniteQuery } from "react-query";
 
+export const useChatMessages = (chatId: string) => {
+  return useInfiniteQuery<PaginatedChatDetails, Error>(
+    ["chatMessages", chatId],
+    ({ pageParam = 1 }) => getChatMessages(chatId, pageParam),
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage.hasNextPage) {
+          return lastPage.currentPage + 1;
+        }
+        return undefined;
+      },
+      refetchInterval: 5000,
+      staleTime: Infinity,
+      cacheTime: Infinity,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+    }
+  );
+};
 export const useSendMessage = (chatId: string) => {
   const queryClient = useQueryClient();
   return useMutation((content: string) => sendMessage(chatId, content, []), {

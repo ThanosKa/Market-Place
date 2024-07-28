@@ -33,7 +33,6 @@ export const getUserChats = async (): Promise<Chat[]> => {
     throw error;
   }
 };
-
 export const getChatMessages = async (
   chatId: string,
   page: number = 1,
@@ -56,7 +55,6 @@ export const getChatMessages = async (
     throw error;
   }
 };
-
 export const sendMessage = async (
   chatId: string,
   content: string,

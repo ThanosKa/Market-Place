@@ -9,6 +9,8 @@ import {
   RefreshControl,
   Pressable,
   Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import { ChatMessage } from "../../interfaces/chat";
 import { BASE_URL } from "../../services/axiosConfig";
@@ -16,6 +18,7 @@ import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture
 import MessageOptions from "./MessageOption";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { t } from "i18next";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -27,23 +30,29 @@ interface ChatContentsProps {
   };
   navigation: StackNavigationProp<MainStackParamList>;
   flatListRef: React.RefObject<FlatList<ChatMessage>>;
-  onContentSizeChange: () => void;
-  onLayout: () => void;
   isLoading: boolean;
-  refetch: () => void;
+  isFetchingNextPage: boolean;
+  onLoadMore: () => void;
   onDelete: (messageId: string) => Promise<void>;
+  refetch: () => void;
+  isLoadingOldMessages: boolean;
+  onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  hasNextPage?: boolean;
 }
 
 const ChatContents: React.FC<ChatContentsProps> = ({
   messages,
   otherParticipant,
-  flatListRef,
-  onContentSizeChange,
-  onLayout,
-  isLoading,
-  refetch,
-  onDelete,
   navigation,
+  flatListRef,
+  isLoading,
+  isFetchingNextPage,
+  onLoadMore,
+  onDelete,
+  refetch,
+  isLoadingOldMessages,
+  onScroll,
+  hasNextPage,
 }) => {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
     null
@@ -52,6 +61,7 @@ const ChatContents: React.FC<ChatContentsProps> = ({
   const fadeAnims = useRef(
     new Map(messages.map((m) => [m._id, new Animated.Value(1)]))
   ).current;
+
   useEffect(() => {
     messages.forEach((message) => {
       if (!fadeAnims.has(message._id)) {
@@ -59,6 +69,7 @@ const ChatContents: React.FC<ChatContentsProps> = ({
       }
     });
   }, [messages, fadeAnims]);
+
   const handlePress = (messageId: string) => {
     setSelectedMessageId(messageId === selectedMessageId ? null : messageId);
   };
@@ -76,55 +87,37 @@ const ChatContents: React.FC<ChatContentsProps> = ({
       });
     }
   };
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: false });
-      }
-    }, 100);
 
-    return () => clearTimeout(timer);
-  }, [messages.length]);
+  const handleAvatarPress = (userId: string) => {
+    navigation.navigate("UserProfile", { userId });
+  };
 
-  const renderMessage = ({
-    item,
-    index,
-  }: {
-    item: ChatMessage;
-    index: number;
-  }) => {
+  const renderAvatar = (sender: ChatMessage["sender"]) => {
+    if (sender && sender.profilePicture) {
+      return (
+        <Pressable onPress={() => handleAvatarPress(sender._id)}>
+          <Image
+            source={{
+              uri: `${BASE_URL}/${sender.profilePicture}`,
+            }}
+            style={styles.messageAvatar}
+          />
+        </Pressable>
+      );
+    } else {
+      return (
+        <Pressable onPress={() => sender && handleAvatarPress(sender._id)}>
+          <View style={styles.messageAvatar}>
+            <UndefProfPicture size={28} iconSize={14} />
+          </View>
+        </Pressable>
+      );
+    }
+  };
+
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isSelected = selectedMessageId === item._id;
     const fadeAnim = fadeAnims.get(item._id) || new Animated.Value(1);
-    const handleAvatarPress = () => {
-      if (!item.isOwnMessage) {
-        const userId = otherParticipant._id || item.sender?._id;
-        if (userId) {
-          navigation.navigate("UserProfile", { userId });
-        }
-      }
-    };
-    const renderAvatar = () => {
-      if (item.sender && item.sender.profilePicture) {
-        return (
-          <Pressable onPress={handleAvatarPress}>
-            <Image
-              source={{
-                uri: `${BASE_URL}/${item.sender.profilePicture}`,
-              }}
-              style={styles.messageAvatar}
-            />
-          </Pressable>
-        );
-      } else {
-        return (
-          <Pressable onPress={handleAvatarPress}>
-            <View style={styles.messageAvatar}>
-              <UndefProfPicture size={28} iconSize={14} />
-            </View>
-          </Pressable>
-        );
-      }
-    };
 
     return (
       <Animated.View style={[styles.messageWrapper, { opacity: fadeAnim }]}>
@@ -135,7 +128,9 @@ const ChatContents: React.FC<ChatContentsProps> = ({
           ]}
         >
           {!item.isOwnMessage && (
-            <View style={styles.avatarContainer}>{renderAvatar()}</View>
+            <View style={styles.avatarContainer}>
+              {renderAvatar(item.sender)}
+            </View>
           )}
           <Pressable
             onPress={() => handlePress(item._id)}
@@ -176,20 +171,50 @@ const ChatContents: React.FC<ChatContentsProps> = ({
       </Animated.View>
     );
   };
+
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: ChatMessage;
+    index: number;
+  }) => {
+    if (index > 0 && index % 20 === 0) {
+      return (
+        <>
+          <Text style={styles.olderMessagesText}>
+            {hasNextPage || index < messages.length - 1
+              ? t("older-messages")
+              : t("no-older-messages")}
+          </Text>
+          {renderMessage({ item })}
+        </>
+      );
+    }
+    return renderMessage({ item });
+  };
+
   return (
     <View style={styles.container}>
       <FlatList
         ref={flatListRef}
         data={messages.slice().reverse()}
-        renderItem={renderMessage}
+        renderItem={renderItem}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.messageList}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isLoading || isLoadingOldMessages}
+            onRefresh={onLoadMore}
+          />
         }
-        onContentSizeChange={onContentSizeChange}
-        onLayout={onLayout}
-        // inverted
+        onEndReachedThreshold={0.1}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 100,
+        }}
       />
     </View>
   );
@@ -223,7 +248,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignSelf: "flex-end",
   },
-
   messageBubble: {
     padding: 12,
     borderRadius: 20,
@@ -234,9 +258,6 @@ const styles = StyleSheet.create({
   },
   otherMessage: {
     backgroundColor: "#f0f0f0",
-  },
-  otherMessageAligned: {
-    marginLeft: 36,
   },
   messageText: {
     fontSize: 16,
@@ -266,7 +287,12 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    overflow: "hidden", // This ensures the UndefProfPicture respects the border radius
+    overflow: "hidden",
+  },
+  olderMessagesText: {
+    textAlign: "center",
+    padding: 10,
+    color: "#888",
   },
 });
 

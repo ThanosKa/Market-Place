@@ -14,14 +14,18 @@ import { ChatMessage } from "../../interfaces/chat";
 import { BASE_URL } from "../../services/axiosConfig";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
 import MessageOptions from "./MessageOption";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface ChatContentsProps {
   messages: ChatMessage[];
   otherParticipant: {
+    _id?: string;
     profilePicture?: string;
   };
+  navigation: StackNavigationProp<MainStackParamList>;
   flatListRef: React.RefObject<FlatList<ChatMessage>>;
   onContentSizeChange: () => void;
   onLayout: () => void;
@@ -39,10 +43,12 @@ const ChatContents: React.FC<ChatContentsProps> = ({
   isLoading,
   refetch,
   onDelete,
+  navigation,
 }) => {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
     null
   );
+
   const fadeAnims = useRef(
     new Map(messages.map((m) => [m._id, new Animated.Value(1)]))
   ).current;
@@ -87,10 +93,38 @@ const ChatContents: React.FC<ChatContentsProps> = ({
     item: ChatMessage;
     index: number;
   }) => {
-    const isLastMessage =
-      index === 0 || messages[index - 1].isOwnMessage !== item.isOwnMessage;
     const isSelected = selectedMessageId === item._id;
     const fadeAnim = fadeAnims.get(item._id) || new Animated.Value(1);
+    const handleAvatarPress = () => {
+      if (!item.isOwnMessage) {
+        const userId = otherParticipant._id || item.sender?._id;
+        if (userId) {
+          navigation.navigate("UserProfile", { userId });
+        }
+      }
+    };
+    const renderAvatar = () => {
+      if (item.sender && item.sender.profilePicture) {
+        return (
+          <Pressable onPress={handleAvatarPress}>
+            <Image
+              source={{
+                uri: `${BASE_URL}/${item.sender.profilePicture}`,
+              }}
+              style={styles.messageAvatar}
+            />
+          </Pressable>
+        );
+      } else {
+        return (
+          <Pressable onPress={handleAvatarPress}>
+            <View style={styles.messageAvatar}>
+              <UndefProfPicture size={28} iconSize={14} />
+            </View>
+          </Pressable>
+        );
+      }
+    };
 
     return (
       <Animated.View style={[styles.messageWrapper, { opacity: fadeAnim }]}>
@@ -100,19 +134,8 @@ const ChatContents: React.FC<ChatContentsProps> = ({
             item.isOwnMessage ? styles.ownMessageRow : styles.otherMessageRow,
           ]}
         >
-          {!item.isOwnMessage && isLastMessage && (
-            <View style={styles.avatarContainer}>
-              {otherParticipant.profilePicture ? (
-                <Image
-                  source={{
-                    uri: `${BASE_URL}/${otherParticipant.profilePicture}`,
-                  }}
-                  style={styles.messageAvatar}
-                />
-              ) : (
-                <UndefProfPicture size={28} iconSize={14} />
-              )}
-            </View>
+          {!item.isOwnMessage && (
+            <View style={styles.avatarContainer}>{renderAvatar()}</View>
           )}
           <Pressable
             onPress={() => handlePress(item._id)}
@@ -128,9 +151,6 @@ const ChatContents: React.FC<ChatContentsProps> = ({
               style={[
                 styles.messageBubble,
                 item.isOwnMessage ? styles.ownMessage : styles.otherMessage,
-                !item.isOwnMessage &&
-                  !isLastMessage &&
-                  styles.otherMessageAligned,
               ]}
             >
               <Text
@@ -156,7 +176,6 @@ const ChatContents: React.FC<ChatContentsProps> = ({
       </Animated.View>
     );
   };
-
   return (
     <View style={styles.container}>
       <FlatList
@@ -204,11 +223,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignSelf: "flex-end",
   },
-  messageAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
+
   messageBubble: {
     padding: 12,
     borderRadius: 20,
@@ -246,6 +261,12 @@ const styles = StyleSheet.create({
   messageWrapper: {
     marginBottom: 4,
     overflow: "hidden",
+  },
+  messageAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: "hidden", // This ensures the UndefProfPicture respects the border radius
   },
 });
 

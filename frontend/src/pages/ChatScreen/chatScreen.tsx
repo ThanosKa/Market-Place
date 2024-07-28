@@ -150,6 +150,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         otherParticipant={{
           profilePicture: chatDetails?.otherParticipant?.profilePicture,
         }}
+        navigation={navigation}
         flatListRef={flatListRef}
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleContentSizeChange}

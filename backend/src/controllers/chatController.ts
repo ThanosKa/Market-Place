@@ -263,11 +263,21 @@ export const getChatMessages = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
     const chatId = req.params.chatId;
     const userId = (req as any).userId;
+
+    // Validate chatId
+    if (!mongoose.Types.ObjectId.isValid(chatId)) {
+      return res.status(400).json({
+        success: 0,
+        message: "Invalid chat ID",
+        data: null,
+      });
+    }
 
     const chat = await Chat.findOne({ _id: chatId, participants: userId });
 
@@ -286,10 +296,19 @@ export const sendMessage = async (req: Request, res: Response) => {
       );
     }
 
+    // Check if either content or images are provided
+    if (!content && images.length === 0) {
+      return res.status(400).json({
+        success: 0,
+        message: "Message must contain either text content or images",
+        data: null,
+      });
+    }
+
     const newMessage: IMessage = {
       _id: new mongoose.Types.ObjectId(),
       sender: new mongoose.Types.ObjectId(userId),
-      content,
+      content: content || undefined, // Use undefined if content is not provided
       images,
       timestamp: new Date(),
       seen: false,
@@ -310,13 +329,19 @@ export const sendMessage = async (req: Request, res: Response) => {
       (participantId) => participantId.toString() !== userId
     );
     if (recipientId) {
+      let activityContent = "New message";
+      if (content) {
+        activityContent += `: ${content.substring(0, 50)}${
+          content.length > 50 ? "..." : ""
+        }`;
+      } else if (images.length > 0) {
+        activityContent += " with image(s)";
+      }
       await createActivity(
         recipientId.toString(),
         "message",
         userId,
-        `New message: ${content.substring(0, 50)}${
-          content.length > 50 ? "..." : ""
-        }`,
+        activityContent,
         chatId.toString()
       );
     }
@@ -400,6 +425,15 @@ export const editMessage = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: 0,
         message: "Message not found",
+        data: null,
+      });
+    }
+    const messageTooOld =
+      new Date().getTime() - message.timestamp.getTime() > 24 * 60 * 60 * 1000;
+    if (messageTooOld) {
+      return res.status(403).json({
+        success: 0,
+        message: "Message is too old to edit",
         data: null,
       });
     }

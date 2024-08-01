@@ -17,6 +17,8 @@ import { useQuery } from "react-query";
 import { getUserChats } from "../../services/chat";
 import { colors } from "../../colors/colors";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
+import { t } from "i18next";
+import { getTranslatableTimeString } from "../activity/activityUtils";
 
 type MessageScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -37,7 +39,48 @@ const MessageScreen: React.FC = () => {
     }, [refetch])
   );
 
+  const getTimeAgo = (timestamp: Date) => {
+    const now = new Date();
+    const diffInHours = Math.floor(
+      (now.getTime() - new Date(timestamp).getTime()) / (1000 * 60 * 60)
+    );
+    return `${diffInHours}${t("hr-ago")}`;
+  };
+
   const renderChatItem = ({ item }: { item: Chat }) => {
+    const isUnread = item.unreadCount > 0;
+    const messageColor = isUnread ? colors.primary : colors.secondary;
+
+    let messageContent;
+    let messageStyle;
+
+    if (item.lastMessage.isOwnMessage) {
+      messageContent = item.lastMessage.seen
+        ? `${t("seen")} ${getTranslatableTimeString(
+            new Date(item.lastMessage.timestamp),
+            t
+          )}`
+        : `${t("sent")} ${getTranslatableTimeString(
+            new Date(item.lastMessage.timestamp),
+            t
+          )}`;
+
+      messageStyle = styles.statusMessage;
+    } else if (isUnread) {
+      messageContent = `${item.unreadCount} ${
+        item.unreadCount > 1 ? t("new-messages") : t("new-message")
+      }`;
+      messageStyle = StyleSheet.flatten([
+        styles.lastMessage,
+        { color: messageColor, fontWeight: "600" },
+      ]);
+    } else {
+      messageContent = item.lastMessage.content || t("sent-an-image");
+      messageStyle = StyleSheet.flatten([
+        styles.lastMessage,
+        { color: messageColor },
+      ]);
+    }
     return (
       <TouchableOpacity
         style={styles.chatItem}
@@ -59,23 +102,19 @@ const MessageScreen: React.FC = () => {
           <Text style={styles.participantName}>
             {item.otherParticipant.firstName} {item.otherParticipant.lastName}
           </Text>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage.isOwnMessage ? "You: " : ""}
-            {item.lastMessage.content || "No messages yet"}
+          <Text style={messageStyle} numberOfLines={1}>
+            {messageContent}
           </Text>
         </View>
         <View style={styles.rightContent}>
-          <Text style={styles.timestamp}>
-            {new Date(item.lastMessage.timestamp).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-          {item.unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-            </View>
-          )}
+          <View
+            style={[
+              styles.dot,
+              {
+                backgroundColor: isUnread ? colors.customBlue : "lightgrey",
+              },
+            ]}
+          />
         </View>
       </TouchableOpacity>
     );
@@ -94,7 +133,7 @@ const MessageScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.centered}>
-          <Text>No messages yet</Text>
+          <Text>{t("no-messages-yet")}</Text>
         </View>
       )}
     </View>
@@ -135,28 +174,30 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     fontSize: 14,
-    color: "#8E8E8E",
+  },
+  statusMessage: {
+    fontSize: 14,
+    color: colors.secondary,
   },
   rightContent: {
     alignItems: "flex-end",
+    width: 20,
   },
   timestamp: {
     fontSize: 12,
     color: "#8E8E8E",
-    marginBottom: 4,
   },
-  unreadBadge: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  unreadCount: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "bold",
+  // rightContent: {
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   width: 20, // Adjust as needed
+  // },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: "lightgrey",
   },
 });
 

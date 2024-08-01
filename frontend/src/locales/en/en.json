@@ -1,4 +1,12 @@
 {
+  "sending": "Sending...",
+  "time-format": "{{value}}{{unit}} {{ago}}",
+  "minute-short": "m",
+  "hour-short": "h",
+  "day-short": "d",
+  "week-short": "w",
+  "ago": "ago",
+  "sent": "Sent",
   "sell-product": "Sell Product",
   "liked-your-product": "liked your product",
   "liked-your-profile": "liked your profile",

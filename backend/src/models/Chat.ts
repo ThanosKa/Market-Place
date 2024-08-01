@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IMessage {
   _id: mongoose.Types.ObjectId;
   sender: mongoose.Types.ObjectId;
-  content: string;
+  content?: string; // Make content optional
   images: string[];
   timestamp: Date;
   seen: boolean;
@@ -24,7 +24,7 @@ const MessageSchema: Schema = new Schema(
       ref: "User",
       required: true,
     },
-    content: { type: String, required: true },
+    content: { type: String, required: false }, // Make content not required
     images: [{ type: String }],
     timestamp: { type: Date, default: Date.now },
     seen: { type: Boolean, default: false },

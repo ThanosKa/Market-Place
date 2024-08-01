@@ -71,8 +71,8 @@ export const sendMessage = async (
   try {
     const formData = new FormData();
     formData.append("content", content);
-    images.forEach((image) => {
-      formData.append("images", image);
+    images.forEach((image, index) => {
+      formData.append(`images`, image);
     });
 
     const response = await axiosInstance.post<{
@@ -84,6 +84,7 @@ export const sendMessage = async (
         "Content-Type": "multipart/form-data",
       },
     });
+
     return response.data.data.message;
   } catch (error) {
     console.error("Error sending message:", error);

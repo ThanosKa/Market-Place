@@ -15,4 +15,6 @@ export const colors = {
   customBlueDarker: "#2769A8",
   starYellow: "#FFD700",
   lighterBlue: "#F0FFFF",
+  ownBubble: "#0084ff",
+  senderBubble: "#e5e5ea",
 };

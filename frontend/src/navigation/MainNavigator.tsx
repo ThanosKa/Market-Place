@@ -15,7 +15,7 @@ import { useLoggedUser } from "../hooks/useLoggedUser";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import SellScreen from "../pages/sell/SellScreen";
-import ChatScreen from "../pages/ChatScreen/chatScreen";
+import ChatScreen from "../pages/ChatScreen/chat";
 import MessageScreen from "../pages/MessagesScreen/MessagesScreen";
 const MainStack = createStackNavigator<MainStackParamList>();
 

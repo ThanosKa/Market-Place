@@ -19,6 +19,7 @@ import MessageOptions from "./MessageOption";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { t } from "i18next";
+import { colors } from "../../colors/colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -182,11 +183,15 @@ const ChatContents: React.FC<ChatContentsProps> = ({
     if (index > 0 && index % 20 === 0) {
       return (
         <>
-          <Text style={styles.olderMessagesText}>
-            {hasNextPage || index < messages.length - 1
-              ? t("older-messages")
-              : t("no-older-messages")}
-          </Text>
+          <View style={styles.olderMessagesContainer}>
+            <View style={styles.olderMessagesLine} />
+            <Text style={styles.olderMessagesText}>
+              {hasNextPage || index < messages.length - 1
+                ? t("older-messages")
+                : t("no-older-messages")}
+            </Text>
+            <View style={styles.olderMessagesLine} />
+          </View>
           {renderMessage({ item })}
         </>
       );
@@ -289,10 +294,24 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
   },
+
+  olderMessagesContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 10,
+  },
+  olderMessagesLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#888",
+    marginHorizontal: 10,
+  },
   olderMessagesText: {
     textAlign: "center",
-    padding: 10,
-    color: "#888",
+    color: colors.secondary,
+    fontSize: 12,
+    paddingHorizontal: 10,
   },
 });
 

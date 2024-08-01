@@ -55,6 +55,14 @@ export const getChatMessages = async (
     throw error;
   }
 };
+export const markMessagesAsSeen = async (chatId: string): Promise<void> => {
+  try {
+    await axiosInstance.post(`/chats/${chatId}/seen`);
+  } catch (error) {
+    console.error("Error marking messages as seen:", error);
+    throw error;
+  }
+};
 export const sendMessage = async (
   chatId: string,
   content: string,
@@ -122,15 +130,6 @@ export const deleteMessage = async (
     await axiosInstance.delete(`/chats/${chatId}/messages/${messageId}`);
   } catch (error) {
     console.error("Error deleting message:", error);
-    throw error;
-  }
-};
-
-export const markMessagesAsSeen = async (chatId: string): Promise<void> => {
-  try {
-    await axiosInstance.post(`/chats/${chatId}/seen`);
-  } catch (error) {
-    console.error("Error marking messages as seen:", error);
     throw error;
   }
 };

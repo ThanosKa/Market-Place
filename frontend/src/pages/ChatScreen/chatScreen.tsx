@@ -12,7 +12,7 @@ import {
   Pressable,
   Dimensions,
 } from "react-native";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useIsFocused } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { BASE_URL } from "../../services/axiosConfig";
@@ -84,6 +84,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       });
     }
   }, [data, navigation]);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     if (messageDeleted) {
@@ -91,20 +92,24 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       setMessageDeleted(false);
     }
   }, [messageDeleted, data?.pages[0]?.messages.length]);
+  useEffect(() => {
+    if (isFocused && data?.pages[0]?.messages.length) {
+      handleScrollToBottom();
+    }
+  }, [isFocused, data?.pages[0]?.messages.length]);
+  const handleScrollToBottom = useCallback(() => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+  }, []);
 
   const handleSendMessage = useCallback(
     (message: string) => {
       sendMessageMutation.mutate(message, {
         onSuccess: () => {
-          scrollToBottom(
-            flatListRef,
-            data?.pages[0]?.messages.length || 0,
-            true
-          );
+          handleScrollToBottom(); // Changed this to use handleScrollToBottom
         },
       });
     },
-    [sendMessageMutation, data?.pages[0]?.messages.length]
+    [sendMessageMutation, handleScrollToBottom]
   );
 
   const handleContentSizeChange = useCallback(() => {
@@ -150,10 +155,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     },
     []
   );
-
-  const handleScrollToBottom = useCallback(() => {
-    flatListRef.current?.scrollToEnd({ animated: true });
-  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {

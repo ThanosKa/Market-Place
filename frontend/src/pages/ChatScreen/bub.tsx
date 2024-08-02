@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   Image,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
+  Modal,
   Dimensions,
 } from "react-native";
 import { ChatMessage } from "../../interfaces/chat";
@@ -28,17 +30,82 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isLastMessage,
 }) => {
   const isOwnMessage = message.isOwnMessage;
-  const getImageUri = (image: string) => {
-    console.log("Processing image in MessageBubble:", image);
-    if (image.startsWith("http://") || image.startsWith("https://")) {
-      console.log("Full URL");
-      return image;
-    } else {
-      console.log("Relative path, prepending BASE_URL");
-      return `${BASE_URL}${image}`;
-    }
+  const [modalVisible, setModalVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const openImageModal = (index: number) => {
+    setCurrentImageIndex(index);
+    setModalVisible(true);
   };
-  console.log("Rendering message:", message);
+
+  const closeImageModal = () => {
+    setModalVisible(false);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex === message.images.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prevIndex) =>
+      prevIndex === 0 ? message.images.length - 1 : prevIndex - 1
+    );
+  };
+
+  const renderImages = () => {
+    if (!message.images || message.images.length === 0) return null;
+
+    if (message.images.length === 1) {
+      return (
+        <TouchableOpacity onPress={() => openImageModal(0)}>
+          <Image
+            source={{ uri: `${BASE_URL}${message.images[0]}` }}
+            style={styles.singleImage}
+          />
+        </TouchableOpacity>
+      );
+    }
+
+    const fanImages = message.images.slice(0, 5);
+    const fanCenter = (fanImages.length - 1) / 2;
+
+    return (
+      <View style={styles.imageContainer}>
+        {fanImages.map((image, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => openImageModal(index)}
+            style={[
+              styles.imageThumbnail,
+              styles.fanImage,
+              {
+                zIndex: fanImages.length - index,
+                transform: [
+                  { rotate: `${(index - fanCenter) * 10}deg` },
+                  { translateX: (index - fanCenter) * 20 },
+                ],
+              },
+            ]}
+          >
+            <Image
+              source={{ uri: `${BASE_URL}${image}` }}
+              style={styles.thumbnailImage}
+            />
+          </TouchableOpacity>
+        ))}
+        {message.images.length > 5 && (
+          <View style={[styles.moreImagesIndicator, styles.fanImage]}>
+            <Text style={styles.moreImagesText}>
+              +{message.images.length - 5}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View>
       <View
@@ -62,27 +129,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             isOwnMessage ? styles.ownBubbleWrapper : styles.otherBubbleWrapper,
           ]}
         >
-          {message.images && message.images.length > 0 && (
-            <ScrollView horizontal={true} style={styles.imageScrollView}>
-              {message.images.map((image, index) => {
-                const uri = getImageUri(image);
-                console.log(`Image ${index} URI:`, uri);
-                return (
-                  <Image
-                    key={index}
-                    source={{ uri }}
-                    style={styles.messageImage}
-                    onError={(error) =>
-                      console.error(
-                        `Error loading image ${index}:`,
-                        error.nativeEvent.error
-                      )
-                    }
-                  />
-                );
-              })}
-            </ScrollView>
-          )}
+          {renderImages()}
           {message.content && (
             <View
               style={[
@@ -114,6 +161,48 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           {isSending ? t("sending") : message.seen ? t("seen") : t("sent")}
         </Text>
       )}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeImageModal}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={closeImageModal}
+          >
+            <Text style={styles.closeButtonText}>×</Text>
+          </TouchableOpacity>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.imageScrollContainer}
+            onMomentumScrollEnd={(event) => {
+              const newIndex = Math.round(
+                event.nativeEvent.contentOffset.x /
+                  Dimensions.get("window").width
+              );
+              setCurrentImageIndex(newIndex);
+            }}
+          >
+            {message.images.map((image, index) => (
+              <Image
+                key={index}
+                source={{ uri: `${BASE_URL}${image}` }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            ))}
+          </ScrollView>
+          <View style={styles.imageCounter}>
+            <Text style={styles.imageCounterText}>
+              {currentImageIndex + 1} / {message.images.length}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -123,6 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginVertical: 2,
     paddingHorizontal: 10,
+    paddingBottom: 10,
   },
   ownMessage: {
     justifyContent: "flex-end",
@@ -193,10 +283,86 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   messageImage: {
-    width: Dimensions.get("window").width * 0.6,
-    height: Dimensions.get("window").width * 0.6,
+    width: 130,
+    height: 200,
     borderRadius: 10,
     marginRight: 8,
+  },
+
+  imageContainer: {
+    marginBottom: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 150,
+    width: 150,
+  },
+  singleImage: {
+    width: 110,
+    height: 150,
+    borderRadius: 10,
+    marginBottom: 4,
+  },
+  imageThumbnail: {
+    width: 110,
+    height: 150,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  fanImage: {
+    position: "absolute",
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+  },
+  moreImagesIndicator: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+  },
+  moreImagesText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    zIndex: 1,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 40,
+  },
+  imageScrollContainer: {
+    alignItems: "center",
+  },
+  fullScreenImage: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+  },
+  imageCounter: {
+    position: "absolute",
+    bottom: 20,
+    alignSelf: "center",
+  },
+  imageCounterText: {
+    color: "#fff",
+    fontSize: 16,
   },
 });
 

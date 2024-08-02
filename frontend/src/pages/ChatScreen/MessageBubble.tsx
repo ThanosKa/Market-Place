@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Modal,
+  FlatList,
+  SafeAreaView,
 } from "react-native";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { ChatMessage } from "../../interfaces/chat";
@@ -13,6 +16,7 @@ import { colors } from "../../colors/colors";
 import { BASE_URL } from "../../services/axiosConfig";
 import { t } from "i18next";
 import * as Clipboard from "expo-clipboard";
+import Toast from "react-native-toast-message";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -33,6 +37,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 }) => {
   const { showActionSheetWithOptions } = useActionSheet();
   const isOwnMessage = message.isOwnMessage;
+  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+
   const handleLongPress = () => {
     if (!message.images || message.images.length === 0) {
       const options = isOwnMessage
@@ -68,16 +76,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const handleCopy = async () => {
     if (message.content) {
       await Clipboard.setStringAsync(message.content);
-      // Optionally, you can show a toast or some feedback that the text was copied
-      console.log("Text copied to clipboard", message.content);
+      Toast.show({
+        type: "info",
+        text1: t("copied"),
+        position: "bottom",
+        bottomOffset: 100,
+      });
     }
   };
+
+  const openImageViewer = (index: number) => {
+    setCurrentImageIndex(index);
+    setIsImageViewerVisible(true);
+  };
+
+  const closeImageModal = () => {
+    setIsImageViewerVisible(false);
+  };
+
   const renderImages = () => {
     if (!message.images || message.images.length === 0) return null;
 
     if (message.images.length === 1) {
       return (
-        <TouchableOpacity onPress={() => console.log("Open image modal")}>
+        <TouchableOpacity onPress={() => openImageViewer(0)}>
           <Image
             source={{ uri: `${BASE_URL}${message.images[0]}` }}
             style={styles.singleImage}
@@ -94,7 +116,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {fanImages.map((image, index) => (
           <TouchableOpacity
             key={index}
-            onPress={() => console.log("Open image modal", index)}
+            onPress={() => openImageViewer(index)}
             style={[
               styles.imageThumbnail,
               styles.fanImage,
@@ -123,6 +145,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       </View>
     );
   };
+
+  const renderImageViewerItem = ({
+    item,
+    index,
+  }: {
+    item: string;
+    index: number;
+  }) => (
+    <View style={styles.imageViewerItem}>
+      <Image
+        source={{ uri: `${BASE_URL}${item}` }}
+        style={styles.fullScreenImage}
+        resizeMode="contain"
+      />
+    </View>
+  );
 
   return (
     <View>
@@ -183,6 +221,47 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           {isSending ? t("sending") : message.seen ? t("seen") : t("sent")}
         </Text>
       )}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isImageViewerVisible}
+        onRequestClose={closeImageModal}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={closeImageModal}
+          >
+            <Text style={styles.closeButtonText}>×</Text>
+          </TouchableOpacity>
+          <FlatList
+            ref={flatListRef}
+            data={message.images}
+            renderItem={renderImageViewerItem}
+            keyExtractor={(item, index) => index.toString()}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={currentImageIndex}
+            onMomentumScrollEnd={(event) => {
+              const contentOffset = event.nativeEvent.contentOffset;
+              const viewSize = event.nativeEvent.layoutMeasurement;
+              const pageNum = Math.floor(contentOffset.x / viewSize.width);
+              setCurrentImageIndex(Math.max(0, pageNum));
+            }}
+            getItemLayout={(data, index) => ({
+              length: Dimensions.get("window").width,
+              offset: Dimensions.get("window").width * index,
+              index,
+            })}
+          />
+          <View style={styles.imageCounterContainer}>
+            <Text style={styles.imageCounter}>
+              {currentImageIndex + 1} / {message.images?.length}
+            </Text>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 };
@@ -299,6 +378,51 @@ const styles = StyleSheet.create({
   moreImagesText: {
     color: "#fff",
     fontSize: 14,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageViewerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 40,
+    left: 20,
+    zIndex: 1,
+    padding: 10,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 30,
+  },
+  imageViewerItem: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageCounter: {
+    color: "#fff",
+    fontSize: 16,
+  },
+
+  fullScreenImage: {
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height - 100,
+  },
+  imageCounterContainer: {
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: "center",
   },
 });
 

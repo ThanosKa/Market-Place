@@ -1,120 +1,80 @@
-import { useQuery, useMutation, useQueryClient } from "react-query";
-import {
-  deleteMessage,
-  getChatMessages,
-  sendMessage,
-} from "../../services/chat";
-import { ChatMessage, PaginatedChatDetails } from "../../interfaces/chat";
-import { FlatList } from "react-native";
+// chatUtils.ts
 
-import { useInfiniteQuery } from "react-query";
+import { InfiniteData, QueryClient } from "react-query";
+import { ChatMessage, PaginatedChatDetails, User } from "../../interfaces/chat";
 
-export const useChatMessages = (chatId: string) => {
-  return useInfiniteQuery<PaginatedChatDetails, Error>(
+export const updateQueryDataWithNewMessage = (
+  queryClient: QueryClient,
+  chatId: string,
+  newMessage: ChatMessage
+) => {
+  queryClient.setQueryData<InfiniteData<PaginatedChatDetails>>(
     ["chatMessages", chatId],
-    ({ pageParam = 1 }) => getChatMessages(chatId, pageParam),
-    {
-      getNextPageParam: (lastPage) => {
-        if (lastPage.hasNextPage) {
-          return lastPage.currentPage + 1;
-        }
-        return undefined;
-      },
-      refetchInterval: 5000,
-      staleTime: Infinity,
-      cacheTime: Infinity,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
+    (oldData): InfiniteData<PaginatedChatDetails> => {
+      if (!oldData) {
+        return {
+          pages: [
+            {
+              _id: chatId,
+              otherParticipant: {} as User,
+              messages: [newMessage],
+              currentPage: 1,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          ],
+          pageParams: [undefined],
+        };
+      }
+
+      const newPages = [...oldData.pages];
+      newPages[0] = {
+        ...newPages[0],
+        messages: [newMessage, ...newPages[0].messages],
+      };
+      return { ...oldData, pages: newPages };
     }
   );
 };
-export const useSendMessage = (chatId: string) => {
-  const queryClient = useQueryClient();
-  return useMutation((content: string) => sendMessage(chatId, content, []), {
-    onMutate: async (newMessage) => {
-      // Cancel any outgoing refetches so they don't overwrite our optimistic update
-      await queryClient.cancelQueries(["chatMessages", chatId]);
 
-      // Snapshot the previous value
-      const previousMessages = queryClient.getQueryData([
-        "chatMessages",
-        chatId,
-      ]);
-
-      // Optimistically update to the new value
-      queryClient.setQueryData(["chatMessages", chatId], (old: any) => {
-        const newMessageObject = {
-          _id: Date.now().toString(), // Temporary ID
-          content: newMessage,
-          isOwnMessage: true,
-          createdAt: new Date().toISOString(),
-        };
-        return {
-          ...old,
-          messages: [...(old?.messages || []), newMessageObject],
-        };
-      });
-
-      // Return a context object with the snapshotted value
-      return { previousMessages };
-    },
-    onError: (err, newMessage, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      queryClient.setQueryData(
-        ["chatMessages", chatId],
-        context?.previousMessages
-      );
-    },
-    onSettled: () => {
-      // Always refetch after error or success to ensure we have the correct data
-      queryClient.invalidateQueries(["chatMessages", chatId]);
-    },
-  });
-};
-export const scrollToBottom = (
-  flatListRef: React.RefObject<FlatList<ChatMessage>>,
-  messagesLength: number,
-  animated = true
+export const updateQueryDataWithServerResponse = (
+  queryClient: QueryClient,
+  chatId: string,
+  data: ChatMessage,
+  tempId: string,
+  imageUris: string[]
 ) => {
-  if (flatListRef.current && messagesLength) {
-    flatListRef.current.scrollToOffset({
-      offset: Number.MAX_SAFE_INTEGER,
-      animated,
-    });
-  }
-};
-export const formatMessageTime = (
-  timestamp: Date | string | number
-): string => {
-  if (timestamp === undefined || timestamp === null) {
-    return "";
-  }
+  queryClient.setQueryData<InfiniteData<PaginatedChatDetails>>(
+    ["chatMessages", chatId],
+    (oldData): InfiniteData<PaginatedChatDetails> => {
+      if (!oldData) {
+        return {
+          pages: [
+            {
+              _id: chatId,
+              otherParticipant: {} as User,
+              messages: [{ ...data, isOwnMessage: true, images: imageUris }],
+              currentPage: 1,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          ],
+          pageParams: [undefined],
+        };
+      }
 
-  let date: Date;
-
-  if (typeof timestamp === "string") {
-    date = new Date(timestamp);
-  } else if (typeof timestamp === "number") {
-    date = new Date(timestamp);
-  } else if (timestamp instanceof Date) {
-    date = timestamp;
-  } else {
-    return "";
-  }
-
-  if (isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-};
-
-export const useDeleteMessage = (chatId: string) => {
-  const queryClient = useQueryClient();
-  return useMutation((messageId: string) => deleteMessage(chatId, messageId), {
-    onSuccess: () => {
-      queryClient.invalidateQueries(["chatMessages", chatId]);
-    },
-  });
+      const newPages = [...oldData.pages];
+      newPages[0] = {
+        ...newPages[0],
+        messages: newPages[0].messages.map((msg) =>
+          msg._id === tempId
+            ? { ...data, isOwnMessage: true, images: imageUris }
+            : msg
+        ),
+      };
+      return { ...oldData, pages: newPages };
+    }
+  );
 };

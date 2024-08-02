@@ -134,7 +134,6 @@ export const deleteMessage = async (
     throw error;
   }
 };
-
 export const deleteChat = async (chatId: string): Promise<void> => {
   try {
     await axiosInstance.delete(`/chats/${chatId}`);

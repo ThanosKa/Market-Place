@@ -1,59 +1,102 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+// ChatScreen.tsx
+
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
-  StyleSheet,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   FlatList,
-  Pressable,
-  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  ActivityIndicator,
 } from "react-native";
-import { RouteProp, useIsFocused } from "@react-navigation/native";
+import {
+  InfiniteData,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "react-query";
+import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { ChatMessage, PaginatedChatDetails, User } from "../../interfaces/chat";
 import { BASE_URL } from "../../services/axiosConfig";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
+import { colors } from "../../colors/colors";
+import { t } from "i18next";
 import {
-  useChatMessages,
-  useSendMessage,
-  useDeleteMessage,
-  scrollToBottom,
+  updateQueryDataWithNewMessage,
+  updateQueryDataWithServerResponse,
 } from "./chatUtils";
-import ChatContents from "./ChatContents";
+import {
+  getChatMessages,
+  sendMessage,
+  markMessagesAsSeen,
+  deleteMessage,
+} from "../../services/chat";
+import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
-import CameraComponent from "../sell/CameraComponent";
-import { AntDesign } from "@expo/vector-icons";
+
+interface NewMessage {
+  content: string;
+  images: File[];
+  tempId: string;
+}
 
 type ChatScreenRouteProp = RouteProp<MainStackParamList, "Chat">;
 type ChatScreenNavigationProp = StackNavigationProp<MainStackParamList, "Chat">;
+
 interface ChatScreenProps {
   route: ChatScreenRouteProp;
   navigation: ChatScreenNavigationProp;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const { chatId } = route.params;
-  const flatListRef = useRef<FlatList | null>(null);
-  const [isLoadingOldMessages, setIsLoadingOldMessages] = useState(false);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [messageDeleted, setMessageDeleted] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sendingMessages, setSendingMessages] = useState<Set<string>>(
+    new Set()
+  );
+  const flatListRef = useRef<FlatList>(null);
+  const queryClient = useQueryClient();
+
   const {
     data,
-    isLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     refetch,
-  } = useChatMessages(chatId);
-  const sendMessageMutation = useSendMessage(chatId);
-  const deleteMessageMutation = useDeleteMessage(chatId);
+    isLoading,
+  } = useInfiniteQuery<PaginatedChatDetails>(
+    ["chatMessages", chatId],
+    ({ pageParam = 1 }) => getChatMessages(chatId, pageParam),
+    {
+      getNextPageParam: (lastPage) =>
+        lastPage.hasNextPage ? lastPage.currentPage + 1 : undefined,
+      onSuccess: (data) => {
+        if (data.pages[0].currentPage === 1) {
+          markMessagesAsSeenMutation.mutate();
+        }
+      },
+    }
+  );
+
+  const sendMessageMutation = useMutation<ChatMessage, Error, NewMessage>(
+    (newMessage) => sendMessage(chatId, newMessage.content, newMessage.images),
+    {
+      onSuccess: (data, variables) => {
+        queryClient.invalidateQueries(["chatMessages", chatId]);
+        setSendingMessages((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(variables.tempId);
+          return newSet;
+        });
+      },
+    }
+  );
+
+  const markMessagesAsSeenMutation = useMutation(() =>
+    markMessagesAsSeen(chatId)
+  );
 
   useEffect(() => {
     if (data?.pages[0]) {
@@ -72,160 +115,206 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
                 <UndefProfPicture size={36} iconSize={18} />
               </View>
             )}
-            <View>
-              <Text style={styles.headerName}>
-                {data.pages[0].otherParticipant.firstName}{" "}
-                {data.pages[0].otherParticipant.lastName}
-              </Text>
-              <Text style={styles.headerStatus}>Active now</Text>
-            </View>
+            <Text style={styles.headerName}>
+              {data.pages[0].otherParticipant.firstName}{" "}
+              {data.pages[0].otherParticipant.lastName}
+            </Text>
           </View>
         ),
       });
     }
   }, [data, navigation]);
-  const isFocused = useIsFocused();
-
-  useEffect(() => {
-    if (messageDeleted) {
-      scrollToBottom(flatListRef, data?.pages[0]?.messages.length || 0, false);
-      setMessageDeleted(false);
-    }
-  }, [messageDeleted, data?.pages[0]?.messages.length]);
-  useEffect(() => {
-    if (isFocused && data?.pages[0]?.messages.length) {
-      handleScrollToBottom();
-    }
-  }, [isFocused, data?.pages[0]?.messages.length]);
-  const handleScrollToBottom = useCallback(() => {
-    flatListRef.current?.scrollToEnd({ animated: true });
-  }, []);
 
   const handleSendMessage = useCallback(
-    (message: string) => {
-      sendMessageMutation.mutate(message, {
-        onSuccess: () => {
-          handleScrollToBottom(); // Changed this to use handleScrollToBottom
-        },
-      });
+    async (text: string, imageUris: string[]) => {
+      const tempId = Date.now().toString();
+      const newMessage: ChatMessage = {
+        _id: tempId,
+        content: text,
+        timestamp: new Date(),
+        isOwnMessage: true,
+        seen: false,
+        sender: null,
+        images: imageUris,
+      };
+
+      updateQueryDataWithNewMessage(queryClient, chatId, newMessage);
+      setSendingMessages((prev) => new Set(prev).add(tempId));
+
+      const imageFiles: File[] = await Promise.all(
+        imageUris.map(async (uri, index) => {
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          const fileName = `image-${Date.now()}-${index}.jpg`;
+          return new File([blob], fileName, {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+          });
+        })
+      );
+
+      sendMessageMutation.mutate(
+        { content: text, images: imageFiles, tempId },
+        {
+          onSuccess: (data) => {
+            console.log("Message sent successfully:", data);
+            updateQueryDataWithServerResponse(
+              queryClient,
+              chatId,
+              data,
+              tempId,
+              imageUris
+            );
+            setSendingMessages((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(tempId);
+              return newSet;
+            });
+          },
+          onError: (error) => {
+            console.error("Error sending message:", error);
+          },
+        }
+      );
     },
-    [sendMessageMutation, handleScrollToBottom]
+    [sendMessageMutation, queryClient, chatId]
   );
 
-  const handleContentSizeChange = useCallback(() => {
-    if (!isLoadingOldMessages) {
-      scrollToBottom(flatListRef, data?.pages[0]?.messages.length || 0, false);
+  const flatListContent = data?.pages.flatMap((page) => page.messages) ?? [];
+
+  const deleteMessageMutation = useMutation(
+    (messageId: string) => deleteMessage(chatId, messageId),
+    {
+      onMutate: async (messageId) => {
+        await queryClient.cancelQueries(["chatMessages", chatId]);
+        const previousMessages = queryClient.getQueryData<
+          InfiniteData<PaginatedChatDetails>
+        >(["chatMessages", chatId]);
+        queryClient.setQueryData<
+          InfiniteData<PaginatedChatDetails> | undefined
+        >(["chatMessages", chatId], (old) => {
+          if (!old) return undefined;
+          return {
+            pages: old.pages.map((page) => ({
+              ...page,
+              messages: page.messages.filter((msg) => msg._id !== messageId),
+            })),
+            pageParams: old.pageParams,
+          };
+        });
+        return { previousMessages };
+      },
+      onError: (err, messageId, context) => {
+        queryClient.setQueryData(
+          ["chatMessages", chatId],
+          context?.previousMessages
+        );
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries(["chatMessages", chatId]);
+      },
     }
-  }, [data?.pages[0]?.messages.length, isLoadingOldMessages]);
+  );
 
-  const handleOpenCamera = useCallback(() => {
-    setIsCameraOpen(true);
-  }, []);
-
-  const handleCloseCamera = useCallback(() => {
-    setIsCameraOpen(false);
-  }, []);
-
-  const handleCaptureImage = useCallback((uri: string) => {
-    console.log("Image captured:", uri);
-    setIsCameraOpen(false);
-  }, []);
-
-  const handleSelectImages = useCallback((uris: string[]) => {
-    console.log("Images selected:", uris);
-  }, []);
-
-  const handleDeleteAndScroll = useCallback(
-    async (messageId: string) => {
-      try {
-        console.log("Delete", messageId);
-        await deleteMessageMutation.mutateAsync(messageId);
-        setMessageDeleted(true);
-      } catch (error) {
-        console.error("Error deleting message:", error);
-      }
+  const handleDeleteMessage = useCallback(
+    (messageId: string) => {
+      deleteMessageMutation.mutate(messageId);
     },
     [deleteMessageMutation]
   );
 
-  const handleScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const currentOffset = event.nativeEvent.contentOffset.y;
-      setShowScrollButton(currentOffset <= 500);
+  const renderMessage = useCallback(
+    ({ item, index }: { item: ChatMessage; index: number }) => {
+      const showAvatar =
+        !item.isOwnMessage &&
+        (index === 0 || flatListContent[index - 1].isOwnMessage);
+      const isSending = sendingMessages.has(item._id);
+      const isLastMessage = index === 0;
+
+      return (
+        <MessageBubble
+          message={item}
+          showAvatar={showAvatar}
+          isSending={isSending}
+          isLastMessage={isLastMessage}
+          onDeleteMessage={handleDeleteMessage}
+          renderAvatar={() =>
+            item.sender && showAvatar ? (
+              item.sender.profilePicture ? (
+                <Image
+                  source={{
+                    uri: `${BASE_URL}/${item.sender.profilePicture}`,
+                  }}
+                  style={styles.messageAvatar}
+                />
+              ) : (
+                <View style={styles.messageAvatar}>
+                  <UndefProfPicture size={28} iconSize={14} />
+                </View>
+              )
+            ) : (
+              <View style={styles.messageAvatar} />
+            )
+          }
+        />
+      );
     },
-    []
+    [flatListContent, sendingMessages, handleDeleteMessage]
   );
 
-  const handleLoadMore = useCallback(() => {
+  const loadMoreMessages = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      setIsLoadingOldMessages(true);
-      fetchNextPage().then(() => {
-        setIsLoadingOldMessages(false);
-      });
+      fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const allMessages = data ? data.pages.flatMap((page) => page.messages) : [];
+  const renderFooter = useCallback(() => {
+    if (isFetchingNextPage) {
+      return <ActivityIndicator size="small" color={colors.secondary} />;
+    }
+    if (hasNextPage) {
+      return (
+        <Text style={styles.olderMessagesText}>{t("older-messages")}</Text>
+      );
+    }
+    return null;
+  }, [isFetchingNextPage, hasNextPage]);
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color={colors.secondary} />
       </View>
     );
   }
 
-  if (isCameraOpen) {
-    return (
-      <CameraComponent
-        onCapture={handleCaptureImage}
-        onClose={handleCloseCamera}
-        onPickImages={handleSelectImages}
-        currentImageCount={0}
-      />
-    );
-  }
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
-      <ChatContents
-        messages={allMessages}
-        otherParticipant={data?.pages[0]?.otherParticipant || {}}
-        navigation={navigation}
-        flatListRef={flatListRef}
-        isLoading={isLoading}
-        isFetchingNextPage={isFetchingNextPage}
-        onLoadMore={handleLoadMore}
-        onDelete={handleDeleteAndScroll}
-        refetch={refetch}
-        onScroll={handleScroll}
-        isLoadingOldMessages={isLoadingOldMessages}
-        hasNextPage={hasNextPage}
+    <View style={styles.container}>
+      <FlatList
+        ref={flatListRef}
+        data={flatListContent}
+        renderItem={renderMessage}
+        keyExtractor={(item) => item._id}
+        inverted
+        onEndReached={loadMoreMessages}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={renderFooter}
       />
-      {showScrollButton && (
-        <Pressable style={styles.scrollButton} onPress={handleScrollToBottom}>
-          <AntDesign name="arrowdown" size={24} color="#000" />
-        </Pressable>
-      )}
       <ChatInput
-        onSendMessage={handleSendMessage}
-        onOpenCamera={handleOpenCamera}
-        onSelectImages={handleSelectImages}
+        value={message}
+        onChangeText={(text: string) => setMessage(text)}
+        handleSendMessage={handleSendMessage}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#fff",
   },
-  centered: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -238,32 +327,22 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    marginRight: 12,
+    marginRight: 10,
   },
   headerName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#262626",
+    fontWeight: "bold",
   },
-  headerStatus: {
-    fontSize: 12,
-    color: "#8e8e8e",
+  messageAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginLeft: 8,
   },
-  scrollButton: {
-    position: "absolute",
-    bottom: 100,
-    left: (SCREEN_WIDTH - 50) / 2,
-    backgroundColor: "white",
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  olderMessagesText: {
+    textAlign: "center",
+    padding: 10,
+    color: colors.secondary,
   },
 });
 

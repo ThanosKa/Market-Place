@@ -1,18 +1,18 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   Image,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Modal,
   Dimensions,
 } from "react-native";
+import { useActionSheet } from "@expo/react-native-action-sheet";
 import { ChatMessage } from "../../interfaces/chat";
 import { colors } from "../../colors/colors";
-import { t } from "i18next";
 import { BASE_URL } from "../../services/axiosConfig";
+import { t } from "i18next";
+import * as Clipboard from "expo-clipboard";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -20,6 +20,7 @@ interface MessageBubbleProps {
   renderAvatar: () => React.ReactNode;
   isSending?: boolean;
   isLastMessage: boolean;
+  onDeleteMessage: (messageId: string) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -28,38 +29,55 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   renderAvatar,
   isSending,
   isLastMessage,
+  onDeleteMessage,
 }) => {
+  const { showActionSheetWithOptions } = useActionSheet();
   const isOwnMessage = message.isOwnMessage;
-  const [modalVisible, setModalVisible] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const handleLongPress = () => {
+    if (!message.images || message.images.length === 0) {
+      const options = isOwnMessage
+        ? [t("copy"), t("delete"), t("cancel")]
+        : [t("copy"), t("cancel")];
+      const destructiveButtonIndex = isOwnMessage ? 1 : undefined;
+      const cancelButtonIndex = isOwnMessage ? 2 : 1;
 
-  const openImageModal = (index: number) => {
-    setCurrentImageIndex(index);
-    setModalVisible(true);
+      showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (selectedIndex: number | undefined) => {
+          if (selectedIndex === undefined) return;
+
+          switch (selectedIndex) {
+            case 0:
+              handleCopy();
+              break;
+            case 1:
+              if (isOwnMessage) {
+                onDeleteMessage(message._id);
+              }
+              break;
+          }
+        }
+      );
+    }
   };
 
-  const closeImageModal = () => {
-    setModalVisible(false);
+  const handleCopy = async () => {
+    if (message.content) {
+      await Clipboard.setStringAsync(message.content);
+      // Optionally, you can show a toast or some feedback that the text was copied
+      console.log("Text copied to clipboard", message.content);
+    }
   };
-
-  const nextImage = () => {
-    setCurrentImageIndex((prevIndex) =>
-      prevIndex === message.images.length - 1 ? 0 : prevIndex + 1
-    );
-  };
-
-  const prevImage = () => {
-    setCurrentImageIndex((prevIndex) =>
-      prevIndex === 0 ? message.images.length - 1 : prevIndex - 1
-    );
-  };
-
   const renderImages = () => {
     if (!message.images || message.images.length === 0) return null;
 
     if (message.images.length === 1) {
       return (
-        <TouchableOpacity onPress={() => openImageModal(0)}>
+        <TouchableOpacity onPress={() => console.log("Open image modal")}>
           <Image
             source={{ uri: `${BASE_URL}${message.images[0]}` }}
             style={styles.singleImage}
@@ -76,7 +94,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {fanImages.map((image, index) => (
           <TouchableOpacity
             key={index}
-            onPress={() => openImageModal(index)}
+            onPress={() => console.log("Open image modal", index)}
             style={[
               styles.imageThumbnail,
               styles.fanImage,
@@ -108,101 +126,63 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <View>
-      <View
-        style={[
-          styles.container,
-          isOwnMessage ? styles.ownMessage : styles.otherMessage,
-        ]}
-      >
-        {!isOwnMessage && (
-          <View style={styles.avatarContainer}>
-            {showAvatar ? (
-              renderAvatar()
-            ) : (
-              <View style={styles.avatarPlaceholder} />
-            )}
-          </View>
-        )}
+      <TouchableOpacity onLongPress={handleLongPress}>
         <View
           style={[
-            styles.bubbleWrapper,
-            isOwnMessage ? styles.ownBubbleWrapper : styles.otherBubbleWrapper,
+            styles.container,
+            isOwnMessage ? styles.ownMessage : styles.otherMessage,
           ]}
         >
-          {renderImages()}
-          {message.content && (
-            <View
-              style={[
-                styles.bubble,
-                isOwnMessage ? styles.ownBubble : styles.otherBubble,
-              ]}
-            >
-              <Text
-                style={
-                  isOwnMessage ? styles.ownMessageText : styles.messageText
-                }
-              >
-                {message.content}
-              </Text>
-              <Text
-                style={isOwnMessage ? styles.ownTimestamp : styles.timestamp}
-              >
-                {new Date(message.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
+          {!isOwnMessage && (
+            <View style={styles.avatarContainer}>
+              {showAvatar ? (
+                renderAvatar()
+              ) : (
+                <View style={styles.avatarPlaceholder} />
+              )}
             </View>
           )}
+          <View
+            style={[
+              styles.bubbleWrapper,
+              isOwnMessage
+                ? styles.ownBubbleWrapper
+                : styles.otherBubbleWrapper,
+            ]}
+          >
+            {renderImages()}
+            {message.content && (
+              <View
+                style={[
+                  styles.bubble,
+                  isOwnMessage ? styles.ownBubble : styles.otherBubble,
+                ]}
+              >
+                <Text
+                  style={
+                    isOwnMessage ? styles.ownMessageText : styles.messageText
+                  }
+                >
+                  {message.content}
+                </Text>
+                <Text
+                  style={isOwnMessage ? styles.ownTimestamp : styles.timestamp}
+                >
+                  {new Date(message.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
       {isOwnMessage && isLastMessage && (
         <Text style={styles.statusText}>
           {isSending ? t("sending") : message.seen ? t("seen") : t("sent")}
         </Text>
       )}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={closeImageModal}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={closeImageModal}
-          >
-            <Text style={styles.closeButtonText}>×</Text>
-          </TouchableOpacity>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.imageScrollContainer}
-            onMomentumScrollEnd={(event) => {
-              const newIndex = Math.round(
-                event.nativeEvent.contentOffset.x /
-                  Dimensions.get("window").width
-              );
-              setCurrentImageIndex(newIndex);
-            }}
-          >
-            {message.images.map((image, index) => (
-              <Image
-                key={index}
-                source={{ uri: `${BASE_URL}${image}` }}
-                style={styles.fullScreenImage}
-                resizeMode="contain"
-              />
-            ))}
-          </ScrollView>
-          <View style={styles.imageCounter}>
-            <Text style={styles.imageCounterText}>
-              {currentImageIndex + 1} / {message.images.length}
-            </Text>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -278,17 +258,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 12,
   },
-  imageScrollView: {
-    flexDirection: "row",
-    marginBottom: 4,
-  },
-  messageImage: {
-    width: 130,
-    height: 200,
-    borderRadius: 10,
-    marginRight: 8,
-  },
-
   imageContainer: {
     marginBottom: 4,
     alignItems: "center",
@@ -330,39 +299,6 @@ const styles = StyleSheet.create({
   moreImagesText: {
     color: "#fff",
     fontSize: 14,
-  },
-
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  closeButton: {
-    position: "absolute",
-    top: 40,
-    right: 20,
-    zIndex: 1,
-  },
-  closeButtonText: {
-    color: "#fff",
-    fontSize: 40,
-  },
-  imageScrollContainer: {
-    alignItems: "center",
-  },
-  fullScreenImage: {
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
-  },
-  imageCounter: {
-    position: "absolute",
-    bottom: 20,
-    alignSelf: "center",
-  },
-  imageCounterText: {
-    color: "#fff",
-    fontSize: 16,
   },
 });
 

@@ -11,6 +11,7 @@ import { navigationRef } from "./src/navigation/navigationRef";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistor, store } from "./src/redux/redux";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +23,9 @@ const App = () => {
           <QueryClientProvider client={queryClient}>
             <SafeAreaProvider>
               <NavigationContainer ref={navigationRef}>
-                <AppNavigator />
+                <ActionSheetProvider>
+                  <AppNavigator />
+                </ActionSheetProvider>
               </NavigationContainer>
               <Toast config={toastConfig} />
             </SafeAreaProvider>

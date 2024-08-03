@@ -11,6 +11,10 @@ import { formatUserData, formatUserProfileData } from "../utils/formatUserData";
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const users = await User.find()
       .select("-password")
       .populate({
@@ -25,7 +29,11 @@ export const getAllUsers = async (req: Request, res: Response) => {
         path: "likedUsers",
         model: User,
         select: "-password",
-      });
+      })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments();
 
     const usersWithReviewsAndActivities = await Promise.all(
       users.map(async (user) => {
@@ -60,7 +68,12 @@ export const getAllUsers = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "Users retrieved successfully",
-      data: { users: formattedUsers },
+      data: {
+        users: formattedUsers,
+        total,
+        page,
+        limit,
+      },
     });
   } catch (err) {
     console.error(err);
@@ -395,6 +408,72 @@ export const getUserById = async (req: Request, res: Response) => {
       data: {
         user: formattedUser,
         totalProducts,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+export const getAllUsersInfo = async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    // Create a filter object
+    const filter: any = {};
+
+    // Add search filter if provided
+    if (req.query.search) {
+      filter.$or = [
+        { firstName: { $regex: req.query.search, $options: "i" } },
+        { lastName: { $regex: req.query.search, $options: "i" } },
+      ];
+    }
+
+    const users = await User.find(filter)
+      .select("email firstName lastName profilePicture bio")
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments(filter);
+
+    const formattedUsers = await Promise.all(
+      users.map(async (user) => {
+        const reviews = await Review.find({ reviewee: user._id });
+        const reviewCount = reviews.length;
+        const averageRating =
+          reviewCount > 0
+            ? reviews.reduce((sum, review) => sum + review.rating, 0) /
+              reviewCount
+            : 0;
+
+        return {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profilePicture: user.profilePicture,
+          bio: user.bio,
+          reviewCount,
+          averageRating: parseFloat(averageRating.toFixed(1)),
+        };
+      })
+    );
+
+    res.json({
+      success: 1,
+      message: "Users info retrieved successfully",
+      data: {
+        users: formattedUsers,
+        total,
+        page,
+        limit,
       },
     });
   } catch (err) {

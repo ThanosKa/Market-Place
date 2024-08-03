@@ -70,3 +70,13 @@ export const getUserDetails = async () => {
   const response = await axiosInstance.get("/users/details");
   return response.data;
 };
+
+export const getAllUsersInfo = async (page = 1, limit = 10, search = "") => {
+  if (!search) {
+    return null;
+  }
+  const response = await axiosInstance.get("/users/info", {
+    params: { page, limit, search },
+  });
+  return response.data;
+};

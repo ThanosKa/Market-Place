@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
 import { User } from "../../interfaces/user";
 import { BASE_URL } from "../../services/axiosConfig";
-import { Ionicons } from "@expo/vector-icons";
-import { Feather } from "@expo/vector-icons"; // Add this import
+import { Feather } from "@expo/vector-icons";
+import { renderStars } from "../../utils/renderStars";
 
 type Props = {
   user: User;
@@ -15,40 +15,6 @@ type Props = {
 
 const UserInfo: React.FC<Props> = ({ user, totalProducts }) => {
   const { t } = useTranslation();
-
-  const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const halfStar = rating % 1 >= 0.5;
-    const stars = [];
-
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
-        stars.push(
-          <Ionicons key={i} name="star" size={16} color={colors.starYellow} />
-        );
-      } else if (i === fullStars && halfStar) {
-        stars.push(
-          <Ionicons
-            key={i}
-            name="star-half"
-            size={16}
-            color={colors.starYellow}
-          />
-        );
-      } else {
-        stars.push(
-          <Ionicons
-            key={i}
-            name="star-outline"
-            size={16}
-            color={colors.starYellow}
-          />
-        );
-      }
-    }
-
-    return stars;
-  };
 
   return (
     <View style={styles.userInfoContainer}>

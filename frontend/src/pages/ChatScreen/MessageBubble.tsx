@@ -18,6 +18,9 @@ import { t } from "i18next";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
 import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -26,6 +29,7 @@ interface MessageBubbleProps {
   isSending?: boolean;
   isLastMessage: boolean;
   onDeleteMessage: (messageId: string) => void;
+  senderId?: string;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -35,13 +39,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   isSending,
   isLastMessage,
   onDeleteMessage,
+  senderId,
 }) => {
   const { showActionSheetWithOptions } = useActionSheet();
   const isOwnMessage = message.isOwnMessage;
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+  const handleAvatarPress = () => {
+    navigation.navigate("UserProfile", { userId: senderId || "" });
+  };
   const handleLongPress = (isImage: boolean = false) => {
     const options = isOwnMessage
       ? isImage
@@ -98,23 +106,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const closeImageModal = () => {
     setIsImageViewerVisible(false);
-  };
-
-  const handleImageLongPress = () => {
-    if (isOwnMessage) {
-      showActionSheetWithOptions(
-        {
-          options: [t("delete"), t("cancel")],
-          cancelButtonIndex: 1,
-          destructiveButtonIndex: 0,
-        },
-        (selectedIndex: number | undefined) => {
-          if (selectedIndex === 0) {
-            onDeleteMessage(message._id);
-          }
-        }
-      );
-    }
   };
 
   const renderImages = () => {
@@ -222,7 +213,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {!isOwnMessage && (
           <View style={styles.avatarContainer}>
             {showAvatar ? (
-              renderAvatar()
+              <TouchableOpacity onPress={handleAvatarPress}>
+                {renderAvatar()}
+              </TouchableOpacity>
             ) : (
               <View style={styles.avatarPlaceholder} />
             )}

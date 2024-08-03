@@ -266,6 +266,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
           isSending={isSending}
           isLastMessage={isLastMessage}
           onDeleteMessage={handleDeleteMessage}
+          senderId={item.sender?._id}
           renderAvatar={() =>
             item.sender && showAvatar ? (
               item.sender.profilePicture ? (

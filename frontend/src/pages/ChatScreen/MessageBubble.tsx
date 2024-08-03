@@ -17,6 +17,7 @@ import { BASE_URL } from "../../services/axiosConfig";
 import { t } from "i18next";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
+import { Feather } from "@expo/vector-icons";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -41,23 +42,29 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const handleLongPress = () => {
-    if (!message.images || message.images.length === 0) {
-      const options = isOwnMessage
-        ? [t("copy"), t("delete"), t("cancel")]
-        : [t("copy"), t("cancel")];
-      const destructiveButtonIndex = isOwnMessage ? 1 : undefined;
-      const cancelButtonIndex = isOwnMessage ? 2 : 1;
+  const handleLongPress = (isImage: boolean = false) => {
+    const options = isOwnMessage
+      ? isImage
+        ? [t("delete"), t("cancel")]
+        : [t("copy"), t("delete"), t("cancel")]
+      : [t("copy"), t("cancel")];
+    const destructiveButtonIndex = isOwnMessage ? (isImage ? 0 : 1) : undefined;
+    const cancelButtonIndex = options.length - 1;
 
-      showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex,
-          destructiveButtonIndex,
-        },
-        (selectedIndex: number | undefined) => {
-          if (selectedIndex === undefined) return;
+    showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex,
+        destructiveButtonIndex,
+      },
+      (selectedIndex: number | undefined) => {
+        if (selectedIndex === undefined) return;
 
+        if (isImage) {
+          if (selectedIndex === 0 && isOwnMessage) {
+            onDeleteMessage(message._id);
+          }
+        } else {
           switch (selectedIndex) {
             case 0:
               handleCopy();
@@ -69,10 +76,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               break;
           }
         }
-      );
-    }
+      }
+    );
   };
-
   const handleCopy = async () => {
     if (message.content) {
       await Clipboard.setStringAsync(message.content);
@@ -94,65 +100,108 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     setIsImageViewerVisible(false);
   };
 
+  const handleImageLongPress = () => {
+    if (isOwnMessage) {
+      showActionSheetWithOptions(
+        {
+          options: [t("delete"), t("cancel")],
+          cancelButtonIndex: 1,
+          destructiveButtonIndex: 0,
+        },
+        (selectedIndex: number | undefined) => {
+          if (selectedIndex === 0) {
+            onDeleteMessage(message._id);
+          }
+        }
+      );
+    }
+  };
+
   const renderImages = () => {
     if (!message.images || message.images.length === 0) return null;
 
-    if (message.images.length === 1) {
-      return (
-        <TouchableOpacity onPress={() => openImageViewer(0)}>
-          <Image
-            source={{ uri: `${BASE_URL}${message.images[0]}` }}
-            style={styles.singleImage}
-          />
-        </TouchableOpacity>
-      );
-    }
-
-    const fanImages = message.images.slice(0, 5);
-    const fanCenter = (fanImages.length - 1) / 2;
-
-    return (
-      <View style={styles.imageContainer}>
-        {fanImages.map((image, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => openImageViewer(index)}
-            style={[
-              styles.imageThumbnail,
-              styles.fanImage,
-              {
-                zIndex: fanImages.length - index,
-                transform: [
-                  { rotate: `${(index - fanCenter) * 10}deg` },
-                  { translateX: (index - fanCenter) * 20 },
-                ],
-              },
-            ]}
-          >
-            <Image
-              source={{ uri: `${BASE_URL}${image}` }}
-              style={styles.thumbnailImage}
-            />
+    const imageContent = (
+      <>
+        {message.images.length === 1 ? (
+          <TouchableOpacity onPress={() => openImageViewer(0)}>
+            <View style={styles.singleImageContainer}>
+              <Image
+                source={{ uri: `${BASE_URL}${message.images[0]}` }}
+                style={styles.singleImage}
+              />
+              {isOwnMessage && (
+                <TouchableOpacity
+                  style={styles.optionsIcon}
+                  onPress={() => handleLongPress(true)}
+                >
+                  <Feather
+                    name="more-vertical"
+                    size={24}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
           </TouchableOpacity>
-        ))}
-        {message.images.length > 5 && (
-          <View style={[styles.moreImagesIndicator, styles.fanImage]}>
-            <Text style={styles.moreImagesText}>
-              +{message.images.length - 5}
-            </Text>
+        ) : (
+          <View style={styles.imageContainer}>
+            {message.images.slice(0, 5).map((image, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => openImageViewer(index)}
+                style={[
+                  styles.imageThumbnail,
+                  styles.fanImage,
+                  {
+                    zIndex: message.images.length - index,
+                    transform: [
+                      {
+                        rotate: `${
+                          (index - (message.images.length - 1) / 2) * 10
+                        }deg`,
+                      },
+                      {
+                        translateX:
+                          (index - (message.images.length - 1) / 2) * 20,
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Image
+                  source={{ uri: `${BASE_URL}${image}` }}
+                  style={styles.thumbnailImage}
+                />
+              </TouchableOpacity>
+            ))}
+            {message.images.length > 5 && (
+              <View style={[styles.moreImagesIndicator, styles.fanImage]}>
+                <Text style={styles.moreImagesText}>
+                  +{message.images.length - 5}
+                </Text>
+              </View>
+            )}
+            {isOwnMessage && (
+              <TouchableOpacity
+                style={styles.optionsIcon}
+                onPress={() => handleLongPress(true)}
+              >
+                <Feather
+                  name="more-vertical"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            )}
           </View>
         )}
-      </View>
+      </>
     );
+
+    return imageContent;
   };
 
-  const renderImageViewerItem = ({
-    item,
-    index,
-  }: {
-    item: string;
-    index: number;
-  }) => (
+  const renderImageViewerItem = ({ item }: { item: string }) => (
     <View style={styles.imageViewerItem}>
       <Image
         source={{ uri: `${BASE_URL}${item}` }}
@@ -164,32 +213,30 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <View>
-      <TouchableOpacity onLongPress={handleLongPress}>
+      <View
+        style={[
+          styles.container,
+          isOwnMessage ? styles.ownMessage : styles.otherMessage,
+        ]}
+      >
+        {!isOwnMessage && (
+          <View style={styles.avatarContainer}>
+            {showAvatar ? (
+              renderAvatar()
+            ) : (
+              <View style={styles.avatarPlaceholder} />
+            )}
+          </View>
+        )}
         <View
           style={[
-            styles.container,
-            isOwnMessage ? styles.ownMessage : styles.otherMessage,
+            styles.bubbleWrapper,
+            isOwnMessage ? styles.ownBubbleWrapper : styles.otherBubbleWrapper,
           ]}
         >
-          {!isOwnMessage && (
-            <View style={styles.avatarContainer}>
-              {showAvatar ? (
-                renderAvatar()
-              ) : (
-                <View style={styles.avatarPlaceholder} />
-              )}
-            </View>
-          )}
-          <View
-            style={[
-              styles.bubbleWrapper,
-              isOwnMessage
-                ? styles.ownBubbleWrapper
-                : styles.otherBubbleWrapper,
-            ]}
-          >
-            {renderImages()}
-            {message.content && (
+          {renderImages()}
+          {message.content && (
+            <TouchableOpacity onLongPress={() => handleLongPress()}>
               <View
                 style={[
                   styles.bubble,
@@ -212,10 +259,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   })}
                 </Text>
               </View>
-            )}
-          </View>
+            </TouchableOpacity>
+          )}
         </View>
-      </TouchableOpacity>
+      </View>
       {isOwnMessage && isLastMessage && (
         <Text style={styles.statusText}>
           {isSending ? t("sending") : message.seen ? t("seen") : t("sent")}
@@ -423,6 +470,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: "center",
+  },
+  singleImageContainer: {
+    position: "relative",
+  },
+  optionsIcon: {
+    position: "absolute",
+    top: "50%",
+    right: "90%",
+    transform: [{ translateX: -12 }, { translateY: -12 }],
+    borderRadius: 15,
+    padding: 5,
+    zIndex: 100,
   },
 });
 

@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
+  Animated,
+  TouchableOpacity,
 } from "react-native";
 import {
   InfiniteData,
@@ -33,6 +35,8 @@ import {
   markMessagesAsSeen,
   deleteMessage,
 } from "../../services/chat";
+import { MaterialIcons } from "@expo/vector-icons";
+
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
 
@@ -58,6 +62,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   );
   const flatListRef = useRef<FlatList>(null);
   const queryClient = useQueryClient();
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const scrollButtonOpacity = useRef(new Animated.Value(0)).current;
 
   const {
     data,
@@ -79,7 +85,28 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       },
     }
   );
+  const scrollToBottom = useCallback(() => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+  }, []);
 
+  const handleScroll = useCallback(
+    (event: any) => {
+      const currentOffset = event.nativeEvent.contentOffset.y;
+      const shouldShow = currentOffset > 100; // Adjust this value as needed
+
+      if (shouldShow !== showScrollButton) {
+        setShowScrollButton(shouldShow);
+        Animated.timing(scrollButtonOpacity, {
+          toValue: shouldShow ? 1 : 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+    [showScrollButton, scrollButtonOpacity]
+  );
   const sendMessageMutation = useMutation<ChatMessage, Error, NewMessage>(
     (newMessage) => sendMessage(chatId, newMessage.content, newMessage.images),
     {
@@ -176,8 +203,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
           },
         }
       );
+      scrollToBottom();
     },
-    [sendMessageMutation, queryClient, chatId]
+    [sendMessageMutation, queryClient, chatId, scrollToBottom]
   );
 
   const flatListContent = data?.pages.flatMap((page) => page.messages) ?? [];
@@ -299,7 +327,24 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         onEndReached={loadMoreMessages}
         onEndReachedThreshold={0.1}
         ListFooterComponent={renderFooter}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
+      <Animated.View
+        style={[styles.scrollButtonContainer, { opacity: scrollButtonOpacity }]}
+      >
+        <TouchableOpacity
+          style={styles.scrollButton}
+          onPress={scrollToBottom}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons
+            name="keyboard-arrow-down"
+            size={40}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </Animated.View>
       <ChatInput
         value={message}
         onChangeText={(text: string) => setMessage(text)}
@@ -343,6 +388,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 10,
     color: colors.secondary,
+  },
+  scrollButtonContainer: {
+    position: "absolute",
+    bottom: 90,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  scrollButton: {
+    backgroundColor: "white",
+    borderRadius: 25,
+    width: 40,
+    height: 40,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
 

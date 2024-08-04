@@ -1,9 +1,10 @@
+// models/Chat.ts
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IMessage {
   _id: mongoose.Types.ObjectId;
   sender: mongoose.Types.ObjectId;
-  content?: string; // Make content optional
+  content?: string;
   images: string[];
   timestamp: Date;
   seen: boolean;
@@ -15,6 +16,10 @@ export interface IChat extends Document {
   messages: IMessage[];
   createdAt: Date;
   updatedAt: Date;
+  deletedFor: {
+    user: mongoose.Types.ObjectId;
+    deletedAt: Date;
+  }[];
 }
 
 const MessageSchema: Schema = new Schema(
@@ -24,7 +29,7 @@ const MessageSchema: Schema = new Schema(
       ref: "User",
       required: true,
     },
-    content: { type: String, required: false }, // Make content not required
+    content: { type: String, required: false },
     images: [{ type: String }],
     timestamp: { type: Date, default: Date.now },
     seen: { type: Boolean, default: false },
@@ -39,6 +44,12 @@ const ChatSchema: Schema = new Schema(
       { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     ],
     messages: [MessageSchema],
+    deletedFor: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        deletedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

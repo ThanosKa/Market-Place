@@ -419,14 +419,19 @@ export const getUserById = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getAllUsersInfo = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
+    const loggedInUserId = new mongoose.Types.ObjectId((req as any).userId);
+
     // Create a filter object
-    const filter: any = {};
+    const filter: any = {
+      _id: { $ne: loggedInUserId }, // Exclude the logged-in user
+    };
 
     // Add search filter if provided
     if (req.query.search) {

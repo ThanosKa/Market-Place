@@ -7,23 +7,47 @@ import { createActivity } from "./activityController";
 export const createChat = async (req: Request, res: Response) => {
   try {
     const { participantId } = req.body;
-    const userId = (req as any).userId;
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+    const participantObjectId = new mongoose.Types.ObjectId(participantId);
 
+    // Check for existing chat, including "deleted" ones
     const existingChat = await Chat.findOne({
-      participants: { $all: [userId, participantId] },
+      participants: { $all: [userId, participantObjectId] },
     });
 
     if (existingChat) {
-      return res.status(400).json({
-        success: 0,
+      const userDeletedChat = existingChat.deletedFor.find(
+        (del) => del.user.toString() === userId.toString()
+      );
+
+      if (userDeletedChat) {
+        // If chat was "deleted" for this user, update the deletedAt timestamp
+        await Chat.updateOne(
+          { _id: existingChat._id, "deletedFor.user": userId },
+          { $set: { "deletedFor.$.deletedAt": new Date() } }
+        );
+
+        const restoredChat = await Chat.findById(existingChat._id);
+        return res.status(200).json({
+          success: 1,
+          message: "Chat restored successfully",
+          data: { chat: restoredChat },
+        });
+      }
+
+      // If chat exists and wasn't deleted, return it
+      return res.status(200).json({
+        success: 1,
         message: "Chat already exists",
-        data: null,
+        data: { chat: existingChat },
       });
     }
 
+    // If no existing chat, create a new one
     const newChat = new Chat({
-      participants: [userId, participantId],
+      participants: [userId, participantObjectId],
       messages: [],
+      deletedFor: [],
     });
 
     await newChat.save();
@@ -42,13 +66,54 @@ export const createChat = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserChats = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
 
     const chats = await Chat.aggregate([
-      { $match: { participants: userId } },
+      {
+        $match: {
+          participants: userId,
+        },
+      },
+      {
+        $addFields: {
+          deletedAt: {
+            $let: {
+              vars: {
+                deletedForUser: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$deletedFor",
+                        as: "deleted",
+                        cond: { $eq: ["$$deleted.user", userId] },
+                      },
+                    },
+                    0,
+                  ],
+                },
+              },
+              in: "$$deletedForUser.deletedAt",
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          $or: [
+            { deletedAt: { $exists: false } },
+            {
+              $expr: {
+                $gt: [
+                  { $arrayElemAt: ["$messages.timestamp", -1] },
+                  "$deletedAt",
+                ],
+              },
+            },
+          ],
+        },
+      },
       { $sort: { updatedAt: -1 } },
       {
         $lookup: {
@@ -72,21 +137,41 @@ export const getUserChats = async (req: Request, res: Response) => {
               0,
             ],
           },
-          lastMessage: { $arrayElemAt: ["$messages", -1] },
+          lastMessage: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$messages",
+                  as: "message",
+                  cond: {
+                    $or: [
+                      { $eq: [{ $type: "$deletedAt" }, "missing"] },
+                      { $gt: ["$$message.timestamp", "$deletedAt"] },
+                    ],
+                  },
+                },
+              },
+              -1,
+            ],
+          },
         },
       },
       {
         $project: {
           _id: 1,
-          "otherParticipant._id": 1,
-          "otherParticipant.firstName": 1,
-          "otherParticipant.lastName": 1,
-          "otherParticipant.profilePicture": 1,
+          otherParticipant: {
+            _id: 1,
+            firstName: 1,
+            lastName: 1,
+            profilePicture: 1,
+          },
           lastMessage: {
-            content: "$lastMessage.content",
-            sender: "$lastMessage.sender",
-            timestamp: "$lastMessage.timestamp",
-            seen: "$lastMessage.seen",
+            _id: 1,
+            content: 1,
+            images: 1,
+            sender: 1,
+            timestamp: 1,
+            seen: 1,
             isOwnMessage: { $eq: ["$lastMessage.sender", userId] },
           },
           unreadCount: {
@@ -98,6 +183,12 @@ export const getUserChats = async (req: Request, res: Response) => {
                   $and: [
                     { $ne: ["$$message.sender", userId] },
                     { $eq: ["$$message.seen", false] },
+                    {
+                      $or: [
+                        { $eq: [{ $type: "$deletedAt" }, "missing"] },
+                        { $gt: ["$$message.timestamp", "$deletedAt"] },
+                      ],
+                    },
                   ],
                 },
               },
@@ -107,10 +198,23 @@ export const getUserChats = async (req: Request, res: Response) => {
       },
     ]);
 
+    // Process the chats to format the last message
+    const formattedChats = chats.map((chat) => ({
+      ...chat,
+      lastMessage: chat.lastMessage
+        ? {
+            ...chat.lastMessage,
+            content:
+              chat.lastMessage.content ||
+              (chat.lastMessage.images.length > 0 ? "Sent an image" : ""),
+          }
+        : null,
+    }));
+
     res.json({
       success: 1,
       message: "Chats retrieved successfully",
-      data: { chats },
+      data: { chats: formattedChats },
     });
   } catch (err) {
     console.error(err);
@@ -121,6 +225,7 @@ export const getUserChats = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getChatMessages = async (req: Request, res: Response) => {
   try {
     const chatId = req.params.chatId;
@@ -158,14 +263,48 @@ export const getChatMessages = async (req: Request, res: Response) => {
               0,
             ],
           },
-          messages: {
-            $slice: [
-              {
-                $reverseArray: "$messages",
+          userDeletedAt: {
+            $let: {
+              vars: {
+                deletedForUser: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$deletedFor",
+                        as: "deleted",
+                        cond: { $eq: ["$$deleted.user", userId] },
+                      },
+                    },
+                    0,
+                  ],
+                },
               },
-              skip,
-              limit,
-            ],
+              in: "$$deletedForUser.deletedAt",
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          filteredMessages: {
+            $cond: {
+              if: { $eq: [{ $type: "$userDeletedAt" }, "missing"] },
+              then: "$messages",
+              else: {
+                $filter: {
+                  input: "$messages",
+                  as: "message",
+                  cond: { $gt: ["$$message.timestamp", "$userDeletedAt"] },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          paginatedMessages: {
+            $slice: [{ $reverseArray: "$filteredMessages" }, skip, limit],
           },
         },
       },
@@ -173,7 +312,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
         $addFields: {
           messages: {
             $map: {
-              input: "$messages",
+              input: "$paginatedMessages",
               as: "message",
               in: {
                 _id: "$$message._id",
@@ -181,6 +320,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
                 images: "$$message.images",
                 timestamp: "$$message.timestamp",
                 seen: "$$message.seen",
+                edited: "$$message.edited",
                 isOwnMessage: { $eq: ["$$message.sender", userId] },
                 sender: {
                   $cond: [
@@ -209,7 +349,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
             profilePicture: 1,
           },
           messages: 1,
-          totalMessages: { $size: "$messages" },
+          totalMessages: { $size: "$filteredMessages" },
         },
       },
     ]);
@@ -217,7 +357,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
     if (!chat || chat.length === 0) {
       return res.status(404).json({
         success: 0,
-        message: "Chat not found",
+        message: "Chat not found or you don't have access to it",
         data: null,
       });
     }
@@ -236,12 +376,8 @@ export const getChatMessages = async (req: Request, res: Response) => {
       }
     );
 
-    const totalMessages = await Chat.aggregate([
-      { $match: { _id: new mongoose.Types.ObjectId(chatId) } },
-      { $project: { messageCount: { $size: "$messages" } } },
-    ]);
-
-    const totalPages = Math.ceil(totalMessages[0].messageCount / limit);
+    const totalMessages = chat[0].totalMessages;
+    const totalPages = Math.ceil(totalMessages / limit);
 
     res.json({
       success: 1,
@@ -263,14 +399,12 @@ export const getChatMessages = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
     const chatId = req.params.chatId;
-    const userId = (req as any).userId;
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
 
-    // Validate chatId
     if (!mongoose.Types.ObjectId.isValid(chatId)) {
       return res.status(400).json({
         success: 0,
@@ -282,9 +416,9 @@ export const sendMessage = async (req: Request, res: Response) => {
     const chat = await Chat.findOne({ _id: chatId, participants: userId });
 
     if (!chat) {
-      return res.status(404).json({
+      return res.status(403).json({
         success: 0,
-        message: "Chat not found",
+        message: "Access denied. You are not a participant in this chat.",
         data: null,
       });
     }
@@ -296,7 +430,6 @@ export const sendMessage = async (req: Request, res: Response) => {
       );
     }
 
-    // Check if either content or images are provided
     if (!content && images.length === 0) {
       return res.status(400).json({
         success: 0,
@@ -307,26 +440,24 @@ export const sendMessage = async (req: Request, res: Response) => {
 
     const newMessage: IMessage = {
       _id: new mongoose.Types.ObjectId(),
-      sender: new mongoose.Types.ObjectId(userId),
-      content: content || undefined, // Use undefined if content is not provided
+      sender: userId,
+      content: content || undefined,
       images,
       timestamp: new Date(),
       seen: false,
     };
 
     chat.messages.push(newMessage);
-    chat.updatedAt = new Date(); // Update the chat's updatedAt field
+    chat.updatedAt = new Date();
     await chat.save();
 
-    // Populate the sender information
     const populatedMessage = await Chat.populate(newMessage, {
       path: "sender",
       select: "firstName lastName email username",
     });
 
-    // Create an activity for the recipient
     const recipientId = chat.participants.find(
-      (participantId) => participantId.toString() !== userId
+      (participantId) => !participantId.equals(userId)
     );
     if (recipientId) {
       let activityContent = "New message";
@@ -340,9 +471,9 @@ export const sendMessage = async (req: Request, res: Response) => {
       await createActivity(
         recipientId.toString(),
         "message",
-        userId,
+        userId.toString(),
         activityContent,
-        chatId.toString()
+        chatId
       );
     }
 
@@ -360,6 +491,52 @@ export const sendMessage = async (req: Request, res: Response) => {
     });
   }
 };
+export const deleteChat = async (req: Request, res: Response) => {
+  try {
+    const chatId = req.params.chatId;
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const chat = await Chat.findOne({
+      _id: chatId,
+      participants: userId,
+    });
+
+    if (!chat) {
+      return res.status(404).json({
+        success: 0,
+        message: "Chat not found or you're not a participant",
+        data: null,
+      });
+    }
+
+    // Mark the chat as deleted for this user
+    await Chat.updateOne(
+      { _id: chatId },
+      {
+        $addToSet: {
+          deletedFor: {
+            user: userId,
+            deletedAt: new Date(),
+          },
+        },
+      }
+    );
+
+    res.json({
+      success: 1,
+      message: "Chat deleted successfully for the user",
+      data: null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
 export const markMessagesAsSeen = async (req: Request, res: Response) => {
   try {
     const { chatId } = req.params;
@@ -513,38 +690,6 @@ export const deleteMessage = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "Message deleted successfully",
-      data: null,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: 0,
-      message: "Server error",
-      data: null,
-    });
-  }
-};
-
-export const deleteChat = async (req: Request, res: Response) => {
-  try {
-    const chatId = req.params.chatId;
-    const userId = (req as any).userId;
-
-    const chat = await Chat.findOne({ _id: chatId, participants: userId });
-
-    if (!chat) {
-      return res.status(404).json({
-        success: 0,
-        message: "Chat not found",
-        data: null,
-      });
-    }
-
-    await Chat.deleteOne({ _id: chatId });
-
-    res.json({
-      success: 1,
-      message: "Chat deleted successfully",
       data: null,
     });
   } catch (err) {

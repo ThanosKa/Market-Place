@@ -34,8 +34,10 @@ import {
   sendMessage,
   markMessagesAsSeen,
   deleteMessage,
+  createChat,
 } from "../../services/chat";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
@@ -56,6 +58,7 @@ interface ChatScreenProps {
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const { chatId } = route.params;
+  const [isNewChat, setIsNewChat] = useState(false);
   const [message, setMessage] = useState("");
   const [sendingMessages, setSendingMessages] = useState<Set<string>>(
     new Set()
@@ -65,6 +68,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollButtonOpacity = useRef(new Animated.Value(0)).current;
 
+  const createChatMutation = useMutation(createChat, {
+    onSuccess: (newChat) => {
+      queryClient.setQueryData(["chatMessages", newChat._id], {
+        pages: [{ messages: [], currentPage: 1, hasNextPage: false }],
+        pageParams: [undefined],
+      });
+      setIsNewChat(false);
+    },
+  });
   const {
     data,
     fetchNextPage,
@@ -74,15 +86,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     isLoading,
   } = useInfiniteQuery<PaginatedChatDetails>(
     ["chatMessages", chatId],
-    ({ pageParam = 1 }) => getChatMessages(chatId, pageParam),
+    ({ pageParam = 1 }) => getChatMessages(chatId || "", pageParam),
     {
       getNextPageParam: (lastPage) =>
         lastPage.hasNextPage ? lastPage.currentPage + 1 : undefined,
       onSuccess: (data) => {
-        if (data.pages[0].currentPage === 1) {
-          markMessagesAsSeenMutation.mutate();
-        }
+        // if (data.pages[0].currentPage === 1) {
+        //   // markMessagesAsSeenMutation.mutate();
+        // }
       },
+      retry: false, // Don't retry if the query fails
     }
   );
   const scrollToBottom = useCallback(() => {
@@ -108,7 +121,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     [showScrollButton, scrollButtonOpacity]
   );
   const sendMessageMutation = useMutation<ChatMessage, Error, NewMessage>(
-    (newMessage) => sendMessage(chatId, newMessage.content, newMessage.images),
+    (newMessage) =>
+      sendMessage(chatId || "", newMessage.content, newMessage.images),
     {
       onSuccess: (data, variables) => {
         queryClient.invalidateQueries(["chatMessages", chatId]);
@@ -121,9 +135,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     }
   );
 
-  const markMessagesAsSeenMutation = useMutation(() =>
-    markMessagesAsSeen(chatId)
-  );
+  // const markMessagesAsSeenMutation = useMutation(() =>
+  //   markMessagesAsSeen(chatId)
+  // );
 
   useEffect(() => {
     if (data?.pages[0]) {
@@ -154,64 +168,71 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
 
   const handleSendMessage = useCallback(
     async (text: string, imageUris: string[]) => {
-      const tempId = Date.now().toString();
-      const newMessage: ChatMessage = {
-        _id: tempId,
-        content: text,
-        timestamp: new Date(),
-        isOwnMessage: true,
-        seen: false,
-        sender: null,
-        images: imageUris,
-      };
-
-      updateQueryDataWithNewMessage(queryClient, chatId, newMessage);
-      setSendingMessages((prev) => new Set(prev).add(tempId));
-
-      const imageFiles: File[] = await Promise.all(
-        imageUris.map(async (uri, index) => {
-          const response = await fetch(uri);
-          const blob = await response.blob();
-          const fileName = `image-${Date.now()}-${index}.jpg`;
-          return new File([blob], fileName, {
-            type: "image/jpeg",
-            lastModified: Date.now(),
-          });
-        })
-      );
-
-      sendMessageMutation.mutate(
-        { content: text, images: imageFiles, tempId },
-        {
-          onSuccess: (data) => {
-            console.log("Message sent successfully:", data);
-            updateQueryDataWithServerResponse(
-              queryClient,
-              chatId,
-              data,
-              tempId,
-              imageUris
-            );
-            setSendingMessages((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(tempId);
-              return newSet;
-            });
-          },
-          onError: (error) => {
-            console.error("Error sending message:", error);
-          },
-        }
-      );
-      scrollToBottom();
+      await sendMessageAndUpdateUI(chatId || "", text, imageUris);
     },
-    [sendMessageMutation, queryClient, chatId, scrollToBottom]
+    [chatId]
   );
+  const sendMessageAndUpdateUI = async (
+    chatId: string,
+    text: string,
+    imageUris: string[]
+  ) => {
+    const tempId = Date.now().toString();
+    const newMessage: ChatMessage = {
+      _id: tempId,
+      content: text,
+      timestamp: new Date(),
+      isOwnMessage: true,
+      seen: false,
+      sender: null,
+      images: imageUris,
+    };
+
+    updateQueryDataWithNewMessage(queryClient, chatId, newMessage);
+    setSendingMessages((prev) => new Set(prev).add(tempId));
+
+    const imageFiles: File[] = await Promise.all(
+      imageUris.map(async (uri, index) => {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        const fileName = `image-${Date.now()}-${index}.jpg`;
+        return new File([blob], fileName, {
+          type: "image/jpeg",
+          lastModified: Date.now(),
+        });
+      })
+    );
+
+    sendMessageMutation.mutate(
+      { content: text, images: imageFiles, tempId },
+      {
+        onSuccess: (data) => {
+          console.log("Message sent successfully:", data);
+          updateQueryDataWithServerResponse(
+            queryClient,
+            chatId,
+            data,
+            tempId,
+            imageUris
+          );
+          setSendingMessages((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(tempId);
+            return newSet;
+          });
+        },
+        onError: (error) => {
+          console.error("Error sending message:", error);
+        },
+      }
+    );
+    scrollToBottom();
+  };
 
   const flatListContent = data?.pages.flatMap((page) => page.messages) ?? [];
 
   const deleteMessageMutation = useMutation(
-    (messageId: string) => deleteMessage(chatId, messageId),
+    (messageId: string) => deleteMessage(chatId || "", messageId),
     {
       onMutate: async (messageId) => {
         await queryClient.cancelQueries(["chatMessages", chatId]);
@@ -316,6 +337,25 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       </View>
     );
   }
+  if (!data) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.noMessagesContainer}>
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={50}
+            color={colors.secondary}
+          />
+          <Text style={styles.noMessagesText}>{t("no-messages-yet")}</Text>
+        </View>
+        <ChatInput
+          value={message}
+          onChangeText={(text: string) => setMessage(text)}
+          handleSendMessage={handleSendMessage}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -411,6 +451,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  noMessagesContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noMessagesText: {
+    fontSize: 18,
+    color: colors.secondary,
+    fontStyle: "italic",
+    marginTop: 10,
   },
 });
 

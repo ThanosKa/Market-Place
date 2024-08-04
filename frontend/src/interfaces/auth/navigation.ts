@@ -11,7 +11,8 @@ export type RootStackParamList = {
 };
 
 export type MainStackParamList = {
-  Chat: { chatId: string };
+  // Chat: { chatId: string };
+  Chat: { chatId?: string; userId?: string };
 
   Messages: undefined;
   Likes: undefined;

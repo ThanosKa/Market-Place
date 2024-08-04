@@ -7,14 +7,15 @@ import {
   StyleSheet,
   Image,
   RefreshControl,
+  TextStyle,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { Chat } from "../../interfaces/chat";
 import { BASE_URL } from "../../services/axiosConfig";
-import { useQuery, useInfiniteQuery } from "react-query";
-import { getUserChats } from "../../services/chat";
+import { useQuery, useInfiniteQuery, useMutation } from "react-query";
+import { createChat, getUserChats } from "../../services/chat";
 import { colors } from "../../colors/colors";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
 import { t } from "i18next";
@@ -95,43 +96,52 @@ const MessageScreen: React.FC = () => {
     const isUnread = item.unreadCount > 0;
     const messageColor = isUnread ? colors.primary : colors.secondary;
 
-    let messageContent;
-    let messageStyle;
+    let messageContent = "";
+    let messageStyle: TextStyle = styles.lastMessage;
 
-    if (item.lastMessage.isOwnMessage) {
-      messageContent = item.lastMessage.seen
-        ? `${t("seen")} ${getTranslatableTimeString(
-            new Date(item.lastMessage.timestamp),
-            t
-          )}`
-        : `${t("sent")} ${getTranslatableTimeString(
-            new Date(item.lastMessage.timestamp),
-            t
-          )}`;
-
-      messageStyle = styles.statusMessage;
-    } else if (isUnread) {
-      messageContent = `${item.unreadCount} ${
-        item.unreadCount > 1 ? t("new-messages") : t("new-message")
-      }`;
-      messageStyle = StyleSheet.flatten([
-        styles.lastMessage,
-        { color: messageColor, fontWeight: "600" },
-      ]);
+    if (item.lastMessage) {
+      if (item.lastMessage.isOwnMessage) {
+        messageContent = item.lastMessage.seen
+          ? `${t("seen")} ${getTranslatableTimeString(
+              new Date(item.lastMessage.timestamp),
+              t
+            )}`
+          : `${t("sent")} ${getTranslatableTimeString(
+              new Date(item.lastMessage.timestamp),
+              t
+            )}`;
+        messageStyle = styles.statusMessage;
+      } else if (isUnread) {
+        messageContent = `${item.unreadCount} ${
+          item.unreadCount > 1 ? t("new-messages") : t("new-message")
+        }`;
+        messageStyle = {
+          ...styles.lastMessage,
+          color: messageColor,
+          fontWeight: "600",
+        };
+      } else {
+        messageContent = item.lastMessage.content || t("sent-an-image");
+        messageStyle = {
+          ...styles.lastMessage,
+          color: messageColor,
+        };
+      }
     } else {
-      messageContent = item.lastMessage.content || t("sent-an-image");
-      messageStyle = StyleSheet.flatten([
-        styles.lastMessage,
-        { color: messageColor },
-      ]);
+      // Handle case when there's no last message
+      messageContent = t("no-messages");
+      messageStyle = {
+        ...styles.lastMessage,
+        color: colors.secondary,
+        fontStyle: "italic",
+      };
     }
-
     return (
       <TouchableOpacity
         style={styles.chatItem}
         onPress={() => navigation.navigate("Chat", { chatId: item._id })}
       >
-        {item.otherParticipant.profilePicture ? (
+        {item.otherParticipant?.profilePicture ? (
           <Image
             source={{
               uri: `${BASE_URL}/${item.otherParticipant.profilePicture}`,
@@ -145,7 +155,8 @@ const MessageScreen: React.FC = () => {
         )}
         <View style={styles.chatInfo}>
           <Text style={styles.participantName}>
-            {item.otherParticipant.firstName} {item.otherParticipant.lastName}
+            {item.otherParticipant?.firstName || t("unknown")}{" "}
+            {item.otherParticipant?.lastName || ""}
           </Text>
           <Text style={messageStyle} numberOfLines={1}>
             {messageContent}
@@ -164,38 +175,75 @@ const MessageScreen: React.FC = () => {
       </TouchableOpacity>
     );
   }, []);
+  const createChatMutation = useMutation(createChat);
 
-  const renderUserItem = useCallback(({ item }: { item: User }) => {
-    return (
-      <TouchableOpacity
-        style={styles.userItem}
-        onPress={() => console.log(item.id)}
-      >
-        {item.profilePicture ? (
-          <Image
-            source={{
-              uri: `${BASE_URL}/${item.profilePicture}`,
-            }}
-            style={styles.userImage}
-          />
-        ) : (
-          <View style={styles.userImageUndef}>
-            <UndefProfPicture size={40} iconSize={20} />
-          </View>
-        )}
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>
-            {item.firstName} {item.lastName}
-          </Text>
+  const renderUserItem = useCallback(
+    ({ item }: { item: User }) => {
+      const navigateToChat = async () => {
+        if (!item || !item.id) {
+          console.error("Invalid user item:", item);
+          return;
+        }
 
-          <View style={styles.ratingContainer}>
-            {renderStars(item.averageRating)}
-            <Text style={styles.reviewCount}>({item.reviewCount})</Text>
+        let chatId: string;
+        const existingChat = chats?.find(
+          (chat) => chat.otherParticipant._id === item.id
+        );
+
+        if (existingChat) {
+          chatId = existingChat._id;
+        } else {
+          try {
+            const newChat = await createChatMutation.mutateAsync(item.id);
+            if (!newChat || !newChat._id) {
+              throw new Error("Failed to create chat");
+            }
+            chatId = newChat._id;
+            // Optionally, you can update the local chats state here
+            // to include the new chat, so it appears in the list immediately
+          } catch (error) {
+            console.error("Error creating chat:", error);
+            // Handle error (e.g., show an alert)
+            return;
+          }
+        }
+
+        if (chatId) {
+          navigation.navigate("Chat", { chatId });
+        } else {
+          console.error("No valid chatId found");
+        }
+      };
+
+      return (
+        <TouchableOpacity style={styles.userItem} onPress={navigateToChat}>
+          {item.profilePicture ? (
+            <Image
+              source={{
+                uri: `${BASE_URL}/${item.profilePicture}`,
+              }}
+              style={styles.userImage}
+            />
+          ) : (
+            <View style={styles.userImageUndef}>
+              <UndefProfPicture size={40} iconSize={20} />
+            </View>
+          )}
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>
+              {item.firstName} {item.lastName}
+            </Text>
+
+            <View style={styles.ratingContainer}>
+              {renderStars(item.averageRating)}
+              <Text style={styles.reviewCount}>({item.reviewCount})</Text>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }, []);
+        </TouchableOpacity>
+      );
+    },
+    [chats, createChatMutation, navigation]
+  );
 
   const loadMoreUsers = useCallback(() => {
     if (hasNextPage) {
@@ -306,9 +354,7 @@ const styles = StyleSheet.create({
     color: "#262626",
     marginBottom: 4,
   },
-  lastMessage: {
-    fontSize: 14,
-  },
+
   statusMessage: {
     fontSize: 14,
     color: colors.secondary,
@@ -398,6 +444,10 @@ const styles = StyleSheet.create({
   },
   reviewCount: {
     marginLeft: 4,
+    fontSize: 14,
+    color: colors.secondary,
+  },
+  lastMessage: {
     fontSize: 14,
     color: colors.secondary,
   },

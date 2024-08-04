@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Image,
   RefreshControl,
   TextStyle,
+  Animated,
+  Alert,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -15,7 +17,7 @@ import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { Chat } from "../../interfaces/chat";
 import { BASE_URL } from "../../services/axiosConfig";
 import { useQuery, useInfiniteQuery, useMutation } from "react-query";
-import { createChat, getUserChats } from "../../services/chat";
+import { createChat, deleteChat, getUserChats } from "../../services/chat";
 import { colors } from "../../colors/colors";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
 import { t } from "i18next";
@@ -25,7 +27,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getAllUsersInfo } from "../../services/user";
 import { User } from "../../interfaces/user";
 import { renderStars } from "../../utils/renderStars";
-
+import { Swipeable } from "react-native-gesture-handler";
 interface PaginatedUsersResponse {
   success: number;
   message: string;
@@ -47,6 +49,8 @@ const MessageScreen: React.FC = () => {
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  let prevOpenedRow: Swipeable | null = null;
+  const rowRefs = useRef<{ [key: string]: Swipeable | null }>({});
 
   const {
     data: chats,
@@ -92,89 +96,166 @@ const MessageScreen: React.FC = () => {
     setIsFocused(false);
   }, []);
 
-  const renderChatItem = useCallback(({ item }: { item: Chat }) => {
-    const isUnread = item.unreadCount > 0;
-    const messageColor = isUnread ? colors.primary : colors.secondary;
+  const closeRow = (id: string) => {
+    if (prevOpenedRow && prevOpenedRow !== rowRefs.current[id]) {
+      prevOpenedRow.close();
+    }
+    prevOpenedRow = rowRefs.current[id];
+  };
 
-    let messageContent = "";
-    let messageStyle: TextStyle = styles.lastMessage;
+  const handleDeleteChat = useCallback(
+    (chatId: string) => {
+      if (rowRefs.current[chatId]) {
+        rowRefs.current[chatId]?.close();
+      }
+      Alert.alert(t("delete-chat"), t("delete-chat-permanently"), [
+        {
+          text: t("cancel"),
+          style: "cancel",
+        },
+        {
+          text: t("delete"),
+          onPress: async () => {
+            try {
+              await deleteChat(chatId);
+              refetchChats();
+            } catch (error) {
+              console.error("Error deleting chat:", error);
+              Alert.alert(t("error"), t("failed-to-delete-chat"));
+            } finally {
+              if (rowRefs.current[chatId]) {
+                rowRefs.current[chatId]?.close();
+              }
+            }
+          },
+          style: "destructive",
+        },
+      ]);
+    },
+    [refetchChats, t]
+  );
 
-    if (item.lastMessage) {
-      if (item.lastMessage.isOwnMessage) {
-        messageContent = item.lastMessage.seen
-          ? `${t("seen")} ${getTranslatableTimeString(
-              new Date(item.lastMessage.timestamp),
-              t
-            )}`
-          : `${t("sent")} ${getTranslatableTimeString(
-              new Date(item.lastMessage.timestamp),
-              t
-            )}`;
-        messageStyle = styles.statusMessage;
-      } else if (isUnread) {
-        messageContent = `${item.unreadCount} ${
-          item.unreadCount > 1 ? t("new-messages") : t("new-message")
-        }`;
-        messageStyle = {
-          ...styles.lastMessage,
-          color: messageColor,
-          fontWeight: "600",
-        };
+  const renderRightActions = useCallback(
+    (
+      progress: Animated.AnimatedInterpolation<number>,
+      dragX: Animated.AnimatedInterpolation<number>,
+      chatId: string
+    ) => {
+      const scale = dragX.interpolate({
+        inputRange: [-50, 0],
+        outputRange: [1, 0],
+        extrapolate: "clamp",
+      });
+      return (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => handleDeleteChat(chatId)}
+        >
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Ionicons name="trash" size={24} color="white" />
+          </Animated.View>
+        </TouchableOpacity>
+      );
+    },
+    [handleDeleteChat]
+  );
+
+  const renderChatItem = useCallback(
+    ({ item }: { item: Chat }) => {
+      const isUnread = item.unreadCount > 0;
+      const messageColor = isUnread ? colors.primary : colors.secondary;
+
+      let messageContent = "";
+      let messageStyle: TextStyle = styles.lastMessage;
+
+      if (item.lastMessage) {
+        if (item.lastMessage.isOwnMessage) {
+          messageContent = item.lastMessage.seen
+            ? `${t("seen")} ${getTranslatableTimeString(
+                new Date(item.lastMessage.timestamp),
+                t
+              )}`
+            : `${t("sent")} ${getTranslatableTimeString(
+                new Date(item.lastMessage.timestamp),
+                t
+              )}`;
+          messageStyle = styles.statusMessage;
+        } else if (isUnread) {
+          messageContent = `${item.unreadCount} ${
+            item.unreadCount > 1 ? t("new-messages") : t("new-message")
+          }`;
+          messageStyle = {
+            ...styles.lastMessage,
+            color: messageColor,
+            fontWeight: "600",
+          };
+        } else {
+          messageContent = item.lastMessage.content || t("sent-an-image");
+          messageStyle = {
+            ...styles.lastMessage,
+            color: messageColor,
+          };
+        }
       } else {
-        messageContent = item.lastMessage.content || t("sent-an-image");
+        messageContent = t("no-messages");
         messageStyle = {
           ...styles.lastMessage,
-          color: messageColor,
+          color: colors.secondary,
+          fontStyle: "italic",
         };
       }
-    } else {
-      // Handle case when there's no last message
-      messageContent = t("no-messages");
-      messageStyle = {
-        ...styles.lastMessage,
-        color: colors.secondary,
-        fontStyle: "italic",
-      };
-    }
-    return (
-      <TouchableOpacity
-        style={styles.chatItem}
-        onPress={() => navigation.navigate("Chat", { chatId: item._id })}
-      >
-        {item.otherParticipant?.profilePicture ? (
-          <Image
-            source={{
-              uri: `${BASE_URL}/${item.otherParticipant.profilePicture}`,
-            }}
-            style={styles.avatar}
-          />
-        ) : (
-          <View style={styles.avatar}>
-            <UndefProfPicture size={56} iconSize={24} />
-          </View>
-        )}
-        <View style={styles.chatInfo}>
-          <Text style={styles.participantName}>
-            {item.otherParticipant?.firstName || t("unknown")}{" "}
-            {item.otherParticipant?.lastName || ""}
-          </Text>
-          <Text style={messageStyle} numberOfLines={1}>
-            {messageContent}
-          </Text>
-        </View>
-        <View style={styles.rightContent}>
-          <View
-            style={[
-              styles.dot,
-              {
-                backgroundColor: isUnread ? colors.customBlue : "lightgrey",
-              },
-            ]}
-          />
-        </View>
-      </TouchableOpacity>
-    );
-  }, []);
+
+      return (
+        <Swipeable
+          renderRightActions={(progress, dragX) =>
+            renderRightActions(progress, dragX, item._id)
+          }
+          onSwipeableOpen={() => closeRow(item._id)}
+          ref={(ref) => (rowRefs.current[item._id] = ref)}
+          overshootRight={false}
+        >
+          <TouchableOpacity
+            style={styles.chatItem}
+            onPress={() => navigation.navigate("Chat", { chatId: item._id })}
+          >
+            {item.otherParticipant?.profilePicture ? (
+              <Image
+                source={{
+                  uri: `${BASE_URL}/${item.otherParticipant.profilePicture}`,
+                }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <UndefProfPicture size={56} iconSize={24} />
+              </View>
+            )}
+            <View style={styles.chatInfo}>
+              <Text style={styles.participantName}>
+                {item.otherParticipant?.firstName || t("unknown")}{" "}
+                {item.otherParticipant?.lastName || ""}
+              </Text>
+              <Text style={messageStyle} numberOfLines={1}>
+                {messageContent}
+              </Text>
+            </View>
+            <View style={styles.rightContent}>
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: isUnread ? colors.customBlue : "lightgrey",
+                  },
+                ]}
+              />
+            </View>
+          </TouchableOpacity>
+        </Swipeable>
+      );
+    },
+    [navigation, t, renderRightActions]
+  );
+
   const createChatMutation = useMutation(createChat);
 
   const renderUserItem = useCallback(
@@ -450,6 +531,15 @@ const styles = StyleSheet.create({
   lastMessage: {
     fontSize: 14,
     color: colors.secondary,
+  },
+  deleteButton: {
+    backgroundColor: "red",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 75,
+    // height: "100%",
+    // borderTopRightRadius: 10,
+    // borderBottomRightRadius: 10,
   },
 });
 

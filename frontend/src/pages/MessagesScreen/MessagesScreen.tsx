@@ -95,7 +95,14 @@ const MessageScreen: React.FC = () => {
     setSearchQuery("");
     setIsFocused(false);
   }, []);
-
+  const closeAllRows = () => {
+    Object.values(rowRefs.current).forEach((ref) => {
+      if (ref) {
+        ref.close();
+      }
+    });
+    prevOpenedRow = null;
+  };
   const closeRow = (id: string) => {
     if (prevOpenedRow && prevOpenedRow !== rowRefs.current[id]) {
       prevOpenedRow.close();
@@ -105,13 +112,12 @@ const MessageScreen: React.FC = () => {
 
   const handleDeleteChat = useCallback(
     (chatId: string) => {
-      if (rowRefs.current[chatId]) {
-        rowRefs.current[chatId]?.close();
-      }
+      closeAllRows();
       Alert.alert(t("delete-chat"), t("delete-chat-permanently"), [
         {
           text: t("cancel"),
           style: "cancel",
+          onPress: closeAllRows,
         },
         {
           text: t("delete"),
@@ -123,16 +129,14 @@ const MessageScreen: React.FC = () => {
               console.error("Error deleting chat:", error);
               Alert.alert(t("error"), t("failed-to-delete-chat"));
             } finally {
-              if (rowRefs.current[chatId]) {
-                rowRefs.current[chatId]?.close();
-              }
+              closeAllRows();
             }
           },
           style: "destructive",
         },
       ]);
     },
-    [refetchChats, t]
+    [refetchChats, t, closeAllRows]
   );
 
   const renderRightActions = useCallback(
@@ -216,7 +220,10 @@ const MessageScreen: React.FC = () => {
         >
           <TouchableOpacity
             style={styles.chatItem}
-            onPress={() => navigation.navigate("Chat", { chatId: item._id })}
+            onPress={() => {
+              closeAllRows();
+              navigation.navigate("Chat", { chatId: item._id });
+            }}
           >
             {item.otherParticipant?.profilePicture ? (
               <Image

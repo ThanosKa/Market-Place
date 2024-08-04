@@ -23,6 +23,7 @@ export interface Chat {
     sender: string;
     timestamp: Date;
     seen: boolean;
+    images: string[];
     isOwnMessage: boolean;
   };
   unreadCount: number;

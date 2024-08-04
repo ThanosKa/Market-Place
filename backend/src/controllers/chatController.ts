@@ -3,39 +3,19 @@ import mongoose from "mongoose";
 import Chat, { IMessage } from "../models/Chat";
 import User from "../models/User";
 import { createActivity } from "./activityController";
-
 export const createChat = async (req: Request, res: Response) => {
   try {
     const { participantId } = req.body;
     const userId = new mongoose.Types.ObjectId((req as any).userId);
     const participantObjectId = new mongoose.Types.ObjectId(participantId);
 
-    // Check for existing chat, including "deleted" ones
+    // Check for existing chat
     const existingChat = await Chat.findOne({
       participants: { $all: [userId, participantObjectId] },
+      deletedFor: { $not: { $elemMatch: { user: userId } } },
     });
 
     if (existingChat) {
-      const userDeletedChat = existingChat.deletedFor.find(
-        (del) => del.user.toString() === userId.toString()
-      );
-
-      if (userDeletedChat) {
-        // If chat was "deleted" for this user, update the deletedAt timestamp
-        await Chat.updateOne(
-          { _id: existingChat._id, "deletedFor.user": userId },
-          { $set: { "deletedFor.$.deletedAt": new Date() } }
-        );
-
-        const restoredChat = await Chat.findById(existingChat._id);
-        return res.status(200).json({
-          success: 1,
-          message: "Chat restored successfully",
-          data: { chat: restoredChat },
-        });
-      }
-
-      // If chat exists and wasn't deleted, return it
       return res.status(200).json({
         success: 1,
         message: "Chat already exists",
@@ -43,7 +23,7 @@ export const createChat = async (req: Request, res: Response) => {
       });
     }
 
-    // If no existing chat, create a new one
+    // If no existing chat or it was deleted, create a new one
     const newChat = new Chat({
       participants: [userId, participantObjectId],
       messages: [],
@@ -66,6 +46,7 @@ export const createChat = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getUserChats = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -74,64 +55,15 @@ export const getUserChats = async (req: Request, res: Response) => {
       {
         $match: {
           participants: userId,
+          deletedFor: { $not: { $elemMatch: { user: userId } } },
         },
       },
       {
         $addFields: {
-          deletedForUser: {
-            $arrayElemAt: [
-              {
-                $filter: {
-                  input: "$deletedFor",
-                  as: "deleted",
-                  cond: { $eq: ["$$deleted.user", userId] },
-                },
-              },
-              0,
-            ],
-          },
+          lastMessage: { $arrayElemAt: ["$messages", -1] },
         },
       },
-      {
-        $addFields: {
-          lastMessage: {
-            $arrayElemAt: [
-              {
-                $filter: {
-                  input: "$messages",
-                  as: "message",
-                  cond: {
-                    $or: [
-                      {
-                        $eq: [
-                          { $type: "$deletedForUser.deletedAt" },
-                          "missing",
-                        ],
-                      },
-                      {
-                        $gt: [
-                          "$$message.timestamp",
-                          "$deletedForUser.deletedAt",
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-              -1,
-            ],
-          },
-        },
-      },
-      {
-        $match: {
-          $or: [
-            { deletedForUser: { $exists: false } },
-            { lastMessage: { $exists: true } },
-          ],
-        },
-      },
-      { $sort: { updatedAt: -1 } },
+      { $sort: { "lastMessage.timestamp": -1 } },
       {
         $lookup: {
           from: "users",
@@ -183,22 +115,6 @@ export const getUserChats = async (req: Request, res: Response) => {
                   $and: [
                     { $ne: ["$$message.sender", userId] },
                     { $eq: ["$$message.seen", false] },
-                    {
-                      $or: [
-                        {
-                          $eq: [
-                            { $type: "$deletedForUser.deletedAt" },
-                            "missing",
-                          ],
-                        },
-                        {
-                          $gt: [
-                            "$$message.timestamp",
-                            "$deletedForUser.deletedAt",
-                          ],
-                        },
-                      ],
-                    },
                   ],
                 },
               },
@@ -237,7 +153,6 @@ export const getUserChats = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getChatMessages = async (req: Request, res: Response) => {
   try {
     const chatId = req.params.chatId;
@@ -251,6 +166,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
         $match: {
           _id: new mongoose.Types.ObjectId(chatId),
           participants: userId,
+          deletedFor: { $not: { $elemMatch: { user: userId } } },
         },
       },
       {
@@ -275,48 +191,12 @@ export const getChatMessages = async (req: Request, res: Response) => {
               0,
             ],
           },
-          userDeletedAt: {
-            $let: {
-              vars: {
-                deletedForUser: {
-                  $arrayElemAt: [
-                    {
-                      $filter: {
-                        input: "$deletedFor",
-                        as: "deleted",
-                        cond: { $eq: ["$$deleted.user", userId] },
-                      },
-                    },
-                    0,
-                  ],
-                },
-              },
-              in: "$$deletedForUser.deletedAt",
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
-          filteredMessages: {
-            $cond: {
-              if: { $eq: [{ $type: "$userDeletedAt" }, "missing"] },
-              then: "$messages",
-              else: {
-                $filter: {
-                  input: "$messages",
-                  as: "message",
-                  cond: { $gt: ["$$message.timestamp", "$userDeletedAt"] },
-                },
-              },
-            },
-          },
         },
       },
       {
         $addFields: {
           paginatedMessages: {
-            $slice: [{ $reverseArray: "$filteredMessages" }, skip, limit],
+            $slice: [{ $reverseArray: "$messages" }, skip, limit],
           },
         },
       },
@@ -361,7 +241,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
             profilePicture: 1,
           },
           messages: 1,
-          totalMessages: { $size: "$filteredMessages" },
+          totalMessages: { $size: "$messages" },
         },
       },
     ]);

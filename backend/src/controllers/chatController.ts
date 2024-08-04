@@ -78,39 +78,56 @@ export const getUserChats = async (req: Request, res: Response) => {
       },
       {
         $addFields: {
-          deletedAt: {
-            $let: {
-              vars: {
-                deletedForUser: {
-                  $arrayElemAt: [
-                    {
-                      $filter: {
-                        input: "$deletedFor",
-                        as: "deleted",
-                        cond: { $eq: ["$$deleted.user", userId] },
-                      },
-                    },
-                    0,
-                  ],
+          deletedForUser: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$deletedFor",
+                  as: "deleted",
+                  cond: { $eq: ["$$deleted.user", userId] },
                 },
               },
-              in: "$$deletedForUser.deletedAt",
-            },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          lastMessage: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$messages",
+                  as: "message",
+                  cond: {
+                    $or: [
+                      {
+                        $eq: [
+                          { $type: "$deletedForUser.deletedAt" },
+                          "missing",
+                        ],
+                      },
+                      {
+                        $gt: [
+                          "$$message.timestamp",
+                          "$deletedForUser.deletedAt",
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+              -1,
+            ],
           },
         },
       },
       {
         $match: {
           $or: [
-            { deletedAt: { $exists: false } },
-            {
-              $expr: {
-                $gt: [
-                  { $arrayElemAt: ["$messages.timestamp", -1] },
-                  "$deletedAt",
-                ],
-              },
-            },
+            { deletedForUser: { $exists: false } },
+            { lastMessage: { $exists: true } },
           ],
         },
       },
@@ -135,23 +152,6 @@ export const getUserChats = async (req: Request, res: Response) => {
                 },
               },
               0,
-            ],
-          },
-          lastMessage: {
-            $arrayElemAt: [
-              {
-                $filter: {
-                  input: "$messages",
-                  as: "message",
-                  cond: {
-                    $or: [
-                      { $eq: [{ $type: "$deletedAt" }, "missing"] },
-                      { $gt: ["$$message.timestamp", "$deletedAt"] },
-                    ],
-                  },
-                },
-              },
-              -1,
             ],
           },
         },
@@ -185,8 +185,18 @@ export const getUserChats = async (req: Request, res: Response) => {
                     { $eq: ["$$message.seen", false] },
                     {
                       $or: [
-                        { $eq: [{ $type: "$deletedAt" }, "missing"] },
-                        { $gt: ["$$message.timestamp", "$deletedAt"] },
+                        {
+                          $eq: [
+                            { $type: "$deletedForUser.deletedAt" },
+                            "missing",
+                          ],
+                        },
+                        {
+                          $gt: [
+                            "$$message.timestamp",
+                            "$deletedForUser.deletedAt",
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -206,7 +216,9 @@ export const getUserChats = async (req: Request, res: Response) => {
             ...chat.lastMessage,
             content:
               chat.lastMessage.content ||
-              (chat.lastMessage.images.length > 0 ? "Sent an image" : ""),
+              (chat.lastMessage.images && chat.lastMessage.images.length > 0
+                ? "Sent an image"
+                : ""),
           }
         : null,
     }));

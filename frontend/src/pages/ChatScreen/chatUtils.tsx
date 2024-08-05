@@ -235,10 +235,25 @@ export const renderFooter = (
   hasNextPage: boolean | undefined
 ) => {
   if (isFetchingNextPage) {
-    return <ActivityIndicator size="small" color={colors.secondary} />;
+    return (
+      <>
+        <ActivityIndicator size="small" color={colors.secondary} />
+        <Text style={styles.olderMessagesText}>
+          {t("loading-older-messages")}
+        </Text>
+      </>
+    );
   }
+
   if (hasNextPage) {
     return <Text style={styles.olderMessagesText}>{t("older-messages")}</Text>;
   }
+
+  if (hasNextPage === false) {
+    return (
+      <Text style={styles.olderMessagesText}>{t("no-older-messages")}</Text>
+    );
+  }
+
   return null;
 };

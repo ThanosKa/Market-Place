@@ -201,7 +201,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>

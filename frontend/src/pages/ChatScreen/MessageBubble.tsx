@@ -47,9 +47,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+
   const handleAvatarPress = () => {
     navigation.navigate("UserProfile", { userId: senderId || "" });
   };
+
   const handleLongPress = (isImage: boolean = false) => {
     const options = isOwnMessage
       ? isImage
@@ -87,6 +89,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       }
     );
   };
+
   const handleCopy = async () => {
     if (message.content) {
       await Clipboard.setStringAsync(message.content);
@@ -99,8 +102,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  const openImageViewer = (index: number) => {
-    setCurrentImageIndex(index);
+  const openImageViewer = () => {
     setIsImageViewerVisible(true);
   };
 
@@ -111,90 +113,34 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   const renderImages = () => {
     if (!message.images || message.images.length === 0) return null;
 
-    const imageContent = (
-      <>
-        {message.images.length === 1 ? (
-          <TouchableOpacity onPress={() => openImageViewer(0)}>
-            <View style={styles.singleImageContainer}>
-              <Image
-                source={{ uri: `${BASE_URL}${message.images[0]}` }}
-                style={styles.singleImage}
-              />
-              {isOwnMessage && (
-                <TouchableOpacity
-                  style={styles.optionsIcon}
-                  onPress={() => handleLongPress(true)}
-                >
-                  <Feather
-                    name="more-vertical"
-                    size={24}
-                    color={colors.primary}
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
+    return (
+      <View style={styles.imageWrapper}>
+        {isOwnMessage && (
+          <TouchableOpacity
+            style={styles.optionsIcon}
+            onPress={() => handleLongPress(true)}
+          >
+            <Feather name="more-vertical" size={24} color={colors.primary} />
           </TouchableOpacity>
-        ) : (
-          <View style={styles.imageContainer}>
-            {message.images.slice(0, 5).map((image, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => openImageViewer(index)}
-                style={[
-                  styles.imageThumbnail,
-                  styles.fanImage,
-                  {
-                    zIndex: message.images.length - index,
-                    transform: [
-                      {
-                        rotate: `${
-                          (index - (message.images.length - 1) / 2) * 10
-                        }deg`,
-                      },
-                      {
-                        translateX:
-                          (index - (message.images.length - 1) / 2) * 20,
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Image
-                  // source={{ uri: `${BASE_URL}${image}` }}
-                  source={{
-                    uri: image.startsWith("http")
-                      ? image
-                      : `${BASE_URL}${image}`,
-                  }}
-                  style={styles.thumbnailImage}
-                />
-              </TouchableOpacity>
-            ))}
-            {message.images.length > 5 && (
-              <View style={[styles.moreImagesIndicator, styles.fanImage]}>
-                <Text style={styles.moreImagesText}>
-                  +{message.images.length - 5}
-                </Text>
-              </View>
-            )}
-            {isOwnMessage && (
-              <TouchableOpacity
-                style={styles.optionsIcon}
-                onPress={() => handleLongPress(true)}
-              >
-                <Feather
-                  name="more-vertical"
-                  size={24}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
         )}
-      </>
+        <TouchableOpacity
+          onPress={openImageViewer}
+          style={styles.imageContainer}
+        >
+          <Image
+            source={{ uri: `${BASE_URL}${message.images[0]}` }}
+            style={styles.image}
+          />
+          {message.images.length > 1 && (
+            <View style={styles.moreImagesIndicator}>
+              <Text style={styles.moreImagesText}>
+                +{message.images.length - 1}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
     );
-
-    return imageContent;
   };
 
   const renderImageViewerItem = ({ item }: { item: string }) => (
@@ -207,8 +153,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     </View>
   );
 
+  const renderStatus = () => {
+    if (!isOwnMessage || !isLastMessage) return null;
+    return (
+      <Text style={styles.statusText}>
+        {isSending ? t("sending") : message.seen ? t("seen") : t("sent")}
+      </Text>
+    );
+  };
+
   return (
-    <View>
+    <View style={styles.messageWrapper}>
       <View
         style={[
           styles.container,
@@ -261,11 +216,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
         </View>
       </View>
-      {isOwnMessage && isLastMessage && (
-        <Text style={styles.statusText}>
-          {isSending ? t("sending") : message.seen ? t("seen") : t("sent")}
-        </Text>
-      )}
+      {renderStatus()}
       <Modal
         animationType="fade"
         transparent={true}
@@ -287,7 +238,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            initialScrollIndex={currentImageIndex}
             onMomentumScrollEnd={(event) => {
               const contentOffset = event.nativeEvent.contentOffset;
               const viewSize = event.nativeEvent.layoutMeasurement;
@@ -312,11 +262,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 };
 
 const styles = StyleSheet.create({
+  messageWrapper: {
+    marginBottom: 8,
+  },
   container: {
     flexDirection: "row",
     marginVertical: 2,
     paddingHorizontal: 10,
-    paddingBottom: 10,
   },
   ownMessage: {
     justifyContent: "flex-end",
@@ -379,62 +331,44 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     alignSelf: "flex-end",
     marginRight: 15,
-    marginTop: 2,
-    marginBottom: 12,
+    marginTop: 4,
+  },
+  imageWrapper: {
+    position: "relative",
+    marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
   },
   imageContainer: {
-    marginBottom: 4,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 150,
-    width: 150,
-  },
-  singleImage: {
-    width: 110,
-    height: 150,
-    borderRadius: 10,
-    marginBottom: 4,
-  },
-  imageThumbnail: {
-    width: 110,
-    height: 150,
+    width: 200,
+    height: 200,
     borderRadius: 10,
     overflow: "hidden",
   },
-  fanImage: {
-    position: "absolute",
-  },
-  thumbnailImage: {
+  image: {
     width: "100%",
     height: "100%",
   },
   moreImagesIndicator: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 10,
-    position: "absolute",
-    right: 0,
-    bottom: 0,
   },
   moreImagesText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  optionsIcon: {
+    padding: 5,
+    marginRight: 5,
   },
   modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.9)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  imageViewerHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 10,
   },
   closeButton: {
     position: "absolute",
@@ -453,11 +387,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  imageCounter: {
-    color: "#fff",
-    fontSize: 16,
-  },
-
   fullScreenImage: {
     width: Dimensions.get("window").width,
     height: Dimensions.get("window").height - 100,
@@ -469,17 +398,9 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: "center",
   },
-  singleImageContainer: {
-    position: "relative",
-  },
-  optionsIcon: {
-    position: "absolute",
-    top: "50%",
-    right: "90%",
-    transform: [{ translateX: -12 }, { translateY: -12 }],
-    borderRadius: 15,
-    padding: 5,
-    zIndex: 100,
+  imageCounter: {
+    color: "#fff",
+    fontSize: 16,
   },
 });
 

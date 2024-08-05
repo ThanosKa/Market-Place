@@ -49,7 +49,14 @@ export const getChatMessages = async (
         limit,
       },
     });
-    return response.data.data;
+
+    await markMessagesAsSeen(chatId);
+
+    return {
+      ...response.data.data,
+      currentPage: page,
+      hasNextPage: response.data.data.messages.length === limit,
+    };
   } catch (error) {
     console.error("Error fetching chat messages:", error);
     throw error;

@@ -66,13 +66,18 @@ export const markMessagesAsSeen = async (chatId: string): Promise<void> => {
 export const sendMessage = async (
   chatId: string,
   content: string,
-  images: File[]
+  images: string[]
 ): Promise<ChatMessage> => {
   try {
     const formData = new FormData();
     formData.append("content", content);
+
     images.forEach((image, index) => {
-      formData.append(`images`, image);
+      formData.append("images", {
+        uri: image,
+        type: "image/jpeg",
+        name: `image_${index}.jpg`,
+      } as any);
     });
 
     const response = await axiosInstance.post<{
@@ -91,7 +96,6 @@ export const sendMessage = async (
     throw error;
   }
 };
-
 export const editMessage = async (
   chatId: string,
   messageId: string,

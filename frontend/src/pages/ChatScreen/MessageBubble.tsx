@@ -160,7 +160,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 ]}
               >
                 <Image
-                  source={{ uri: `${BASE_URL}${image}` }}
+                  // source={{ uri: `${BASE_URL}${image}` }}
+                  source={{
+                    uri: image.startsWith("http")
+                      ? image
+                      : `${BASE_URL}${image}`,
+                  }}
                   style={styles.thumbnailImage}
                 />
               </TouchableOpacity>

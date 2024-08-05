@@ -4,12 +4,11 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   FlatList,
-  Image,
   StyleSheet,
-  Text,
   ActivityIndicator,
   Animated,
   TouchableOpacity,
+  Text,
 } from "react-native";
 import {
   InfiniteData,
@@ -20,33 +19,26 @@ import {
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-import { ChatMessage, PaginatedChatDetails, User } from "../../interfaces/chat";
-import { BASE_URL } from "../../services/axiosConfig";
-import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
+import { ChatMessage, PaginatedChatDetails } from "../../interfaces/chat";
 import { colors } from "../../colors/colors";
 import { t } from "i18next";
 import {
   updateQueryDataWithNewMessage,
   updateQueryDataWithServerResponse,
+  setupNavigationOptions,
+  sendMessageAndUpdateUI,
+  renderMessageAvatar,
+  renderFooter,
 } from "./chatUtils";
 import {
   getChatMessages,
   sendMessage,
-  markMessagesAsSeen,
   deleteMessage,
-  createChat,
 } from "../../services/chat";
-import { MaterialIcons } from "@expo/vector-icons";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
-
-interface NewMessage {
-  content: string;
-  images: File[];
-  tempId: string;
-}
 
 type ChatScreenRouteProp = RouteProp<MainStackParamList, "Chat">;
 type ChatScreenNavigationProp = StackNavigationProp<MainStackParamList, "Chat">;
@@ -58,7 +50,6 @@ interface ChatScreenProps {
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const { chatId } = route.params;
-  const [isNewChat, setIsNewChat] = useState(false);
   const [message, setMessage] = useState("");
   const [sendingMessages, setSendingMessages] = useState<Set<string>>(
     new Set()
@@ -68,36 +59,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollButtonOpacity = useRef(new Animated.Value(0)).current;
 
-  const createChatMutation = useMutation(createChat, {
-    onSuccess: (newChat) => {
-      queryClient.setQueryData(["chatMessages", newChat._id], {
-        pages: [{ messages: [], currentPage: 1, hasNextPage: false }],
-        pageParams: [undefined],
-      });
-      setIsNewChat(false);
-    },
-  });
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-    isLoading,
-  } = useInfiniteQuery<PaginatedChatDetails>(
-    ["chatMessages", chatId],
-    ({ pageParam = 1 }) => getChatMessages(chatId || "", pageParam),
-    {
-      getNextPageParam: (lastPage) =>
-        lastPage.hasNextPage ? lastPage.currentPage + 1 : undefined,
-      onSuccess: (data) => {
-        // if (data.pages[0].currentPage === 1) {
-        //   // markMessagesAsSeenMutation.mutate();
-        // }
-      },
-      retry: false, // Don't retry if the query fails
-    }
-  );
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useInfiniteQuery<PaginatedChatDetails>(
+      ["chatMessages", chatId],
+      ({ pageParam = 1 }) => getChatMessages(chatId || "", pageParam),
+      {
+        getNextPageParam: (lastPage) =>
+          lastPage.hasNextPage ? lastPage.currentPage + 1 : undefined,
+        retry: false,
+      }
+    );
+
   const scrollToBottom = useCallback(() => {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
@@ -107,7 +79,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const handleScroll = useCallback(
     (event: any) => {
       const currentOffset = event.nativeEvent.contentOffset.y;
-      const shouldShow = currentOffset > 100; // Adjust this value as needed
+      const shouldShow = currentOffset > 100;
 
       if (shouldShow !== showScrollButton) {
         setShowScrollButton(shouldShow);
@@ -120,8 +92,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     },
     [showScrollButton, scrollButtonOpacity]
   );
-  const sendMessageMutation = useMutation<ChatMessage, Error, NewMessage>(
-    (newMessage) =>
+
+  const sendMessageMutation = useMutation(
+    (newMessage: { content: string; images: string[]; tempId: string }) =>
       sendMessage(chatId || "", newMessage.content, newMessage.images),
     {
       onSuccess: (data, variables) => {
@@ -135,99 +108,27 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     }
   );
 
-  // const markMessagesAsSeenMutation = useMutation(() =>
-  //   markMessagesAsSeen(chatId)
-  // );
-
   useEffect(() => {
     if (data?.pages[0]) {
-      navigation.setOptions({
-        headerTitle: () => (
-          <View style={styles.headerTitle}>
-            {data.pages[0].otherParticipant.profilePicture ? (
-              <Image
-                source={{
-                  uri: `${BASE_URL}/${data.pages[0].otherParticipant.profilePicture}`,
-                }}
-                style={styles.headerAvatar}
-              />
-            ) : (
-              <View style={styles.headerAvatar}>
-                <UndefProfPicture size={36} iconSize={18} />
-              </View>
-            )}
-            <Text style={styles.headerName}>
-              {data.pages[0].otherParticipant.firstName}{" "}
-              {data.pages[0].otherParticipant.lastName}
-            </Text>
-          </View>
-        ),
-      });
+      setupNavigationOptions(navigation, data.pages[0].otherParticipant);
     }
   }, [data, navigation]);
 
   const handleSendMessage = useCallback(
     async (text: string, imageUris: string[]) => {
-      await sendMessageAndUpdateUI(chatId || "", text, imageUris);
+      console.log("Received image URIs in ChatScreen:", imageUris);
+      await sendMessageAndUpdateUI(
+        queryClient,
+        chatId || "",
+        text,
+        imageUris,
+        sendMessageMutation,
+        setSendingMessages,
+        scrollToBottom
+      );
     },
-    [chatId]
+    [chatId, queryClient, sendMessageMutation, scrollToBottom]
   );
-  const sendMessageAndUpdateUI = async (
-    chatId: string,
-    text: string,
-    imageUris: string[]
-  ) => {
-    const tempId = Date.now().toString();
-    const newMessage: ChatMessage = {
-      _id: tempId,
-      content: text,
-      timestamp: new Date(),
-      isOwnMessage: true,
-      seen: false,
-      sender: null,
-      images: imageUris,
-    };
-
-    updateQueryDataWithNewMessage(queryClient, chatId, newMessage);
-    setSendingMessages((prev) => new Set(prev).add(tempId));
-
-    const imageFiles: File[] = await Promise.all(
-      imageUris.map(async (uri, index) => {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        const fileName = `image-${Date.now()}-${index}.jpg`;
-        return new File([blob], fileName, {
-          type: "image/jpeg",
-          lastModified: Date.now(),
-        });
-      })
-    );
-
-    sendMessageMutation.mutate(
-      { content: text, images: imageFiles, tempId },
-      {
-        onSuccess: (data) => {
-          console.log("Message sent successfully:", data);
-          updateQueryDataWithServerResponse(
-            queryClient,
-            chatId,
-            data,
-            tempId,
-            imageUris
-          );
-          setSendingMessages((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(tempId);
-            return newSet;
-          });
-        },
-        onError: (error) => {
-          console.error("Error sending message:", error);
-        },
-      }
-    );
-    scrollToBottom();
-  };
 
   const flatListContent = data?.pages.flatMap((page) => page.messages) ?? [];
 
@@ -288,24 +189,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
           isLastMessage={isLastMessage}
           onDeleteMessage={handleDeleteMessage}
           senderId={item.sender?._id}
-          renderAvatar={() =>
-            item.sender && showAvatar ? (
-              item.sender.profilePicture ? (
-                <Image
-                  source={{
-                    uri: `${BASE_URL}/${item.sender.profilePicture}`,
-                  }}
-                  style={styles.messageAvatar}
-                />
-              ) : (
-                <View style={styles.messageAvatar}>
-                  <UndefProfPicture size={28} iconSize={14} />
-                </View>
-              )
-            ) : (
-              <View style={styles.messageAvatar} />
-            )
-          }
+          renderAvatar={() => renderMessageAvatar(item.sender, showAvatar)}
         />
       );
     },
@@ -318,18 +202,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const renderFooter = useCallback(() => {
-    if (isFetchingNextPage) {
-      return <ActivityIndicator size="small" color={colors.secondary} />;
-    }
-    if (hasNextPage) {
-      return (
-        <Text style={styles.olderMessagesText}>{t("older-messages")}</Text>
-      );
-    }
-    return null;
-  }, [isFetchingNextPage, hasNextPage]);
-
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -337,6 +209,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       </View>
     );
   }
+
   if (!data) {
     return (
       <View style={styles.container}>
@@ -367,7 +240,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         inverted
         onEndReached={loadMoreMessages}
         onEndReachedThreshold={0.1}
-        ListFooterComponent={renderFooter}
+        ListFooterComponent={() =>
+          renderFooter(isFetchingNextPage, hasNextPage)
+        }
         onScroll={handleScroll}
         scrollEventThrottle={16}
       />

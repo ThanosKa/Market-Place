@@ -15,18 +15,18 @@ import { getTranslatableTimeString } from "../activity/activityUtils";
 import { renderStars } from "../../utils/renderStars";
 import { Ionicons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { MainStackParamList } from "../../interfaces/auth/navigation";
+// import { StackNavigationProp } from "@react-navigation/stack";
+// import { MainStackParamList } from "../../interfaces/auth/navigation";
 import {
   RenderChatItemProps,
   RenderRightActionsProps,
   RenderUserItemProps,
 } from "./MessageScreenTypes";
 
-type MessageScreenNavigationProp = StackNavigationProp<
-  MainStackParamList,
-  "Messages"
->;
+// type MessageScreenNavigationProp = StackNavigationProp<
+//   MainStackParamList,
+//   "Messages"
+// >;
 
 export const renderChatItem = ({
   item,

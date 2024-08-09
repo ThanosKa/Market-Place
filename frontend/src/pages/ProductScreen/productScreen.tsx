@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,9 @@ import { getProductById } from "../../services/product";
 import Swiper from "react-native-swiper";
 import { Product } from "../../interfaces/product";
 import ImageViewerModal from "../../utils/imageClick";
-
+import { useMutation, useQueryClient } from "react-query";
+import { createChat } from "../../services/chat";
+import { getUserChats } from "../../services/chat";
 type ProductScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
   "Product"
@@ -41,7 +43,9 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
 
+  const createChatMutation = useMutation(createChat);
   const {
     data: product,
     isLoading,
@@ -60,7 +64,35 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
 
     checkUserSeller();
   }, [product]);
+  const handleChatPress = useCallback(async () => {
+    if (!product) return;
 
+    // Check if a chat already exists
+    const existingChats = await getUserChats();
+    const existingChat = existingChats.find(
+      (chat) => chat.otherParticipant._id === product.seller._id
+    );
+
+    if (existingChat) {
+      // If chat exists, navigate to it
+      navigation.navigate("Chat", { chatId: existingChat._id });
+    } else {
+      // If chat doesn't exist, create a new one
+      try {
+        const newChat = await createChatMutation.mutateAsync(
+          product.seller._id
+        );
+        if (!newChat || !newChat._id) {
+          throw new Error("Failed to create chat");
+        }
+        // Navigate to the new chat
+        navigation.navigate("Chat", { chatId: newChat._id });
+      } catch (error) {
+        console.error("Error creating chat:", error);
+        // Handle error (e.g., show an alert to the user)
+      }
+    }
+  }, [product, navigation, createChatMutation]);
   const handleUserPress = async (userId: string) => {
     const loggedUserId = await getUserId();
     if (loggedUserId === userId) {
@@ -148,7 +180,10 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
               )}
             </TouchableOpacity>
             {!isCurrentUserSeller && (
-              <TouchableOpacity style={styles.chatButton}>
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={handleChatPress}
+              >
                 <Text style={styles.chatButtonText}>{t("chat")}</Text>
               </TouchableOpacity>
             )}

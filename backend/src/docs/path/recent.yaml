@@ -1,0 +1,256 @@
+/api/recent:
+  post:
+    summary: Add a recent search
+    tags:
+      - Recent Searches
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - query
+            properties:
+              query:
+                type: string
+              productId:
+                type: string
+    responses:
+      "201":
+        description: Recent search added successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecentSearchResponse"
+      "200":
+        description: Recent search for this product already exists
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecentSearchResponse"
+      "400":
+        description: Bad request - Query is required or Invalid productId
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+  get:
+    summary: Get recent searches for the user
+    tags:
+      - Recent Searches
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Number of items per page
+    responses:
+      "200":
+        description: Recent searches retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecentSearchesListResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/recent/all:
+  delete:
+    summary: Delete all recent searches for the user
+    tags:
+      - Recent Searches
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: All recent searches deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/recent/{id}:
+  delete:
+    summary: Delete a specific recent search
+    tags:
+      - Recent Searches
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: Recent search deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeletedRecentSearchResponse"
+      "400":
+        description: Invalid search ID
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        description: Recent search not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+components:
+  schemas:
+    RecentSearch:
+      type: object
+      properties:
+        _id:
+          type: string
+        user:
+          type: string
+        query:
+          type: string
+        product:
+          $ref: "#/components/schemas/Product"
+        createdAt:
+          type: string
+          format: date-time
+
+    RecentSearchResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            recentSearch:
+              $ref: "#/components/schemas/RecentSearch"
+
+    RecentSearchesListResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            recentSearches:
+              type: array
+              items:
+                $ref: "#/components/schemas/RecentSearch"
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
+
+    DeletedRecentSearchResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            deletedSearch:
+              $ref: "#/components/schemas/RecentSearch"
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        price:
+          type: number
+        condition:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [0]
+        message:
+          type: string
+        data:
+          type: null
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: null
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

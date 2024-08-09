@@ -1,0 +1,365 @@
+/api/users:
+  get:
+    summary: Get all users
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Users retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsersResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+  put:
+    summary: Edit user
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            $ref: "#/components/schemas/UserEditRequest"
+    responses:
+      "200":
+        description: User updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserEditResponse"
+      "400":
+        $ref: "#/components/responses/BadRequest"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+  delete:
+    summary: Delete user
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: User deleted successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/users/me:
+  get:
+    summary: Get logged in user
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/ProductFilterParams"
+    responses:
+      "200":
+        description: Logged in user retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/users/details:
+  get:
+    summary: Get user details
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: User details retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserDetailsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/users/{id}:
+  get:
+    summary: Get user by ID
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: User retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserDetailsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+components:
+  parameters:
+    ProductFilterParams:
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: category
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: false
+      - in: query
+        name: condition
+        schema:
+          type: string
+      - in: query
+        name: minPrice
+        schema:
+          type: number
+      - in: query
+        name: maxPrice
+        schema:
+          type: number
+      - in: query
+        name: sort
+        schema:
+          type: string
+        default: createdAt
+      - in: query
+        name: order
+        schema:
+          type: string
+        enum: [asc, desc]
+        default: desc
+      - in: query
+        name: page
+        schema:
+          type: integer
+        default: 1
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        default: 10
+
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        bio:
+          type: string
+        profilePicture:
+          type: string
+        averageRating:
+          type: number
+        reviewCount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    UserEditRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        bio:
+          type: string
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+        confirmNewPassword:
+          type: string
+        profilePicture:
+          type: string
+          format: binary
+
+    UsersResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                $ref: "#/components/schemas/User"
+
+    UserResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/User"
+            page:
+              type: number
+            limit:
+              type: number
+            totalProducts:
+              type: number
+            totalPages:
+              type: number
+
+    UserDetailsResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/User"
+            totalProducts:
+              type: number
+
+    UserEditResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                email:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                bio:
+                  type: string
+                profilePicture:
+                  type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [0]
+        message:
+          type: string
+        data:
+          type: null
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: null
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

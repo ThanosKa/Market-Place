@@ -56,13 +56,13 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
     }
   };
   const handleClose = () => {
-    console.log("Close button pressed");
     onClose();
   };
   const handlePickImages = async () => {
     setIsSelectingImages(true);
     try {
       const remainingSlots = 5 - currentImageCount;
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
@@ -72,13 +72,17 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
 
       if (!result.canceled && result.assets) {
         const selectedUris = result.assets.map((asset) => asset.uri);
-        console.log("Images selected from gallery:", selectedUris);
+
         onPickImages(selectedUris.slice(0, remainingSlots));
+        console.log("CameraComponent: Closing camera");
+        onClose(); // Close the camera component after selecting images
       } else {
-        console.log("Image selection cancelled or no images selected");
+        console.log(
+          "CameraComponent: Image selection cancelled or no images selected"
+        );
       }
     } catch (error) {
-      console.error("Error picking images:", error);
+      console.error("CameraComponent: Error picking images:", error);
     } finally {
       setIsSelectingImages(false);
     }

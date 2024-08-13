@@ -134,8 +134,6 @@ export const sendMessageAndUpdateUI = async (
     images: imageUris,
   };
 
-  console.log("New message with images:", newMessage);
-
   updateQueryDataWithNewMessage(queryClient, chatId, newMessage);
   setSendingMessages((prev) => new Set(prev).add(tempId));
 
@@ -151,7 +149,6 @@ export const sendMessageAndUpdateUI = async (
     })
   );
 
-  console.log("Image files prepared:", imageFiles);
   sendMessageMutation.mutate(
     { content: text, images: imageUris, tempId },
     {

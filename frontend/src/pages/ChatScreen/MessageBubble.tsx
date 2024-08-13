@@ -144,16 +144,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   };
 
-  const renderImageViewerItem = ({ item }: { item: string }) => (
-    <View style={styles.imageViewerItem}>
-      <Image
-        source={{ uri: `${BASE_URL}${item}` }}
-        style={styles.fullScreenImage}
-        resizeMode="contain"
-      />
-    </View>
-  );
-
   const renderStatus = () => {
     if (!isOwnMessage || !isLastMessage) return null;
     return (

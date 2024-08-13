@@ -43,6 +43,7 @@ const ChatInput: React.FC<TextInputComponentProps> = ({
     value?.trim().length === 0 && selectedImages.length === 0;
 
   const openCamera = () => {
+    setSelectedImages([]);
     setIsCameraOpen(true);
   };
 
@@ -51,12 +52,11 @@ const ChatInput: React.FC<TextInputComponentProps> = ({
   };
 
   const handleCapture = (uri: string) => {
-    console.log("Captured image URI:", uri);
-    setSelectedImages((prevImages) => [...prevImages, uri]);
+    handleSendMessage("", [uri]);
     closeCamera();
   };
 
-  const handlePickImages = async () => {
+  const handlePickImages = async (fromCamera: boolean = false) => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -67,8 +67,10 @@ const ChatInput: React.FC<TextInputComponentProps> = ({
 
       if (!result.canceled && result.assets) {
         const newUris = result.assets.map((asset) => asset.uri);
-        console.log("Selected image URIs:", newUris);
-        setSelectedImages((prevImages) => [...prevImages, ...newUris]);
+
+        handleSendMessage("", newUris);
+        setSelectedImages([]);
+      } else {
       }
     } catch (error) {
       console.error("Error picking images:", error);
@@ -78,12 +80,14 @@ const ChatInput: React.FC<TextInputComponentProps> = ({
   const removeImage = (index: number) => {
     setSelectedImages((prevImages) => prevImages.filter((_, i) => i !== index));
   };
+
   const sendMessage = () => {
-    console.log("Sending images:", selectedImages);
-    handleSendMessage(value || "", selectedImages);
-    onChangeText?.("");
-    setSelectedImages([]);
-    textInputRef.current?.clear();
+    if ((value ?? "").trim() || selectedImages.length > 0) {
+      handleSendMessage((value ?? "").trim(), selectedImages);
+      onChangeText?.("");
+      setSelectedImages([]);
+      textInputRef.current?.clear();
+    }
   };
 
   return (
@@ -122,7 +126,7 @@ const ChatInput: React.FC<TextInputComponentProps> = ({
         </View>
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={isQueryEmpty ? handlePickImages : sendMessage}
+          onPress={isQueryEmpty ? () => handlePickImages(false) : sendMessage}
         >
           <Ionicons
             name={isQueryEmpty ? "images" : "send"}
@@ -135,10 +139,10 @@ const ChatInput: React.FC<TextInputComponentProps> = ({
         <CameraComponent
           onCapture={handleCapture}
           onClose={closeCamera}
+          currentImageCount={selectedImages.length}
           onPickImages={(uris) =>
             setSelectedImages((prevImages) => [...prevImages, ...uris])
           }
-          currentImageCount={selectedImages.length}
         />
       </Modal>
     </View>

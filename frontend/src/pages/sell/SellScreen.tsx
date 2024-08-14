@@ -25,6 +25,7 @@ import CameraComponent from "./CameraComponent";
 import ImageGallery from "./ImageGallery";
 import ProductForm, { ProductFormData } from "./ProductForm";
 import Toast from "react-native-toast-message";
+import { createProduct } from "../../services/product";
 
 export interface SellScreenRef {
   resetState: () => void;
@@ -70,7 +71,7 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
   }));
 
   const mutation = useMutation(
-    (formData: FormData) => axiosFormDataInstance.post("/products", formData),
+    (formData: FormData) => createProduct(formData),
     {
       onSuccess: () => {
         Toast.show({

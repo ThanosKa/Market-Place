@@ -11,14 +11,23 @@ import User from "../models/User";
 // Create a new product
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { title, price, category, condition } = req.body;
+    const { title, price, category, condition, description } = req.body;
     const sellerId = (req as any).userId;
 
     // Check if all required fields are present
-    if (!title || !price || !category || !condition) {
+    if (!title || price === undefined || !category || !condition) {
       return res.status(400).json({
         success: 0,
         message: "All fields (title, price, category, condition) are required",
+        data: null,
+      });
+    }
+
+    // Validate price
+    if (typeof price !== "number" || price < 0) {
+      return res.status(400).json({
+        success: 0,
+        message: "Price must be a non-negative number",
         data: null,
       });
     }
@@ -65,6 +74,7 @@ export const createProduct = async (req: Request, res: Response) => {
       category,
       condition,
       seller: sellerId,
+      description,
     });
 
     await newProduct.save();
@@ -102,7 +112,10 @@ export const getProducts = async (req: Request, res: Response) => {
     const filter: mongoose.FilterQuery<IProduct> = {};
 
     if (typeof search === "string") {
-      filter.title = { $regex: search, $options: "i" };
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
     }
     if (category) {
       // Handle multiple categories
@@ -167,7 +180,7 @@ export const updateProduct = async (req: Request, res: Response) => {
   try {
     const productId = req.params.productId;
     const userId = (req as any).userId;
-    const { title, price, category, condition } = req.body;
+    const { title, price, category, condition, description } = req.body;
 
     const product = await Product.findOne({
       _id: productId,
@@ -183,7 +196,16 @@ export const updateProduct = async (req: Request, res: Response) => {
     }
 
     if (title) product.title = title;
-    if (price) product.price = price;
+    if (price !== undefined) {
+      if (typeof price !== "number" || price < 0) {
+        return res.status(400).json({
+          success: 0,
+          message: "Price must be a non-negative number",
+          data: null,
+        });
+      }
+      product.price = price;
+    }
     if (category) {
       if (!CATEGORY_TYPES.includes(category)) {
         return res.status(400).json({
@@ -204,6 +226,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
       product.condition = condition;
     }
+    if (description !== undefined) product.description = description;
 
     if (req.files && Array.isArray(req.files)) {
       const newImages = (req.files as Express.Multer.File[]).map(
@@ -224,7 +247,6 @@ export const updateProduct = async (req: Request, res: Response) => {
     res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
-
 // Delete a product
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
@@ -274,7 +296,10 @@ export const getUserProducts = async (req: Request, res: Response) => {
     const productFilter: mongoose.FilterQuery<IProduct> = { seller: userId };
 
     if (typeof search === "string") {
-      productFilter.title = { $regex: search, $options: "i" };
+      productFilter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
     }
     if (category) {
       productFilter.category = {
@@ -361,8 +386,11 @@ export const getUserByIdProducts = async (req: Request, res: Response) => {
         $in: Array.isArray(category) ? category : [category],
       };
     }
-    if (typeof condition === "string") {
-      productFilter.condition = condition;
+    if (typeof search === "string") {
+      productFilter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
     }
     if (minPrice || maxPrice) {
       productFilter.price = {};

@@ -5,6 +5,7 @@ export interface Product {
   images: string[];
   category: string;
   condition: string;
+  description: string;
   seller: {
     _id: string;
     email: string;

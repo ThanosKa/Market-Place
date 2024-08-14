@@ -29,6 +29,7 @@ export interface IProduct extends Document {
   condition: (typeof CONDITION_TYPES)[number];
   seller: mongoose.Types.ObjectId;
   likes: mongoose.Types.ObjectId[];
+  description?: string;
 }
 
 const ProductSchema: Schema = new Schema(
@@ -44,6 +45,7 @@ const ProductSchema: Schema = new Schema(
       required: true,
     },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    description: { type: String },
   },
   { timestamps: true }
 );

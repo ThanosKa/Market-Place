@@ -1,20 +1,18 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# Dependencies
 node_modules/
 
 # Expo
 .expo/
 dist/
 web-build/
-
-# Native
-*.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.orig.*
 
 # Metro
 .metro-health-check*
@@ -30,8 +28,29 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
 
 # typescript
 *.tsbuildinfo
 
-.env
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+
+# iOS
+ios/Pods/
+ios/build/
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties

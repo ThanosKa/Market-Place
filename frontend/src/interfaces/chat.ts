@@ -37,6 +37,7 @@ export interface PaginatedChatDetails {
   totalPages: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
+  totalMessages: number;
 }
 
 export interface ChatDetails {

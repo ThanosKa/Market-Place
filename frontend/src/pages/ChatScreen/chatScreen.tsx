@@ -235,9 +235,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         <>
           {renderSeparator({ type: "older-messages" })}
           <ActivityIndicator size="small" color={colors.secondary} />
-          {/* <Text style={styles.olderMessagesText}>
-            {t("loading-older-messages")}
-          </Text> */}
         </>
       );
     }

@@ -42,7 +42,9 @@ export const getActivities = async (): Promise<GetActivitiesResponse> => {
     const response = await axiosInstance.get<GetActivitiesResponse>(
       "/activities"
     );
-    return response.data;
+    const data = response.data;
+    // console.log("data", data);
+    return data;
   } catch (error) {
     console.error("Error fetching activities:", error);
     throw error;

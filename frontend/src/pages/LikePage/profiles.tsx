@@ -42,6 +42,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
 
   const handleUserPress = async (userId: string) => {
     const loggedUserId = await getUserId();
+    console.log("userId", userId);
     if (loggedUserId === userId) {
       navigation.navigate("MainTabs");
       navigation.navigate("Profile", { refreshProfile: Date.now() });
@@ -49,7 +50,12 @@ const RenderLikedProfiles: React.FC<Props> = ({
       navigation.navigate("UserProfile", { userId });
     }
   };
-
+  const handleProductPress = useCallback(
+    (productId: string) => {
+      navigation.navigate("Product", { productId });
+    },
+    [navigation]
+  );
   const handleToggleUserLike = useCallback(
     (userId: string) => {
       setRemovingUsers((prev) => [...prev, userId]);
@@ -132,7 +138,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
           {productCount > 0 ? (
             <View style={styles.productGrid}>
               {productsToShow.map((product, index) => (
-                <View
+                <TouchableOpacity
                   key={index}
                   style={[
                     styles.gridItem,
@@ -142,6 +148,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
                     productCount >= 3 && index === 2 && styles.thirdGridItem,
                     productCount >= 4 && index === 3 && styles.fourthGridItem,
                   ]}
+                  onPress={() => handleProductPress(product._id)}
                 >
                   <Image
                     source={{ uri: `${BASE_URL}${product.images[0]}` }}
@@ -154,7 +161,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
                       </Text>
                     </View>
                   )}
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           ) : (
@@ -164,7 +171,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
             </View>
           )}
           <View style={styles.profileDetails}>
-            <TouchableOpacity onPress={() => handleUserPress(item.id)}>
+            <TouchableOpacity onPress={() => handleUserPress(item._id)}>
               <View style={styles.profileNameContainer}>
                 <View style={styles.profileImageNameContainer}>
                   <Image
@@ -208,6 +215,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
       navigation,
       handleUserPress,
       renderStars,
+      handleProductPress,
     ]
   );
 

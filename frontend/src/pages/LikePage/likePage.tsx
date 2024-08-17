@@ -73,7 +73,7 @@ const LikesPage: React.FC<Props> = () => {
   const renderContent = () => {
     if (activeTab === "liked-products") {
       if (isLoadingProducts) {
-        return <ActivityIndicator size="small" color={colors.primary} />;
+        return <ActivityIndicator size="small" color={colors.secondary} />;
       }
 
       if (productsError) {
@@ -88,7 +88,7 @@ const LikesPage: React.FC<Props> = () => {
       );
     } else {
       if (isLoadingProfiles) {
-        return <ActivityIndicator size="small" color={colors.primary} />;
+        return <ActivityIndicator size="small" color={colors.secondary} />;
       }
 
       if (profilesError) {

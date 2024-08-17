@@ -96,6 +96,7 @@ const EditProductForm: React.FC<EditProductFormProps> = ({
         value={editedProduct.condition || null}
         items={conditions.map((cond) => ({
           label: t(cond.label),
+
           value: cond.value,
         }))}
         setOpen={setConditionOpen}

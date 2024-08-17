@@ -15,6 +15,9 @@ import { Product } from "../../interfaces/product";
 import { toggleLikeProduct } from "../../services/likes";
 import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { useNavigation } from "@react-navigation/native";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
 
 type Props = {
   likedProductsData: Product[] | undefined;
@@ -28,13 +31,18 @@ const RenderLikedProducts: React.FC<Props> = ({
   const { t } = useTranslation();
   const [removingProducts, setRemovingProducts] = useState<string[]>([]);
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
-
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
   const toggleProductLikeMutation = useMutation(toggleLikeProduct, {
     onSuccess: () => {
       queryClient.invalidateQueries("likedProducts");
     },
   });
-
+  const handleProductPress = useCallback(
+    (productId: string) => {
+      navigation.navigate("Product", { productId });
+    },
+    [navigation]
+  );
   const handleToggleProductLike = useCallback(
     (productId: string) => {
       setRemovingProducts((prev) => [...prev, productId]);
@@ -78,10 +86,12 @@ const RenderLikedProducts: React.FC<Props> = ({
         <Animated.View
           style={[styles.productItem, { opacity: fadeAnims.current[item._id] }]}
         >
-          <Image
-            source={{ uri: `${BASE_URL}${item.images[0]}` }}
-            style={styles.productImage}
-          />
+          <TouchableOpacity onPress={() => handleProductPress(item._id)}>
+            <Image
+              source={{ uri: `${BASE_URL}${item.images[0]}` }}
+              style={styles.productImage}
+            />
+          </TouchableOpacity>
           <View style={styles.productInfo}>
             <Text style={styles.productPrice}>${item.price}</Text>
             <TouchableOpacity

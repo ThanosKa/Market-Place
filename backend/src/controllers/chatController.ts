@@ -305,12 +305,18 @@ export const sendMessage = async (req: Request, res: Response) => {
       });
     }
 
-    const chat = await Chat.findOne({ _id: chatId, participants: userId });
+    // Check if the user is a participant in the chat
+    const chat = await Chat.findOne({
+      _id: chatId,
+      participants: userId,
+      deletedFor: { $not: { $elemMatch: { user: userId } } },
+    });
 
     if (!chat) {
       return res.status(403).json({
         success: 0,
-        message: "Access denied. You are not a participant in this chat.",
+        message:
+          "Access denied. You are not a participant in this chat or the chat has been deleted.",
         data: null,
       });
     }

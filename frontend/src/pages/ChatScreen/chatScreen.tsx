@@ -281,7 +281,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
           onEndReachedThreshold={0.1}
           ListFooterComponent={renderFooter}
           onScroll={handleScroll}
-          scrollEventThrottle={16}
+          scrollEventThrottle={20}
         />
       )}
       <Animated.View

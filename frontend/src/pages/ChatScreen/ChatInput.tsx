@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
 import * as ImagePicker from "expo-image-picker";
 import CameraComponent from "../sell/CameraComponent";
+import { t } from "i18next";
 
 interface TextInputComponentProps extends TextInputProps {
   handleSendMessage: (text: string, images: string[]) => void;
@@ -118,7 +119,7 @@ const ChatInput: React.FC<TextInputComponentProps> = ({
             value={value}
             onChangeText={onChangeText}
             onContentSizeChange={handleContentSizeChange}
-            placeholder="Type a message..."
+            placeholder={t("message")}
             placeholderTextColor="#8e8e8e"
             multiline
             {...props}

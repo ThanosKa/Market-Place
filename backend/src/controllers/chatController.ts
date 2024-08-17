@@ -291,6 +291,67 @@ export const getChatMessages = async (req: Request, res: Response) => {
     });
   }
 };
+export const getUnreadChatsCount = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const unreadChatsCount = await Chat.aggregate([
+      {
+        $match: {
+          participants: userId,
+          deletedFor: { $not: { $elemMatch: { user: userId } } },
+        },
+      },
+      {
+        $addFields: {
+          hasUnreadMessages: {
+            $gt: [
+              {
+                $size: {
+                  $filter: {
+                    input: "$messages",
+                    as: "message",
+                    cond: {
+                      $and: [
+                        { $ne: ["$$message.sender", userId] },
+                        { $eq: ["$$message.seen", false] },
+                      ],
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $match: {
+          hasUnreadMessages: true,
+        },
+      },
+      {
+        $count: "unreadChatsCount",
+      },
+    ]);
+
+    const count =
+      unreadChatsCount.length > 0 ? unreadChatsCount[0].unreadChatsCount : 0;
+
+    res.json({
+      success: 1,
+      message: "Unread chats count retrieved successfully",
+      data: { unreadChatsCount: count },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;

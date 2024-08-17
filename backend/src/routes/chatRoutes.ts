@@ -1,4 +1,3 @@
-// chatRoutes.ts
 import express from "express";
 import {
   createChat,
@@ -9,6 +8,7 @@ import {
   editMessage,
   deleteChat,
   markMessagesAsSeen,
+  getUnreadChatsCount, // Add this new controller function
 } from "../controllers/chatController";
 import { auth } from "../middleware/auth";
 import { uploadChatImages } from "../utils/uploadUtil";
@@ -41,5 +41,6 @@ router.delete(
 );
 router.delete("/:chatId", auth, ensureChatParticipant, deleteChat);
 router.post("/:chatId/seen", auth, ensureChatParticipant, markMessagesAsSeen);
+router.get("/unread-count", auth, getUnreadChatsCount); // Add this new route
 
 export default router;

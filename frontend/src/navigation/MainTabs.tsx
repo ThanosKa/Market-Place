@@ -44,7 +44,6 @@ const MainTabs: React.FC = () => {
   const unseenActivitiesCount = useSelector(
     (state: RootState) => state.user.unseenActivitiesCount
   );
-  console.log("unseenActivitiesCount", unseenActivitiesCount);
 
   return (
     <UnseenActivitiesProvider>

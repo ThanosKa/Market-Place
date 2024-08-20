@@ -45,7 +45,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
     console.log("userId", userId);
     if (loggedUserId === userId) {
       navigation.navigate("MainTabs");
-      navigation.navigate("Profile", { refreshProfile: Date.now() });
+      navigation.navigate("Profile", {});
     } else {
       navigation.navigate("UserProfile", { userId });
     }

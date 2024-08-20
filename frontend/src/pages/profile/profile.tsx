@@ -185,6 +185,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const user: User = userDetails.data.user;
   const totalProducts = userDetails.data.totalProducts;
+  const totalLikes = userDetails.data.totalLikes;
+
   const tabs = [
     { key: "profile", label: t("profile") },
     { key: "listings", label: t("listings") },
@@ -200,7 +202,11 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <UserInfo user={user} totalProducts={totalProducts} />
+        <UserInfo
+          user={user}
+          totalProducts={totalProducts}
+          totalLikes={totalLikes}
+        />
         <TabSelector
           tabs={tabs}
           activeTab={activeTab}

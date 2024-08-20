@@ -415,27 +415,6 @@ export const sendMessage = async (req: Request, res: Response) => {
       select: "firstName lastName email username",
     });
 
-    const recipientId = chat.participants.find(
-      (participantId) => !participantId.equals(userId)
-    );
-    if (recipientId) {
-      let activityContent = "New message";
-      if (content) {
-        activityContent += `: ${content.substring(0, 50)}${
-          content.length > 50 ? "..." : ""
-        }`;
-      } else if (images.length > 0) {
-        activityContent += " with image(s)";
-      }
-      await createActivity(
-        recipientId.toString(),
-        "message",
-        userId.toString(),
-        activityContent,
-        chatId
-      );
-    }
-
     res.json({
       success: 1,
       message: "Message sent successfully",

@@ -67,3 +67,15 @@ export interface UserResponse {
     user: User;
   };
 }
+
+// interfaces/user.ts
+
+export interface UserDetailsResponse {
+  success: number;
+  message: string;
+  data: {
+    user: User;
+    totalProducts: number;
+    totalLikes: number;
+  };
+}

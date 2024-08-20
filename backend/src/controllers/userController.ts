@@ -367,12 +367,16 @@ export const getUserDetails = async (req: Request, res: Response) => {
     // Get total products count
     const totalProducts = await Product.countDocuments({ seller: userId });
 
+    // Get total likes received from other users
+    const totalLikes = await User.countDocuments({ likedUsers: userId });
+
     res.json({
       success: 1,
       message: "User details retrieved successfully",
       data: {
         user: formattedUser,
         totalProducts,
+        totalLikes,
       },
     });
   } catch (err) {
@@ -402,12 +406,16 @@ export const getUserById = async (req: Request, res: Response) => {
     // Get total products count
     const totalProducts = await Product.countDocuments({ seller: user._id });
 
+    // Get total likes received from other users
+    const totalLikes = await User.countDocuments({ likedUsers: user._id });
+
     res.json({
       success: 1,
       message: "User retrieved successfully",
       data: {
         user: formattedUser,
         totalProducts,
+        totalLikes,
       },
     });
   } catch (err) {
@@ -458,6 +466,12 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
               reviewCount
             : 0;
 
+        // Get total products count for the user
+        const totalProducts = await User.countDocuments({ seller: user._id });
+
+        // Get total likes received from other users
+        const totalLikes = await User.countDocuments({ likedUsers: user._id });
+
         return {
           id: user._id,
           email: user.email,
@@ -467,6 +481,8 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
           bio: user.bio,
           reviewCount,
           averageRating: parseFloat(averageRating.toFixed(1)),
+          totalProducts,
+          totalLikes,
         };
       })
     );

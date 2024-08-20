@@ -106,7 +106,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
     const loggedUserId = await getUserId();
     if (loggedUserId === userId) {
       navigation.navigate("MainTabs");
-      navigation.navigate("Profile", { refreshProfile: Date.now() });
+      navigation.navigate("Profile", {});
     } else {
       navigation.navigate("UserProfile", { userId });
     }

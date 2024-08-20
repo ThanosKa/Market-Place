@@ -148,19 +148,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         ))}
       </View>
       {hasNextPage && (
-        <TouchableOpacity
-          style={styles.loadMoreButton}
-          onPress={() => fetchNextPage()}
-          disabled={isFetchingNextPage}
-        >
-          <View style={styles.loadMoreContent}>
-            {isFetchingNextPage ? (
-              <ActivityIndicator size="small" color={colors.secondary} />
-            ) : (
-              <Text style={styles.loadMoreText}>{t("load-more")}</Text>
-            )}
+        <View style={styles.loadMoreContainer}>
+          <View style={styles.separatorLine} />
+          <View style={styles.loadMoreButtonContainer}>
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <ActivityIndicator size="small" color={colors.secondary} />
+              ) : (
+                <Text style={styles.loadMoreText}>{t("load-more")}</Text>
+              )}
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+          <View style={styles.separatorLine} />
+        </View>
       )}
     </View>
   );
@@ -189,14 +193,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
+  loadMoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.secondary,
+  },
+  loadMoreButtonContainer: {
+    paddingHorizontal: 15,
+  },
   loadMoreButton: {
     alignItems: "center",
     justifyContent: "center",
-    // padding: 10,
-    // marginTop: 10,
-  },
-  loadMoreContent: {
-    paddingBottom: 30,
+    paddingVertical: 10,
   },
   loadMoreText: {
     color: colors.secondary,

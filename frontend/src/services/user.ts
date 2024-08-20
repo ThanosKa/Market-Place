@@ -1,5 +1,6 @@
 import { User } from "../interfaces/user";
 import axiosInstance, { axiosFormDataInstance } from "./axiosConfig";
+import { UserDetailsResponse } from "../interfaces/user";
 
 export interface ApiResponse {
   success: number;
@@ -66,8 +67,10 @@ export const getUserById = async (userId: string) => {
   return response.data;
 };
 
-export const getUserDetails = async () => {
-  const response = await axiosInstance.get("/users/details");
+export const getUserDetails = async (): Promise<UserDetailsResponse> => {
+  const response = await axiosInstance.get<UserDetailsResponse>(
+    "/users/details"
+  );
   return response.data;
 };
 

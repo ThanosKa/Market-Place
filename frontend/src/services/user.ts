@@ -47,18 +47,24 @@ export const getLoggedUser = async (params?: {
     throw error;
   }
 };
+
 export const editUser = async (
   formData: FormData
 ): Promise<ApiResponse | null> => {
   try {
     const response = await axiosFormDataInstance.put<ApiResponse>(
       "/users",
-      formData
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   } catch (error) {
     console.error("Error editing user:", error);
-    return null; // Return null instead of throwing
+    return null;
   }
 };
 

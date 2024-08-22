@@ -19,7 +19,6 @@ import { useTranslation } from "react-i18next";
 import { useMutation } from "react-query";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { axiosFormDataInstance } from "../../services/axiosConfig";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import CameraComponent from "./CameraComponent";
 import ImageGallery from "./ImageGallery";

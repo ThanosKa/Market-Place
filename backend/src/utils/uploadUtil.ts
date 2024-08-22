@@ -22,7 +22,7 @@ const storage = (
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
       cb(
         null,
-        `${filenamePrefix}-${uniqueSuffix}${path.extname(file.originalname)}`
+        `${filenamePrefix}${uniqueSuffix}${path.extname(file.originalname)}`
       );
     },
   });
@@ -31,12 +31,12 @@ export const upload = (folder: string, fileCount: number = 1) =>
   multer({ storage: storage(folder, "images-") }).array("images", fileCount);
 
 export const uploadSingle = (folder: string) =>
-  multer({ storage: storage(folder, "profile-") }).single("profilePicture");
+  multer({ storage: storage(folder, "profilePicture-") }).single(
+    "profilePicture"
+  );
 
-// New middleware for chat message images
 export const uploadChatImages = multer({
   storage: storage("uploads/", "chatIMG-"),
-
   fileFilter: (req, file, cb) => {
     const allowedMimes = ["image/jpeg", "image/png", "image/gif"];
     if (allowedMimes.includes(file.mimetype)) {

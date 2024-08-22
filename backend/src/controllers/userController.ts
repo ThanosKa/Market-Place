@@ -5,7 +5,8 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import { emailSchema } from "../utils/email";
 import Activity from "../models/Activity";
-
+import path from "path";
+import fs from "fs";
 import Review from "../models/Review";
 import { formatUserData, formatUserProfileData } from "../utils/formatUserData";
 
@@ -221,8 +222,8 @@ export const editUser = async (req: Request, res: Response) => {
       currentPassword,
       newPassword,
       confirmNewPassword,
+      removeProfilePicture,
     } = req.body;
-    const profilePicture = req.file;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -237,7 +238,6 @@ export const editUser = async (req: Request, res: Response) => {
     if (email && email !== user.email) {
       try {
         await emailSchema.validate(email);
-        // Check if the new email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
           return res.status(400).json({
@@ -260,7 +260,26 @@ export const editUser = async (req: Request, res: Response) => {
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
     if (bio) user.bio = bio;
-    if (profilePicture) user.profilePicture = profilePicture.path;
+
+    // Handle profile picture update or removal
+    if (removeProfilePicture === "true") {
+      if (user.profilePicture) {
+        const fullPath = path.join(process.cwd(), user.profilePicture);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      }
+      user.profilePicture = null;
+    } else if (req.file) {
+      // Remove old profile picture if it exists
+      if (user.profilePicture) {
+        const fullPath = path.join(process.cwd(), user.profilePicture);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      }
+      user.profilePicture = path.join("uploads", req.file.filename);
+    }
 
     // Update password if provided
     if (newPassword) {
@@ -321,6 +340,41 @@ export const editUser = async (req: Request, res: Response) => {
     });
   }
 };
+export const removeProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    user.profilePicture = null;
+    await user.save();
+
+    res.json({
+      success: 1,
+      message: "Profile picture removed successfully",
+      data: {
+        user: {
+          id: user.id,
+          profilePicture: user.profilePicture,
+        },
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -348,7 +402,6 @@ export const deleteUser = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserDetails = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);

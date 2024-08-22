@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { Camera, CameraType, FlashMode } from "expo-camera/legacy";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,12 +17,15 @@ interface CameraComponentProps {
   onClose: () => void;
   onPickImages: (uris: string[]) => void;
   currentImageCount: number;
+  showGallery?: boolean;
 }
+
 const CameraComponent: React.FC<CameraComponentProps> = ({
   onCapture,
   onClose,
   onPickImages,
   currentImageCount,
+  showGallery = true,
 }) => {
   const { t } = useTranslation();
   const [type, setType] = useState<CameraType>(CameraType.back);
@@ -55,9 +59,11 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
       }
     }
   };
+
   const handleClose = () => {
     onClose();
   };
+
   const handlePickImages = async () => {
     setIsSelectingImages(true);
     try {
@@ -75,7 +81,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
 
         onPickImages(selectedUris.slice(0, remainingSlots));
         console.log("CameraComponent: Closing camera");
-        onClose(); // Close the camera component after selecting images
+        onClose();
       } else {
         console.log(
           "CameraComponent: Image selection cancelled or no images selected"
@@ -87,6 +93,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
       setIsSelectingImages(false);
     }
   };
+
   return (
     <View style={styles.fullScreenContainer}>
       <Camera
@@ -119,24 +126,35 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
         )}
       </Camera>
       <View style={styles.cameraBottomContainer}>
-        <TouchableOpacity
-          style={styles.cameraButton}
-          onPress={handlePickImages}
-          disabled={isSelectingImages}
-        >
-          <Ionicons name="images" size={32} color="white" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.captureButton} onPress={takePicture} />
-        <TouchableOpacity
-          style={styles.cameraButton}
-          onPress={toggleCameraType}
-        >
-          <Ionicons name="camera-reverse" size={32} color="white" />
-        </TouchableOpacity>
+        <View style={styles.bottomButtonsWrapper}>
+          {showGallery ? (
+            <TouchableOpacity
+              style={styles.cameraButton}
+              onPress={handlePickImages}
+              disabled={isSelectingImages}
+            >
+              <Ionicons name="images" size={32} color="white" />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.placeholderButton} />
+          )}
+          <TouchableOpacity
+            style={styles.captureButton}
+            onPress={takePicture}
+          />
+          <TouchableOpacity
+            style={styles.cameraButton}
+            onPress={toggleCameraType}
+          >
+            <Ionicons name="camera-reverse" size={32} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 };
+
+const { width: screenWidth } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   fullScreenContainer: {
@@ -145,23 +163,28 @@ const styles = StyleSheet.create({
   fullScreenCamera: {
     flex: 1,
   },
-
   cameraBottomContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    padding: 20,
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    zIndex: 1,
+    paddingBottom: 20,
+  },
+  bottomButtonsWrapper: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    width: screenWidth,
   },
   cameraButton: {
     backgroundColor: "rgba(0,0,0,0.6)",
     padding: 20,
     borderRadius: 30,
-    zIndex: 2,
+  },
+  placeholderButton: {
+    width: 72, // Same width as cameraButton
+    height: 72, // Same height as cameraButton
   },
   cameraTopContainer: {
     flexDirection: "row",
@@ -171,7 +194,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 2, // Increased from 1
+    zIndex: 2,
   },
   captureButton: {
     width: 70,

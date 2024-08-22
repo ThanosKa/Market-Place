@@ -1,4 +1,11 @@
 {
+  "remove-image": "Remove Image",
+  "remove-image-confirmation": "Are you sure you want to remove this image?",
+  "add-image": "Add Image",
+  "take-picture": "Take picture",
+  "choose-from-gallery": "Choose from gallery",
+  "remove-photo": "Remove photo",
+  "gallery-error": "Error accessing gallery",
   "load-more": "Load more",
   "profile-likes": "Total profile likes",
   "member-since": "Member since",

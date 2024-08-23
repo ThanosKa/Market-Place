@@ -1,11 +1,10 @@
-// controllers/activityController.ts
-
 import { Request, Response } from "express";
 import Activity, { IActivity } from "../models/Activity";
 import mongoose from "mongoose";
+
 export const createActivity = async (
   userId: string,
-  type: "message" | "product_like" | "profile_like" | "review",
+  type: "product_like" | "profile_like" | "review",
   senderId: string,
   content: string,
   productId?: string
@@ -52,7 +51,6 @@ export const getActivities = async (req: Request, res: Response) => {
       .populate("sender", "firstName lastName profilePicture")
       .populate("product", "title images");
 
-    // Count unseen activities
     const unseenCount = await Activity.countDocuments({
       user: userId,
       read: false,
@@ -77,6 +75,7 @@ export const getActivities = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const markActivityAsRead = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

@@ -6,13 +6,14 @@ import chatRoutes from "./routes/chatRoutes";
 import likeRoutes from "./routes/likeRoutes";
 import productRoutes from "./routes/productRoutes";
 import reviewRoutes from "./routes/reviewRoutes";
-import { connectDatabase } from "./config/database";
 import path from "path";
 import swaggerUi from "swagger-ui-express";
 import specs from "./docs/swaggerConfig";
 import morgan from "morgan";
 import recentSearchRoutes from "./routes/recentSearchRoutes";
 import activityRoutes from "./routes/activityRoutes";
+import fs from "fs";
+import { connectDatabase } from "./config/database";
 
 dotenv.config();
 
@@ -45,8 +46,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-import fs from "fs";
 
 // Route to get a list of uploaded image URLs
 app.get("/api/uploaded-images", (req, res) => {

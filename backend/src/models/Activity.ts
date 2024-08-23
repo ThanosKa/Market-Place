@@ -1,9 +1,8 @@
-// models/Activity.ts
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IActivity extends Document {
   user: mongoose.Types.ObjectId;
-  type: "message" | "product_like" | "profile_like" | "review";
+  type: "product_like" | "profile_like" | "review";
   sender: mongoose.Types.ObjectId;
   content: string;
   product?: mongoose.Types.ObjectId;
@@ -16,7 +15,7 @@ const ActivitySchema: Schema = new Schema({
   type: {
     type: String,
     required: true,
-    enum: ["message", "product_like", "profile_like", "review"],
+    enum: ["product_like", "profile_like", "review"],
   },
   sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
   content: { type: String, required: true },

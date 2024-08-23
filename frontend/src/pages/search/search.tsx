@@ -14,7 +14,7 @@ import {
   useQueryClient,
 } from "react-query";
 import debounce from "lodash.debounce";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 
 import { colors } from "../../colors/colors";
 import SearchBar from "../../components/SearchBarComponenet";
@@ -32,10 +32,13 @@ import {
 } from "../../services/recentSearch";
 
 import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { StackNavigationProp } from "@react-navigation/stack";
 
 type SearchScreenRouteProp = RouteProp<MainStackParamList, "Search">;
 
 const SearchScreen = () => {
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const route = useRoute<SearchScreenRouteProp>();
@@ -116,7 +119,8 @@ const SearchScreen = () => {
 
   const deleteRecentSearchMutation = useMutation(deleteRecentSearch, {
     onSuccess: () => {
-      queryClient.invalidateQueries("recentSearches");
+      // queryClient.invalidateQueries("recentSearches");
+      refetchRecentSearches();
     },
   });
 
@@ -157,11 +161,14 @@ const SearchScreen = () => {
   };
 
   const handleClickRecentSearch = (productId: string) => {
-    console.log("Recent search product clicked:", productId);
+    // console.log("Recent search product clicked:", productId);
+    navigation.navigate("Product", { productId });
   };
 
   const handleClickSearchedProduct = (productId: string) => {
-    console.log("Searched product clicked:", productId);
+    // console.log("Searched product clicked:", productId);
+    navigation.navigate("Product", { productId });
+
     addRecentSearchMutation.mutate({
       query: searchQuery,
       productId: productId,

@@ -10,6 +10,9 @@ import {
 import { Product } from "../../../interfaces/product";
 import { BASE_URL } from "../../../services/axiosConfig";
 import { colors } from "../../../colors/colors";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../../interfaces/auth/navigation";
 
 interface ProductGridProps {
   products: Product[];
@@ -26,8 +29,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   hasMore,
   isLoadingMore,
 }) => {
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+
   const handleClickProduct = (product: Product) => {
     console.log("Product clicked:", product._id);
+    navigation.navigate("Product", { productId: product._id });
   };
 
   const renderProductGrid = ({ item }: { item: Product }) => (

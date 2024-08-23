@@ -1,4 +1,12 @@
 {
+  "messages": "Messages",
+  "favorites": "Favorites",
+  "product": "Product",
+  "search-for-products": "Search for products",
+  "recent-searches": "Recent searches",
+  "clear-all": "Clear all",
+  "Search": "Search",
+  "no-recent-searches": "You have no recent searches",
   "remove-image": "Remove image",
   "remove-image-confirmation": "Are you sure you want to remove this image?",
   "add-image": "Add Image",

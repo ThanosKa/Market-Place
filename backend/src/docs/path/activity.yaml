@@ -176,7 +176,7 @@ components:
           type: string
         type:
           type: string
-          enum: [message, product_like, profile_like, review]
+          enum: [product_like, profile_like, review]
         sender:
           $ref: "#/components/schemas/User"
         content:

@@ -1,189 +1,167 @@
-/api/users:
-  get:
-    summary: Get all users
-    tags:
-      - Users
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: Users retrieved successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UsersResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "500":
-        $ref: "#/components/responses/ServerError"
-
-  put:
-    summary: Edit user
-    tags:
-      - Users
-    security:
-      - BearerAuth: []
-    requestBody:
-      content:
-        multipart/form-data:
+paths:
+  /api/users:
+    get:
+      summary: Get all users
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
           schema:
-            $ref: "#/components/schemas/UserEditRequest"
-    responses:
-      "200":
-        description: User updated successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserEditResponse"
-      "400":
-        $ref: "#/components/responses/BadRequest"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-  delete:
-    summary: Delete user
-    tags:
-      - Users
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: User deleted successfully
+    put:
+      summary: Edit user
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/SuccessResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+              $ref: "#/components/schemas/UserEditRequest"
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEditResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-/api/users/me:
-  get:
-    summary: Get logged in user
-    tags:
-      - Users
-    security:
-      - BearerAuth: []
-    parameters:
-      - $ref: "#/components/parameters/ProductFilterParams"
-    responses:
-      "200":
-        description: Logged in user retrieved successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete user
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-/api/users/details:
-  get:
-    summary: Get user details
-    tags:
-      - Users
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: User details retrieved successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserDetailsResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+  /api/users/profile-picture:
+    delete:
+      summary: Remove profile picture
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Profile picture removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilePictureResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-/api/users/{id}:
-  get:
-    summary: Get user by ID
-    tags:
-      - Users
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
-    responses:
-      "200":
-        description: User retrieved successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserDetailsResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+  /api/users/details:
+    get:
+      summary: Get user details
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: User details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailsResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/users/{id}:
+    get:
+      summary: Get user by ID
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailsResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/users/all:
+    get:
+      summary: Get all users info
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Users info retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AllUsersInfoResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
 components:
-  parameters:
-    ProductFilterParams:
-      - in: query
-        name: search
-        schema:
-          type: string
-      - in: query
-        name: category
-        schema:
-          type: array
-          items:
-            type: string
-        style: form
-        explode: false
-      - in: query
-        name: condition
-        schema:
-          type: string
-      - in: query
-        name: minPrice
-        schema:
-          type: number
-      - in: query
-        name: maxPrice
-        schema:
-          type: number
-      - in: query
-        name: sort
-        schema:
-          type: string
-        default: createdAt
-      - in: query
-        name: order
-        schema:
-          type: string
-        enum: [asc, desc]
-        default: desc
-      - in: query
-        name: page
-        schema:
-          type: integer
-        default: 1
-      - in: query
-        name: limit
-        schema:
-          type: integer
-        default: 10
-
   schemas:
     User:
       type: object
@@ -225,6 +203,8 @@ components:
           type: string
         confirmNewPassword:
           type: string
+        removeProfilePicture:
+          type: string
         profilePicture:
           type: string
           format: binary
@@ -233,7 +213,7 @@ components:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [1]
         message:
           type: string
@@ -244,34 +224,18 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/User"
-
-    UserResponse:
-      type: object
-      properties:
-        success:
-          type: number
-          enum: [1]
-        message:
-          type: string
-        data:
-          type: object
-          properties:
-            user:
-              $ref: "#/components/schemas/User"
+            total:
+              type: integer
             page:
-              type: number
+              type: integer
             limit:
-              type: number
-            totalProducts:
-              type: number
-            totalPages:
-              type: number
+              type: integer
 
     UserDetailsResponse:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [1]
         message:
           type: string
@@ -281,13 +245,15 @@ components:
             user:
               $ref: "#/components/schemas/User"
             totalProducts:
-              type: number
+              type: integer
+            totalLikes:
+              type: integer
 
     UserEditResponse:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [1]
         message:
           type: string
@@ -310,11 +276,73 @@ components:
                 profilePicture:
                   type: string
 
+    ProfilePictureResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                profilePicture:
+                  type: string
+
+    AllUsersInfoResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  email:
+                    type: string
+                  firstName:
+                    type: string
+                  lastName:
+                    type: string
+                  profilePicture:
+                    type: string
+                  bio:
+                    type: string
+                  reviewCount:
+                    type: integer
+                  averageRating:
+                    type: number
+                  totalProducts:
+                    type: integer
+                  totalLikes:
+                    type: integer
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+
     ErrorResponse:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [0]
         message:
           type: string
@@ -325,7 +353,7 @@ components:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [1]
         message:
           type: string

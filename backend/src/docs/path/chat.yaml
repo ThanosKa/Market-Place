@@ -1,281 +1,386 @@
-/api/chats:
-  post:
-    summary: Create a new chat
-    tags:
-      - Chats
-    security:
-      - BearerAuth: []
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - participantId
-            properties:
-              participantId:
-                type: string
-    responses:
-      "201":
-        description: Chat created successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ChatResponse"
-      "400":
-        description: Chat already exists
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ErrorResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "500":
-        $ref: "#/components/responses/ServerError"
-
-  get:
-    summary: Get user's chats
-    tags:
-      - Chats
-    security:
-      - BearerAuth: []
-    responses:
-      "200":
-        description: Chats retrieved successfully
+paths:
+  /chats:
+    post:
+      summary: Create a new chat
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - participantId
               properties:
-                success:
-                  type: number
-                  enum: [1]
-                message:
+                participantId:
                   type: string
-                data:
-                  type: object
-                  properties:
-                    chats:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Chat"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "500":
-        $ref: "#/components/responses/ServerError"
+      responses:
+        "201":
+          description: Chat created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "200":
+          description: Chat already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-/api/chats/{chatId}:
-  get:
-    summary: Get chat messages
-    tags:
-      - Chats
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: path
-        name: chatId
-        required: true
-        schema:
-          type: string
-    responses:
-      "200":
-        description: Chat messages retrieved successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ChatResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+    get:
+      summary: Get user's chats
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Chats retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: integer
+                    enum: [1]
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      chats:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ChatPreview"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-/api/chats/{chatId}/messages:
-  post:
-    summary: Send a message
-    tags:
-      - Chats
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: path
-        name: chatId
-        required: true
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        application/json:
+  /chats/{chatId}:
+    get:
+      summary: Get chat messages
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: chatId
+          required: true
           schema:
-            type: object
-            required:
-              - content
-            properties:
-              content:
-                type: string
-    responses:
-      "200":
-        description: Message sent successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MessageResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
-
-/api/chats/{chatId}/messages/{messageId}:
-  put:
-    summary: Edit a message
-    tags:
-      - Chats
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: path
-        name: chatId
-        required: true
-        schema:
-          type: string
-      - in: path
-        name: messageId
-        required: true
-        schema:
-          type: string
-    requestBody:
-      required: true
-      content:
-        application/json:
+            type: string
+        - in: query
+          name: page
           schema:
-            type: object
-            required:
-              - content
-            properties:
-              content:
-                type: string
-    responses:
-      "200":
-        description: Message edited successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MessageResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "403":
-        description: Not authorized to edit this message
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ErrorResponse"
-      "404":
-        description: Chat or message not found
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ErrorResponse"
-      "500":
-        $ref: "#/components/responses/ServerError"
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Chat messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessagesResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-  delete:
-    summary: Delete a message
-    tags:
-      - Chats
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: path
-        name: chatId
-        required: true
-        schema:
-          type: string
-      - in: path
-        name: messageId
-        required: true
-        schema:
-          type: string
-    responses:
-      "200":
-        description: Message deleted successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SuccessResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        description: Chat or message not found
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ErrorResponse"
-      "500":
-        $ref: "#/components/responses/ServerError"
+    delete:
+      summary: Delete a chat
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chat deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
 
-/api/chats/{chatId}/seen:
-  post:
-    summary: Mark messages as seen
-    tags:
-      - Chats
-    security:
-      - BearerAuth: []
-    parameters:
-      - in: path
-        name: chatId
+  /chats/{chatId}/messages:
+    post:
+      summary: Send a message
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      requestBody:
         required: true
-        schema:
-          type: string
-    responses:
-      "200":
-        description: Messages marked as seen
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/SuccessResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
-      "500":
-        $ref: "#/components/responses/ServerError"
+              type: object
+              properties:
+                content:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /chats/{chatId}/messages/{messageId}:
+    put:
+      summary: Edit a message
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: Message edited successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Not authorized to edit this message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Chat or message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+    delete:
+      summary: Delete a message
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Message deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Chat or message not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /chats/{chatId}/seen:
+    post:
+      summary: Mark messages as seen
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Messages marked as seen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /chats/unread-count:
+    get:
+      summary: Get unread chats count
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Unread chats count retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: integer
+                    enum: [1]
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      unreadChatsCount:
+                        type: integer
+        "500":
+          $ref: "#/components/responses/ServerError"
 
 components:
   schemas:
-    Chat:
+    ChatPreview:
       type: object
       properties:
         _id:
           type: string
-        participants:
-          type: array
-          items:
-            $ref: "#/components/schemas/User"
-        messages:
-          type: array
-          items:
-            $ref: "#/components/schemas/Message"
-        createdAt:
+        otherParticipant:
+          $ref: "#/components/schemas/User"
+        lastMessage:
+          type: object
+          properties:
+            _id:
+              type: string
+            content:
+              type: string
+            images:
+              type: array
+              items:
+                type: string
+            sender:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            seen:
+              type: boolean
+            isOwnMessage:
+              type: boolean
+        unreadCount:
+          type: integer
+
+    ChatMessagesResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          enum: [1]
+        message:
           type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
+        data:
+          type: object
+          properties:
+            _id:
+              type: string
+            otherParticipant:
+              $ref: "#/components/schemas/User"
+            messages:
+              type: array
+              items:
+                $ref: "#/components/schemas/Message"
+            currentPage:
+              type: integer
+            totalPages:
+              type: integer
+            hasNextPage:
+              type: boolean
+            hasPreviousPage:
+              type: boolean
 
     Message:
       type: object
       properties:
         _id:
           type: string
-        sender:
-          $ref: "#/components/schemas/User"
         content:
           type: string
+        images:
+          type: array
+          items:
+            type: string
         timestamp:
           type: string
           format: date-time
@@ -283,6 +388,12 @@ components:
           type: boolean
         edited:
           type: boolean
+        isOwnMessage:
+          type: boolean
+        sender:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/User"
 
     User:
       type: object
@@ -293,16 +404,14 @@ components:
           type: string
         lastName:
           type: string
-        email:
-          type: string
-        username:
+        profilePicture:
           type: string
 
     ChatResponse:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [1]
         message:
           type: string
@@ -310,13 +419,13 @@ components:
           type: object
           properties:
             chat:
-              $ref: "#/components/schemas/Chat"
+              $ref: "#/components/schemas/ChatPreview"
 
     MessageResponse:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [1]
         message:
           type: string
@@ -330,32 +439,25 @@ components:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [1]
         message:
           type: string
         data:
-          type: null
+          type: "null"
 
     ErrorResponse:
       type: object
       properties:
         success:
-          type: number
+          type: integer
           enum: [0]
         message:
           type: string
         data:
-          type: null
+          type: "null"
 
   responses:
-    Unauthorized:
-      description: Unauthorized
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/ErrorResponse"
-
     NotFound:
       description: Not found
       content:

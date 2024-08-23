@@ -48,7 +48,7 @@ const ForgotPasswordScreen = () => {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     try {
       // Implement password reset logic here
-      console.log("Password reset attempted for:", data.email);
+      // console.log("Password reset attempted for:", data.email);
       // If successful, show a success message
       Toast.show({
         type: "success",

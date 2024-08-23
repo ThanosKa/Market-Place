@@ -80,12 +80,8 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
         const selectedUris = result.assets.map((asset) => asset.uri);
 
         onPickImages(selectedUris.slice(0, remainingSlots));
-        console.log("CameraComponent: Closing camera");
         onClose();
       } else {
-        console.log(
-          "CameraComponent: Image selection cancelled or no images selected"
-        );
       }
     } catch (error) {
       console.error("CameraComponent: Error picking images:", error);

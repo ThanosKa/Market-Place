@@ -42,7 +42,6 @@ const RenderLikedProfiles: React.FC<Props> = ({
 
   const handleUserPress = async (userId: string) => {
     const loggedUserId = await getUserId();
-    console.log("userId", userId);
     if (loggedUserId === userId) {
       navigation.navigate("MainTabs");
       navigation.navigate("Profile", {});

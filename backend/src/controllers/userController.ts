@@ -436,126 +436,126 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
   }
 };
 
-// export const getLoggedInUser = async (req: Request, res: Response) => {
-//   try {
-//     const {
-//       search,
-//       category,
-//       condition,
-//       minPrice,
-//       maxPrice,
-//       sort = "createdAt",
-//       order = "desc",
-//       page = 1,
-//       limit = 10,
-//     } = req.query;
+export const getLoggedInUser = async (req: Request, res: Response) => {
+  try {
+    const {
+      search,
+      category,
+      condition,
+      minPrice,
+      maxPrice,
+      sort = "createdAt",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
 
-//     const productFilter: mongoose.FilterQuery<IProduct> = {};
+    const productFilter: mongoose.FilterQuery<IProduct> = {};
 
-//     if (typeof search === "string") {
-//       productFilter.title = { $regex: search, $options: "i" };
-//     }
-//     if (category) {
-//       productFilter.category = {
-//         $in: Array.isArray(category) ? category : [category],
-//       };
-//     }
-//     if (typeof condition === "string") {
-//       productFilter.condition = condition;
-//     }
-//     if (minPrice || maxPrice) {
-//       productFilter.price = {};
-//       if (minPrice) productFilter.price.$gte = Number(minPrice);
-//       if (maxPrice) productFilter.price.$lte = Number(maxPrice);
-//     }
+    if (typeof search === "string") {
+      productFilter.title = { $regex: search, $options: "i" };
+    }
+    if (category) {
+      productFilter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
+    }
+    if (typeof condition === "string") {
+      productFilter.condition = condition;
+    }
+    if (minPrice || maxPrice) {
+      productFilter.price = {};
+      if (minPrice) productFilter.price.$gte = Number(minPrice);
+      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+    }
 
-//     const userId = new mongoose.Types.ObjectId((req as any).userId);
-//     const user = await User.findById(userId)
-//       .select("-password")
-//       .populate({
-//         path: "products",
-//         match: productFilter,
-//         options: {
-//           sort: { [sort as string]: order as mongoose.SortOrder },
-//           skip: (Number(page) - 1) * Number(limit),
-//           limit: Number(limit),
-//         },
-//         model: Product,
-//       })
-//       .populate({
-//         path: "likedProducts",
-//         model: Product,
-//       })
-//       .populate({
-//         path: "likedUsers",
-//         model: User,
-//         select: "-password",
-//         populate: {
-//           path: "products",
-//           model: Product,
-//           select:
-//             "title price images category condition seller likes createdAt updatedAt",
-//         },
-//       });
-//     if (!user) {
-//       return res.status(404).json({
-//         success: 0,
-//         message: "User not found",
-//         data: null,
-//       });
-//     }
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate({
+        path: "products",
+        match: productFilter,
+        options: {
+          sort: { [sort as string]: order as mongoose.SortOrder },
+          skip: (Number(page) - 1) * Number(limit),
+          limit: Number(limit),
+        },
+        model: Product,
+      })
+      .populate({
+        path: "likedProducts",
+        model: Product,
+      })
+      .populate({
+        path: "likedUsers",
+        model: User,
+        select: "-password",
+        populate: {
+          path: "products",
+          model: Product,
+          select:
+            "title price images category condition seller likes createdAt updatedAt",
+        },
+      });
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
 
-//     const reviews = await Review.find({
-//       $or: [{ reviewer: userId }, { reviewee: userId }],
-//     })
-//       .populate("reviewer", "firstName lastName profilePicture")
-//       .populate("reviewee", "firstName lastName profilePicture")
-//       .populate("product", "title images")
-//       .sort({ createdAt: -1 });
+    const reviews = await Review.find({
+      $or: [{ reviewer: userId }, { reviewee: userId }],
+    })
+      .populate("reviewer", "firstName lastName profilePicture")
+      .populate("reviewee", "firstName lastName profilePicture")
+      .populate("product", "title images")
+      .sort({ createdAt: -1 });
 
-//     const activities = await Activity.find({ user: user._id })
-//       .populate("sender", "firstName lastName profilePicture")
-//       .populate("product", "title images")
-//       .sort({ createdAt: -1 });
+    const activities = await Activity.find({ user: user._id })
+      .populate("sender", "firstName lastName profilePicture")
+      .populate("product", "title images")
+      .sort({ createdAt: -1 });
 
-//     const unseenActivitiesCount = await Activity.countDocuments({
-//       user: user._id,
-//       read: false,
-//     });
+    const unseenActivitiesCount = await Activity.countDocuments({
+      user: user._id,
+      read: false,
+    });
 
-//     const userWithReviewsAndActivities = {
-//       ...user.toObject(),
-//       createdAt: user.createdAt,
-//       reviews,
-//       activities: {
-//         items: activities,
-//         unseenCount: unseenActivitiesCount,
-//       },
-//     };
-//     const formattedUser = formatUserData(userWithReviewsAndActivities);
+    const userWithReviewsAndActivities = {
+      ...user.toObject(),
+      createdAt: user.createdAt,
+      reviews,
+      activities: {
+        items: activities,
+        unseenCount: unseenActivitiesCount,
+      },
+    };
+    const formattedUser = formatUserData(userWithReviewsAndActivities);
 
-//     const totalProducts = await Product.countDocuments({
-//       seller: userId,
-//       ...productFilter,
-//     });
+    const totalProducts = await Product.countDocuments({
+      seller: userId,
+      ...productFilter,
+    });
 
-//     res.json({
-//       success: 1,
-//       message: "Logged in user retrieved successfully",
-//       data: {
-//         user: formattedUser,
-//         page: Number(page),
-//         limit: Number(limit),
-//         totalProducts,
-//         totalPages: Math.ceil(totalProducts / Number(limit)),
-//       },
-//     });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({
-//       success: 0,
-//       message: "Server error",
-//       data: null,
-//     });
-//   }
-// };
+    res.json({
+      success: 1,
+      message: "Logged in user retrieved successfully",
+      data: {
+        user: formattedUser,
+        page: Number(page),
+        limit: Number(limit),
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};

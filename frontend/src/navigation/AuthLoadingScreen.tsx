@@ -18,8 +18,8 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
   useEffect(() => {
     const checkToken = async () => {
       const { token, expirationTime } = await getAuthToken();
-      console.log("token: ", token);
-      console.log("expirationTime: ", expirationTime);
+      // console.log("token: ", token);
+      // console.log("expirationTime: ", expirationTime);
 
       if (token && expirationTime) {
         if (Date.now() < expirationTime) {

@@ -32,7 +32,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
   const handleClickProduct = (product: Product) => {
-    console.log("Product clicked:", product._id);
     navigation.navigate("Product", { productId: product._id });
   };
 

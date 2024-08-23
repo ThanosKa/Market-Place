@@ -27,9 +27,9 @@ export interface IProduct extends Document {
   images: string[];
   category: (typeof CATEGORY_TYPES)[number];
   condition: (typeof CONDITION_TYPES)[number];
+  description?: string;
   seller: mongoose.Types.ObjectId;
   likes: mongoose.Types.ObjectId[];
-  description?: string;
 }
 
 const ProductSchema: Schema = new Schema(

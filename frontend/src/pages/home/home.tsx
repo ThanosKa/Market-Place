@@ -104,7 +104,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <DummySearchBar placeholder={searchQuery || t("Search")} />
+        <DummySearchBar placeholder={searchQuery || t("search")} />
 
         <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
         <View style={styles.categoriesContainer}>

@@ -4,14 +4,21 @@ import {
   ProductsResponse,
 } from "../interfaces/product";
 import axiosInstance from "./axiosConfig";
-export const createProduct = async (formData: FormData): Promise<any> => {
+
+export const createProduct = async (formData: FormData) => {
   try {
-    const response = await axiosInstance.post("/products", formData);
+    const response = await axiosInstance.post("/products", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   } catch (error) {
+    console.error("Error creating product:", error);
     throw error;
   }
 };
+
 export const getProducts = async (
   params: GetProductsParams = {}
 ): Promise<ProductsResponse> => {

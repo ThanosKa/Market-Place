@@ -11,7 +11,7 @@ import { renderStars } from "../../utils/renderStars";
 type Props = {
   user: User;
   totalProducts: number;
-  totalLikes: number;
+  totalLikes?: number;
 };
 
 const UserInfo: React.FC<Props> = ({ user, totalProducts, totalLikes }) => {
@@ -51,7 +51,7 @@ const UserInfo: React.FC<Props> = ({ user, totalProducts, totalLikes }) => {
         ) : (
           <Text style={styles.userStat}>{t("nothing-sale")}</Text>
         )}
-        {totalLikes > 0 && (
+        {totalLikes !== undefined && totalLikes > 0 && (
           <Text style={styles.userStat}>
             {t("profile-likes")}:{" "}
             <Text style={styles.statValue}>{totalLikes}</Text>

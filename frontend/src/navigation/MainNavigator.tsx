@@ -21,14 +21,14 @@ import ProductScreen from "../pages/ProductScreen/productScreen";
 const MainStack = createStackNavigator<MainStackParamList>();
 
 const MainNavigator = () => {
-  const { refetch } = useLoggedUser();
+  // const { refetch } = useLoggedUser();
   const { t } = useTranslation();
 
-  useFocusEffect(
-    React.useCallback(() => {
-      refetch();
-    }, [refetch])
-  );
+  // useFocusEffect(
+  //   React.useCallback(() => {
+  //     refetch();
+  //   }, [refetch])
+  // );
   return (
     <UnseenActivitiesProvider>
       <MainStack.Navigator screenOptions={{ headerShown: false }}>

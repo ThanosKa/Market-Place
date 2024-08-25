@@ -17,17 +17,12 @@ import { useMutation, useQueryClient, useQuery } from "react-query";
 import { colors } from "../../../colors/colors";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../../interfaces/auth/navigation";
-import {
-  editUser,
-  getLoggedUser,
-  getUserDetails,
-} from "../../../services/user";
+import { editUser, getUserDetails } from "../../../services/user";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import Toast from "react-native-toast-message";
 import { Animated } from "react-native";
-import { useLoggedUser } from "../../../hooks/useLoggedUser";
 
 type ChangeEmailScreenNavigationProp = StackNavigationProp<
   MainStackParamList,

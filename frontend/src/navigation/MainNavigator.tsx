@@ -11,24 +11,30 @@ import { colors } from "../colors/colors";
 import ChangePasswordScreen from "../pages/EditProfileScreen/ChangePassword/changePassword";
 import UserProfileScreen from "../pages/UserProfile/userProfile";
 import { UnseenActivitiesProvider } from "../components/UnseenActivities/UnseenActivities";
-import { useLoggedUser } from "../hooks/useLoggedUser";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import SellScreen from "../pages/sell/SellScreen";
 import MessageScreen from "../pages/MessagesScreen/MessagesScreen";
 import ChatScreen from "../pages/ChatScreen/chatScreen";
 import ProductScreen from "../pages/ProductScreen/productScreen";
+import { useLoggedUser } from "../hooks/useLoggedUser";
+import { getActivities } from "../services/activity";
+import { useQuery } from "react-query";
 const MainStack = createStackNavigator<MainStackParamList>();
 
 const MainNavigator = () => {
-  // const { refetch } = useLoggedUser();
+  // const { data: act, refetch } = useQuery("activities", getActivities, {
+  //   // enabled: false,
+  // });
   const { t } = useTranslation();
 
+  // const { refetch } = useLoggedUser();
   // useFocusEffect(
   //   React.useCallback(() => {
   //     refetch();
   //   }, [refetch])
   // );
+
   return (
     <UnseenActivitiesProvider>
       <MainStack.Navigator screenOptions={{ headerShown: false }}>

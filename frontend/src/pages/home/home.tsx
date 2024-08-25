@@ -12,7 +12,6 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient, useQuery } from "react-query";
 import { RouteProp, useFocusEffect, useRoute } from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
 import { getUnreadChatsCount } from "../../services/chat";
 import DummySearchBar from "../../components/DummySearchBar/DummySearchBar";
 import CategoryIcon from "../../components/CategoryIcons/categoryIcons";
@@ -21,6 +20,7 @@ import ProductGrid from "../../components/ProductGrid/productGrid";
 import { colors } from "../../colors/colors";
 import { useDispatch } from "react-redux";
 import { setUnreadChatsCount } from "../../redux/useSlice";
+import { getActivities } from "../../services/activity";
 
 type HomeScreenRouteProp = RouteProp<MainStackParamList, "Home">;
 
@@ -31,7 +31,6 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const route = useRoute<HomeScreenRouteProp>();
   const searchQuery = route.params?.searchQuery || "";
-  const { refetch: refetchUser } = useLoggedUser();
   const { t } = useTranslation();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,18 +43,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     {
       enabled: false,
       onSuccess: (data) => {
-        console.log("data", data);
         if (data.success && data.data.unreadChatsCount !== undefined) {
           dispatch(setUnreadChatsCount(data.data.unreadChatsCount));
         }
       },
     }
   );
+  const { refetch: refetchActivities } = useQuery("activities", getActivities, {
+    enabled: false,
+  });
 
   useFocusEffect(
     useCallback(() => {
       refetchUnreadChatsCount();
-    }, [refetchUnreadChatsCount])
+      refetchActivities();
+    }, [refetchUnreadChatsCount, refetchActivities])
   );
 
   useEffect(() => {
@@ -88,9 +90,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     queryClient.invalidateQueries("products", {
       refetchActive: true,
     });
-    refetchUser();
     refetchUnreadChatsCount();
-  }, [queryClient, refetchUser, refetchUnreadChatsCount]);
+    refetchActivities();
+    setTimeout(() => setRefreshing(false), 1000);
+  }, [queryClient, refetchUnreadChatsCount, refetchActivities]);
 
   const selectedCategoryValues = selectedCategories
     .map((id) => categories.find((cat) => cat.id === id)?.value)

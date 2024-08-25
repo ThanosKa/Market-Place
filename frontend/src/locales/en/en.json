@@ -1,4 +1,6 @@
 {
+  "could-not-find-product": "Could not find product",
+  "product-deleted": "The product may have been deleted",
   "messages": "Messages",
   "favorites": "Favorites",
   "product": "Product",

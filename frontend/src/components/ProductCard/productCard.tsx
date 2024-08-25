@@ -25,7 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   userImage,
   userName,
   userId,
-  productId, // Add this prop
+  productId,
   productImage,
   title,
   price,

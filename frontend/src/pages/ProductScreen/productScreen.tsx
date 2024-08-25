@@ -150,8 +150,9 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           onPress: () => {
             deleteProductMutation.mutate(productId, {
               onSuccess: () => {
-                queryClient.invalidateQueries(["product", productId]);
-                navigation.goBack();
+                // queryClient.invalidateQueries(["product", productId]);
+                // Navigate to Home screen with a refresh trigger
+                navigation.navigate("Home", { refreshHome: Date.now() });
               },
               onError: (error) => {
                 console.error("Error deleting product:", error);

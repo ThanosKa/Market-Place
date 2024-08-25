@@ -1,5 +1,3 @@
-// In a new file, e.g., src/services/likes.ts
-
 import { Product } from "../interfaces/product";
 import { LikedUser } from "../interfaces/user";
 import axiosInstance from "./axiosConfig";

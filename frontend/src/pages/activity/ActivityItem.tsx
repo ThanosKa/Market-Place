@@ -19,6 +19,7 @@ import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 
 interface ActivityItemProps {
   item: Activity;
@@ -74,10 +75,25 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
   const handleActivityPress = () => {
+    if (item.type === "product_like" && !item.product) {
+      Toast.show({
+        type: "info",
+        text1: t("could-not-find-product"),
+        text2: t("product-deleted"),
+        position: "bottom",
+        visibilityTime: 3000,
+        bottomOffset: 110,
+      });
+    }
     if (item.type === "profile_like") {
       navigation.navigate("Profile", {});
     } else if (item.type === "product_like" && item.product) {
-      navigation.navigate("Product", { productId: item.product._id });
+      // Check if the product still exists
+      console.log("Product");
+      if (item.product._id) {
+        navigation.navigate("Product", { productId: item.product._id });
+        console.log("Product");
+      }
     }
   };
 

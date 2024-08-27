@@ -9,13 +9,33 @@ export const createChat = async (req: Request, res: Response) => {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
     const participantObjectId = new mongoose.Types.ObjectId(participantId);
 
-    // Check for existing chat
+    // Check for existing chat, including soft-deleted ones
     const existingChat = await Chat.findOne({
       participants: { $all: [userId, participantObjectId] },
-      deletedFor: { $not: { $elemMatch: { user: userId } } },
     });
 
     if (existingChat) {
+      // If the chat exists but was deleted by the current user, restore it
+      const deletedForCurrentUser = existingChat.deletedFor.find(
+        (deletion) => deletion.user.toString() === userId.toString()
+      );
+
+      if (deletedForCurrentUser) {
+        // Remove the deletion entry for the current user
+        await Chat.findOneAndUpdate(
+          { _id: existingChat._id },
+          { $pull: { deletedFor: { user: userId } } },
+          { new: true }
+        );
+
+        return res.status(200).json({
+          success: 1,
+          message: "Chat restored successfully",
+          data: { chat: existingChat },
+        });
+      }
+
+      // If the chat wasn't deleted, just return it
       return res.status(200).json({
         success: 1,
         message: "Chat already exists",
@@ -23,7 +43,7 @@ export const createChat = async (req: Request, res: Response) => {
       });
     }
 
-    // If no existing chat or it was deleted, create a new one
+    // If no existing chat, create a new one
     const newChat = new Chat({
       participants: [userId, participantObjectId],
       messages: [],
@@ -46,7 +66,6 @@ export const createChat = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserChats = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -325,67 +344,6 @@ export const getChatMessages = async (req: Request, res: Response) => {
   }
 };
 
-export const getUnreadChatsCount = async (req: Request, res: Response) => {
-  try {
-    const userId = new mongoose.Types.ObjectId((req as any).userId);
-
-    const unreadChatsCount = await Chat.aggregate([
-      {
-        $match: {
-          participants: userId,
-          deletedFor: { $not: { $elemMatch: { user: userId } } },
-        },
-      },
-      {
-        $addFields: {
-          hasUnreadMessages: {
-            $gt: [
-              {
-                $size: {
-                  $filter: {
-                    input: "$messages",
-                    as: "message",
-                    cond: {
-                      $and: [
-                        { $ne: ["$$message.sender", userId] },
-                        { $eq: ["$$message.seen", false] },
-                      ],
-                    },
-                  },
-                },
-              },
-              0,
-            ],
-          },
-        },
-      },
-      {
-        $match: {
-          hasUnreadMessages: true,
-        },
-      },
-      {
-        $count: "unreadChatsCount",
-      },
-    ]);
-
-    const count =
-      unreadChatsCount.length > 0 ? unreadChatsCount[0].unreadChatsCount : 0;
-
-    res.json({
-      success: 1,
-      message: "Unread chats count retrieved successfully",
-      data: { unreadChatsCount: count },
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: 0,
-      message: "Server error",
-      data: null,
-    });
-  }
-};
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
@@ -496,37 +454,43 @@ export const deleteChat = async (req: Request, res: Response) => {
 
     const currentDate = new Date();
 
-    // Update the deletedFor array, including messagesDeletedAt
+    // Update the deletedFor array
     const updatedChat = await Chat.findOneAndUpdate(
-      { _id: chatId, "deletedFor.user": userId },
+      { _id: chatId },
       {
         $set: {
-          "deletedFor.$.deletedAt": currentDate,
-          "deletedFor.$.messagesDeletedAt": currentDate,
+          deletedFor: [
+            ...chat.deletedFor.filter((item) => !item.user.equals(userId)),
+            { user: userId, deletedAt: currentDate },
+          ],
         },
       },
       { new: true }
     );
 
     if (!updatedChat) {
-      // If the user hasn't deleted the chat before, add a new entry
-      await Chat.findOneAndUpdate(
-        { _id: chatId },
-        {
-          $addToSet: {
-            deletedFor: {
-              user: userId,
-              deletedAt: currentDate,
-              messagesDeletedAt: currentDate,
-            },
-          },
-        }
-      );
+      return res.status(500).json({
+        success: 0,
+        message: "Failed to update chat",
+        data: null,
+      });
+    }
+
+    // Check if all participants have deleted the chat
+    if (updatedChat.deletedFor.length === updatedChat.participants.length) {
+      // All participants have deleted the chat, so remove it from the database
+      await Chat.findByIdAndDelete(chatId);
+
+      return res.json({
+        success: 1,
+        message: "Chat completely removed from the database",
+        data: null,
+      });
     }
 
     res.json({
       success: 1,
-      message: "Chat and its messages deleted successfully for the user",
+      message: "Chat deleted successfully for the user",
       data: null,
     });
   } catch (err) {
@@ -693,6 +657,68 @@ export const deleteMessage = async (req: Request, res: Response) => {
       success: 1,
       message: "Message deleted successfully",
       data: null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const getUnreadChatsCount = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const unreadChatsCount = await Chat.aggregate([
+      {
+        $match: {
+          participants: userId,
+          deletedFor: { $not: { $elemMatch: { user: userId } } },
+        },
+      },
+      {
+        $addFields: {
+          hasUnreadMessages: {
+            $gt: [
+              {
+                $size: {
+                  $filter: {
+                    input: "$messages",
+                    as: "message",
+                    cond: {
+                      $and: [
+                        { $ne: ["$$message.sender", userId] },
+                        { $eq: ["$$message.seen", false] },
+                      ],
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $match: {
+          hasUnreadMessages: true,
+        },
+      },
+      {
+        $count: "unreadChatsCount",
+      },
+    ]);
+
+    const count =
+      unreadChatsCount.length > 0 ? unreadChatsCount[0].unreadChatsCount : 0;
+
+    res.json({
+      success: 1,
+      message: "Unread chats count retrieved successfully",
+      data: { unreadChatsCount: count },
     });
   } catch (err) {
     console.error(err);

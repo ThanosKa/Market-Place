@@ -8,7 +8,7 @@ import {
   editMessage,
   deleteChat,
   markMessagesAsSeen,
-  getUnreadChatsCount, // Add this new controller function
+  getUnreadChatsCount,
 } from "../controllers/chatController";
 import { auth } from "../middleware/auth";
 import { uploadChatImages } from "../utils/uploadUtil";

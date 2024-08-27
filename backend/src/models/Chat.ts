@@ -1,4 +1,3 @@
-// models/Chat.ts
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IMessage {
@@ -19,6 +18,7 @@ export interface IChat extends Document {
   deletedFor: {
     user: mongoose.Types.ObjectId;
     deletedAt: Date;
+    messagesDeletedAt?: Date; // New field
   }[];
 }
 
@@ -48,6 +48,7 @@ const ChatSchema: Schema = new Schema(
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         deletedAt: { type: Date, default: Date.now },
+        messagesDeletedAt: { type: Date }, // New field
       },
     ],
   },

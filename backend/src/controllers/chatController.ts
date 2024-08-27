@@ -166,7 +166,6 @@ export const getChatMessages = async (req: Request, res: Response) => {
         $match: {
           _id: new mongoose.Types.ObjectId(chatId),
           participants: userId,
-          deletedFor: { $not: { $elemMatch: { user: userId } } },
         },
       },
       {
@@ -191,12 +190,46 @@ export const getChatMessages = async (req: Request, res: Response) => {
               0,
             ],
           },
+          deletionInfo: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$deletedFor",
+                  as: "deletion",
+                  cond: { $eq: ["$$deletion.user", userId] },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          filteredMessages: {
+            $cond: {
+              if: { $ifNull: ["$deletionInfo.messagesDeletedAt", false] },
+              then: {
+                $filter: {
+                  input: "$messages",
+                  as: "message",
+                  cond: {
+                    $gt: [
+                      "$$message.timestamp",
+                      "$deletionInfo.messagesDeletedAt",
+                    ],
+                  },
+                },
+              },
+              else: "$messages",
+            },
+          },
         },
       },
       {
         $addFields: {
           paginatedMessages: {
-            $slice: [{ $reverseArray: "$messages" }, skip, limit],
+            $slice: [{ $reverseArray: "$filteredMessages" }, skip, limit],
           },
         },
       },
@@ -241,7 +274,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
             profilePicture: 1,
           },
           messages: 1,
-          totalMessages: { $size: "$messages" },
+          totalMessages: { $size: "$filteredMessages" },
         },
       },
     ]);
@@ -291,6 +324,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const getUnreadChatsCount = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -370,14 +404,12 @@ export const sendMessage = async (req: Request, res: Response) => {
     const chat = await Chat.findOne({
       _id: chatId,
       participants: userId,
-      deletedFor: { $not: { $elemMatch: { user: userId } } },
     });
 
     if (!chat) {
       return res.status(403).json({
         success: 0,
-        message:
-          "Access denied. You are not a participant in this chat or the chat has been deleted.",
+        message: "Access denied. You are not a participant in this chat.",
         data: null,
       });
     }
@@ -406,9 +438,24 @@ export const sendMessage = async (req: Request, res: Response) => {
       seen: false,
     };
 
-    chat.messages.push(newMessage);
-    chat.updatedAt = new Date();
-    await chat.save();
+    // Add the new message and update the chat
+    const updatedChat = await Chat.findOneAndUpdate(
+      { _id: chatId },
+      {
+        $push: { messages: newMessage },
+        $set: { updatedAt: new Date() },
+        $pull: { deletedFor: { user: { $ne: userId } } },
+      },
+      { new: true }
+    );
+
+    if (!updatedChat) {
+      return res.status(404).json({
+        success: 0,
+        message: "Chat not found",
+        data: null,
+      });
+    }
 
     const populatedMessage = await Chat.populate(newMessage, {
       path: "sender",
@@ -447,22 +494,39 @@ export const deleteChat = async (req: Request, res: Response) => {
       });
     }
 
-    // Mark the chat as deleted for this user
-    await Chat.updateOne(
-      { _id: chatId },
+    const currentDate = new Date();
+
+    // Update the deletedFor array, including messagesDeletedAt
+    const updatedChat = await Chat.findOneAndUpdate(
+      { _id: chatId, "deletedFor.user": userId },
       {
-        $addToSet: {
-          deletedFor: {
-            user: userId,
-            deletedAt: new Date(),
-          },
+        $set: {
+          "deletedFor.$.deletedAt": currentDate,
+          "deletedFor.$.messagesDeletedAt": currentDate,
         },
-      }
+      },
+      { new: true }
     );
+
+    if (!updatedChat) {
+      // If the user hasn't deleted the chat before, add a new entry
+      await Chat.findOneAndUpdate(
+        { _id: chatId },
+        {
+          $addToSet: {
+            deletedFor: {
+              user: userId,
+              deletedAt: currentDate,
+              messagesDeletedAt: currentDate,
+            },
+          },
+        }
+      );
+    }
 
     res.json({
       success: 1,
-      message: "Chat deleted successfully for the user",
+      message: "Chat and its messages deleted successfully for the user",
       data: null,
     });
   } catch (err) {

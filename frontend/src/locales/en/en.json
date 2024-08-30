@@ -1,4 +1,15 @@
 {
+  "pay-with-balance": "Pay with your balance.",
+  "you-will-meet-and-pay": "Meet seller, inspect product, and pay in person",
+  "pay-with-your-phone-cards": "Pay with NFC feature.",
+
+  "pay-with-paypal": "Pay with PayPal",
+
+  "pay-in-person": "Pay in Person",
+  "pay-by-card": "Pay by Card",
+  "pay-in-person-content": "Instructions for paying in person...",
+  "pay-by-card-content": "Instructions for paying by card...",
+  "total": "Total",
   "could-not-find-product": "Could not find product",
   "product-deleted": "The product may have been deleted",
   "messages": "Messages",

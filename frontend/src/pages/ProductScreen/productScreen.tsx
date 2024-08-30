@@ -31,6 +31,7 @@ import { createChat, getUserChats } from "../../services/chat";
 import { Feather } from "@expo/vector-icons";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import EditProductForm from "./EditProductForm";
+import BuyBottomSheet from "./BuyBottomSheet";
 
 type ProductScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -51,6 +52,11 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [isBuyBottomSheetVisible, setIsBuyBottomSheetVisible] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "inPerson" | "card"
+  >("inPerson");
+  const [selectedOption, setSelectedOption] = useState<string>("default");
 
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -164,6 +170,32 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
       ]
     );
   };
+  const handleBuyPress = useCallback(() => {
+    setIsBuyBottomSheetVisible(true);
+  }, []);
+
+  const handleContinueBuy = useCallback(
+    (paymentMethod: "inPerson" | "card", option: string) => {
+      setSelectedPaymentMethod(paymentMethod);
+      setSelectedOption(option);
+      console.log(
+        `Selected payment method: ${paymentMethod}, option: ${option}`
+      );
+    },
+    []
+  );
+
+  const handleCloseBuyBottomSheet = useCallback(() => {
+    setIsBuyBottomSheetVisible(false);
+  }, []);
+
+  const handleFinalBuy = useCallback(() => {
+    console.log(
+      `Proceeding with ${selectedPaymentMethod} payment, option: ${selectedOption}`
+    );
+    setIsBuyBottomSheetVisible(false);
+    // Add your logic here to proceed with the payment process
+  }, [selectedPaymentMethod, selectedOption]);
 
   const handleSave = (editedProduct: Partial<Product>) => {
     updateProductMutation.mutate(
@@ -308,7 +340,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
 
       {!isCurrentUserSeller && !isEditing && (
         <View style={styles.buyButtonContainer}>
-          <TouchableOpacity style={styles.buyButton}>
+          <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
             <Text style={styles.buyButtonText}>{t("buy")}</Text>
           </TouchableOpacity>
         </View>
@@ -319,6 +351,12 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
         isVisible={isImageViewerVisible}
         onClose={closeImageModal}
         initialIndex={currentImageIndex}
+      />
+      <BuyBottomSheet
+        isVisible={isBuyBottomSheetVisible}
+        onClose={handleCloseBuyBottomSheet}
+        product={product}
+        onContinue={handleContinueBuy}
       />
     </View>
   );
@@ -421,7 +459,7 @@ const styles = StyleSheet.create({
   },
   chatButton: {
     marginLeft: "auto",
-    backgroundColor: colors.info,
+    backgroundColor: "#333333",
     padding: 15,
     borderRadius: 25,
   },
@@ -438,7 +476,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   buyButton: {
-    backgroundColor: colors.customBlueDarker,
+    backgroundColor: colors.primary,
     padding: 15,
     alignItems: "center",
     borderRadius: 10,

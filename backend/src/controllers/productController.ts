@@ -74,6 +74,7 @@ export const createProduct = async (req: Request, res: Response) => {
       condition,
       seller: sellerId,
       description,
+      sold: null, // Initialize sold to null
     });
 
     await newProduct.save();
@@ -112,6 +113,14 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: 0,
         message: "Product not found or you're not authorized to update it",
+        data: null,
+      });
+    }
+
+    if (product.sold) {
+      return res.status(400).json({
+        success: 0,
+        message: "Cannot update a sold product",
         data: null,
       });
     }
@@ -197,6 +206,45 @@ export const deleteProduct = async (req: Request, res: Response) => {
     res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
+// Get a product by ID
+// export const getProductById = async (req: Request, res: Response) => {
+//   try {
+//     const productId = req.params.productId;
+//     const product = await Product.findById(productId).populate(
+//       "seller",
+//       "firstName lastName email profilePicture"
+//     );
+
+//     if (!product) {
+//       return res
+//         .status(404)
+//         .json({ success: 0, message: "Product not found", data: null });
+//     }
+
+//     // Include sold information if the product is sold
+//     if (product.sold) {
+//       product.sold = {
+//         to: {
+//           _id: product.sold.to._id,
+//           firstName: product.sold.to.firstName,
+//           lastName: product.sold.to.lastName,
+//           profilePicture: product.sold.to.profilePicture,
+//         },
+//         date: product.sold.date,
+//       };
+//     }
+
+//     res.json({
+//       success: 1,
+//       message: "Product retrieved successfully",
+//       data: { product },
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: 0, message: "Server error", data: null });
+//   }
+// };
+
 // Get all products with filters
 export const getProducts = async (req: Request, res: Response) => {
   try {
@@ -212,7 +260,7 @@ export const getProducts = async (req: Request, res: Response) => {
       limit = 10,
     } = req.query;
 
-    const filter: mongoose.FilterQuery<IProduct> = {};
+    const filter: mongoose.FilterQuery<IProduct> = { sold: null };
 
     if (typeof search === "string") {
       filter.$or = [
@@ -221,7 +269,6 @@ export const getProducts = async (req: Request, res: Response) => {
       ];
     }
     if (category) {
-      // Handle multiple categories
       filter.category = {
         $in: Array.isArray(category) ? category : [category],
       };
@@ -245,40 +292,18 @@ export const getProducts = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "Products retrieved successfully",
-      data: { products, total, page: Number(page), limit: Number(limit) },
+      data: {
+        products,
+        total,
+        page: Number(page),
+        limit: Number(limit),
+      },
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
-
-// Get a product by ID
-export const getProductById = async (req: Request, res: Response) => {
-  try {
-    const productId = req.params.productId;
-    const product = await Product.findById(productId).populate(
-      "seller",
-      "firstName lastName email profilePicture"
-    );
-
-    if (!product) {
-      return res
-        .status(404)
-        .json({ success: 0, message: "Product not found", data: null });
-    }
-
-    res.json({
-      success: 1,
-      message: "Product retrieved successfully",
-      data: { product },
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: 0, message: "Server error", data: null });
-  }
-};
-
 export const getUserProducts = async (req: Request, res: Response) => {
   try {
     const {
@@ -295,7 +320,10 @@ export const getUserProducts = async (req: Request, res: Response) => {
 
     const userId = new mongoose.Types.ObjectId((req as any).userId);
 
-    const productFilter: mongoose.FilterQuery<IProduct> = { seller: userId };
+    const productFilter: mongoose.FilterQuery<IProduct> = {
+      seller: userId,
+      sold: null,
+    };
 
     if (typeof search === "string") {
       productFilter.$or = [
@@ -378,7 +406,10 @@ export const getUserByIdProducts = async (req: Request, res: Response) => {
     } = req.query;
 
     const userId = new mongoose.Types.ObjectId(req.params.id);
-    const productFilter: mongoose.FilterQuery<IProduct> = { seller: userId };
+    const productFilter: mongoose.FilterQuery<IProduct> = {
+      seller: userId,
+      sold: null,
+    };
 
     if (typeof search === "string") {
       productFilter.title = { $regex: search, $options: "i" };
@@ -425,5 +456,230 @@ export const getUserByIdProducts = async (req: Request, res: Response) => {
       message: "Server error",
       data: null,
     });
+  }
+};
+
+export const purchaseProduct = async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.productId;
+    const buyerId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+        data: null,
+      });
+    }
+
+    if (product.sold) {
+      return res.status(400).json({
+        success: false,
+        message: "This product has already been sold",
+        data: null,
+      });
+    }
+
+    const buyer = await User.findById(buyerId).select(
+      "firstName lastName profilePicture"
+    );
+    if (!buyer) {
+      return res.status(404).json({
+        success: false,
+        message: "Buyer not found",
+        data: null,
+      });
+    }
+
+    product.sold = {
+      to: {
+        _id: buyer._id as mongoose.Types.ObjectId,
+        firstName: buyer.firstName,
+        lastName: buyer.lastName,
+        profilePicture: buyer.profilePicture || "",
+      },
+      date: new Date(),
+    };
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: "Product purchased successfully",
+      data: { product },
+    });
+  } catch (err) {
+    console.error("Error in purchaseProduct:", err);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while purchasing the product",
+      data: null,
+    });
+  }
+};
+
+export const getSoldUserProducts = async (req: Request, res: Response) => {
+  try {
+    const {
+      search,
+      category,
+      condition,
+      minPrice,
+      maxPrice,
+      sort = "createdAt",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const productFilter: mongoose.FilterQuery<IProduct> = {
+      seller: userId,
+      sold: { $ne: null },
+    };
+
+    if (typeof search === "string") {
+      productFilter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (category) {
+      productFilter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
+    }
+    if (typeof condition === "string") {
+      productFilter.condition = condition;
+    }
+    if (minPrice || maxPrice) {
+      productFilter.price = {};
+      if (minPrice) productFilter.price.$gte = Number(minPrice);
+      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+    }
+
+    const totalProducts = await Product.countDocuments(productFilter);
+
+    const products = await Product.find(productFilter)
+      .sort({ [sort as string]: order as mongoose.SortOrder })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .populate("seller", "firstName lastName email profilePicture")
+      .populate("sold.to", "firstName lastName profilePicture");
+
+    res.json({
+      success: 1,
+      message: "User sold products retrieved successfully",
+      data: {
+        products,
+        page: Number(page),
+        limit: Number(limit),
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const getSoldUserByIdProducts = async (req: Request, res: Response) => {
+  try {
+    const {
+      search,
+      category,
+      condition,
+      minPrice,
+      maxPrice,
+      sort = "createdAt",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const userId = new mongoose.Types.ObjectId(req.params.id);
+    const productFilter: mongoose.FilterQuery<IProduct> = {
+      seller: userId,
+      sold: { $ne: null },
+    };
+
+    if (typeof search === "string") {
+      productFilter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (category) {
+      productFilter.category = {
+        $in: Array.isArray(category) ? category : [category],
+      };
+    }
+    if (typeof condition === "string") {
+      productFilter.condition = condition;
+    }
+    if (minPrice || maxPrice) {
+      productFilter.price = {};
+      if (minPrice) productFilter.price.$gte = Number(minPrice);
+      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+    }
+
+    const totalProducts = await Product.countDocuments(productFilter);
+
+    const products = await Product.find(productFilter)
+      .sort({ [sort as string]: order as mongoose.SortOrder })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .populate("seller", "firstName lastName email profilePicture")
+      .populate("sold.to", "firstName lastName profilePicture");
+
+    res.json({
+      success: 1,
+      message: "User sold products retrieved successfully",
+      data: {
+        products,
+        page: Number(page),
+        limit: Number(limit),
+        totalProducts,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const getProductById = async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.productId;
+    const product = await Product.findById(productId)
+      .populate("seller", "firstName lastName email profilePicture")
+      .populate("sold.to", "firstName lastName profilePicture");
+
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: 0, message: "Product not found", data: null });
+    }
+
+    res.json({
+      success: 1,
+      message: "Product retrieved successfully",
+      data: { product },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };

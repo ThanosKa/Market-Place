@@ -12,6 +12,8 @@ import {
   getSoldUserProducts,
   getSoldUserByIdProducts,
   purchaseProduct,
+  getPurchasedProducts,
+  getPurchasedProductsByUserId,
 } from "../controllers/productController";
 
 const router = express.Router();
@@ -25,11 +27,17 @@ router.get("/user", auth, getUserProducts);
 // Get authenticated user's sold products
 router.get("/user/sold", auth, getSoldUserProducts);
 
+// Get authenticated user's purchased products
+router.get("/user/purchased", auth, getPurchasedProducts);
+
 // Get products of a specific user by ID (unsold)
 router.get("/user/:id", auth, getUserByIdProducts);
 
 // Get sold products of a specific user by ID
 router.get("/user/:id/sold", auth, getSoldUserByIdProducts);
+
+// Get purchased products of a specific user by ID
+router.get("/user/:id/purchased", auth, getPurchasedProductsByUserId);
 
 // Get all products (unsold)
 router.get("/", getProducts);
@@ -43,6 +51,7 @@ router.put("/:productId", auth, upload("uploads/", 5), updateProduct);
 // Delete a product
 router.delete("/:productId", auth, deleteProduct);
 
+// Purchase a product
 router.post("/:productId/purchase", auth, purchaseProduct);
 
 export default router;

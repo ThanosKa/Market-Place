@@ -21,12 +21,7 @@ export const CATEGORY_TYPES = [
 ] as const;
 
 interface SoldInfo {
-  to: {
-    _id: mongoose.Types.ObjectId;
-    firstName: string;
-    lastName: string;
-    profilePicture: string;
-  };
+  to: mongoose.Types.ObjectId; // Reference to User
   date: Date;
 }
 
@@ -57,13 +52,12 @@ const ProductSchema: Schema = new Schema(
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     description: { type: String },
     sold: {
-      to: {
-        _id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        firstName: String,
-        lastName: String,
-        profilePicture: String,
+      type: {
+        to: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to User
+        date: Date,
+        _id: false,
       },
-      date: Date,
+      default: null, // Ensure that 'sold' is set to null by default
     },
   },
   { timestamps: true }

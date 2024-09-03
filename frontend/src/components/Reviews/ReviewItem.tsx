@@ -46,7 +46,7 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
             <Image
               source={{
                 uri:
-                  review.product.images && review.product.images.length > 0
+                  review.product?.images && review.product.images.length > 0
                     ? `${BASE_URL}${review.product.images[0]}`
                     : undefined,
               }}

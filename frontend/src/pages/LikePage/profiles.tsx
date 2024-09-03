@@ -49,12 +49,14 @@ const RenderLikedProfiles: React.FC<Props> = ({
       navigation.navigate("UserProfile", { userId });
     }
   };
+
   const handleProductPress = useCallback(
     (productId: string) => {
       navigation.navigate("Product", { productId });
     },
     [navigation]
   );
+
   const handleToggleUserLike = useCallback(
     (userId: string) => {
       setRemovingUsers((prev) => [...prev, userId]);
@@ -67,7 +69,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
         useNativeDriver: true,
       }).start(() => {
         queryClient.setQueryData("likedProfiles", (oldData: LikedUser[]) => {
-          return oldData.filter((user) => user.id !== userId);
+          return oldData.filter((user) => user._id !== userId);
         });
 
         setRemovingUsers((prev) => prev.filter((id) => id !== userId));
@@ -124,15 +126,15 @@ const RenderLikedProfiles: React.FC<Props> = ({
     ({ item }: { item: LikedUser }) => {
       const productCount = item.products.length;
       const productsToShow = item.products.slice(0, 4);
-      const isRemoving = removingUsers.includes(item.id);
+      const isRemoving = removingUsers.includes(item._id);
 
-      if (!fadeAnims.current[item.id]) {
-        fadeAnims.current[item.id] = new Animated.Value(1);
+      if (!fadeAnims.current[item._id]) {
+        fadeAnims.current[item._id] = new Animated.Value(1);
       }
 
       return (
         <Animated.View
-          style={[styles.profileItem, { opacity: fadeAnims.current[item.id] }]}
+          style={[styles.profileItem, { opacity: fadeAnims.current[item._id] }]}
         >
           {productCount > 0 ? (
             <View style={styles.productGrid}>
@@ -186,7 +188,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
                   </Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => handleToggleUserLike(item.id)}
+                  onPress={() => handleToggleUserLike(item._id)}
                   disabled={isRemoving}
                 >
                   <AntDesign name="heart" size={18} color="red" />
@@ -222,7 +224,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
     <FlatList
       data={likedProfilesData}
       renderItem={renderProfileItem}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item._id}
       numColumns={2}
       columnWrapperStyle={styles.profileRow}
     />
@@ -308,7 +310,6 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     textAlign: "center",
   },
-
   emptyMessage: {
     fontSize: 16,
     textAlign: "center",
@@ -316,7 +317,6 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     padding: 20,
   },
-
   profileDetails: {
     padding: 10,
   },

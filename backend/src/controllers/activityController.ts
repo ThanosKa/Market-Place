@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Activity, { IActivity } from "../models/Activity";
 import mongoose from "mongoose";
+import Product from "../models/Product";
 
 export const createActivity = async (
   userId: string,
@@ -159,6 +160,140 @@ export const markAllActivitiesAsRead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: 0,
       message: "Failed to mark all activities as read",
+      data: null,
+    });
+  }
+};
+
+export const createReviewPromptActivity = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { productId } = req.body;
+    const sellerId = (req as any).userId; // Assuming you're using the auth middleware
+
+    // Validate input
+    if (!productId) {
+      return res.status(400).json({
+        success: 0,
+        message: "Product ID is required",
+        data: null,
+      });
+    }
+
+    // Check if the product exists, belongs to the seller, and has been sold
+    const product = await Product.findOne({
+      _id: productId,
+      seller: sellerId,
+      "sold.to": { $ne: null },
+    }).populate("sold.to", "firstName lastName profilePicture");
+
+    if (!product) {
+      return res.status(404).json({
+        success: 0,
+        message:
+          "Product not found, does not belong to the seller, or has not been sold",
+        data: null,
+      });
+    }
+
+    const buyerId = product.sold?.to;
+
+    if (!buyerId) {
+      return res.status(400).json({
+        success: 0,
+        message: "Buyer information not available",
+        data: null,
+      });
+    }
+
+    // Check if a review prompt activity already exists
+    let existingActivity = await Activity.findOne({
+      user: buyerId,
+      type: "review_prompt",
+      sender: sellerId,
+      product: productId,
+    });
+
+    if (existingActivity) {
+      if (!existingActivity.read) {
+        return res.status(400).json({
+          success: 0,
+          message: "Review prompt activity already sent and not yet read",
+          data: null,
+        });
+      } else {
+        // If the activity exists and has been read, update it
+        existingActivity.read = false;
+        existingActivity.createdAt = new Date();
+        await existingActivity.save();
+
+        const populatedActivity = await Activity.findById(existingActivity._id)
+          .populate("user", "firstName lastName profilePicture")
+          .populate({
+            path: "product",
+            select: "title price images category condition",
+            populate: {
+              path: "seller",
+              select: "firstName lastName profilePicture",
+            },
+          });
+
+        return res.status(200).json({
+          success: 1,
+          message: "Review prompt activity resent successfully",
+          data: {
+            activity: {
+              ...populatedActivity!.toObject(),
+              buyer: populatedActivity!.user,
+              user: undefined,
+            },
+          },
+        });
+      }
+    }
+
+    // Create the review prompt activity
+    const activityData = {
+      user: buyerId,
+      type: "review_prompt",
+      sender: new mongoose.Types.ObjectId(sellerId),
+      content: `Please leave a review for the product "${product.title}" you purchased.`,
+      product: new mongoose.Types.ObjectId(productId),
+      read: false,
+      createdAt: new Date(),
+    };
+
+    const activity = await Activity.create(activityData);
+
+    const populatedActivity = await Activity.findById(activity._id)
+      .populate("user", "firstName lastName profilePicture")
+      .populate({
+        path: "product",
+        select: "title price images category condition",
+        populate: {
+          path: "seller",
+          select: "firstName lastName profilePicture",
+        },
+      });
+
+    res.status(201).json({
+      success: 1,
+      message: "Review prompt activity created successfully",
+      data: {
+        activity: {
+          ...populatedActivity!.toObject(),
+          buyer: populatedActivity!.user,
+          user: undefined,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error creating review prompt activity:", error);
+    res.status(500).json({
+      success: 0,
+      message: "Failed to create review prompt activity",
       data: null,
     });
   }

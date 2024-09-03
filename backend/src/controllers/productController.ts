@@ -819,5 +819,3 @@ export const getPurchasedProductsByUserId = async (
     });
   }
 };
-
-// ... (other existing controller functions)

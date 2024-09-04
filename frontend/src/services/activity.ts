@@ -10,6 +10,7 @@ export interface GetActivitiesResponse {
     unseenCount: number;
   };
 }
+
 export const deleteActivity = async (activityId: string): Promise<void> => {
   try {
     await axiosInstance.delete(`/activities/${activityId}`);
@@ -43,7 +44,6 @@ export const getActivities = async (): Promise<GetActivitiesResponse> => {
       "/activities"
     );
     const data = response.data;
-    // console.log("data", data);
     return data;
   } catch (error) {
     console.error("Error fetching activities:", error);

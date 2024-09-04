@@ -187,7 +187,7 @@ export const createReviewPromptActivity = async (
       _id: productId,
       seller: sellerId,
       "sold.to": { $ne: null },
-    }).populate("sold.to", "firstName lastName profilePicture");
+    }).populate("sold.to", "firstName lastName");
 
     if (!product) {
       return res.status(404).json({
@@ -230,13 +230,13 @@ export const createReviewPromptActivity = async (
         await existingActivity.save();
 
         const populatedActivity = await Activity.findById(existingActivity._id)
-          .populate("user", "firstName lastName profilePicture")
+          .populate("user", "firstName lastName")
           .populate({
             path: "product",
             select: "title price images category condition",
             populate: {
               path: "seller",
-              select: "firstName lastName profilePicture",
+              select: "firstName lastName",
             },
           });
 
@@ -268,13 +268,13 @@ export const createReviewPromptActivity = async (
     const activity = await Activity.create(activityData);
 
     const populatedActivity = await Activity.findById(activity._id)
-      .populate("user", "firstName lastName profilePicture")
+      .populate("user", "firstName lastName")
       .populate({
         path: "product",
         select: "title price images category condition",
         populate: {
           path: "seller",
-          select: "firstName lastName profilePicture",
+          select: "firstName lastName",
         },
       });
 

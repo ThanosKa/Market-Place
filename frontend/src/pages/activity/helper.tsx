@@ -58,6 +58,10 @@ export const getActivityMessage = (type: string): string => {
       return t("liked-your-profile");
     case "message":
       return t("sent-you-a-message");
+    case "review_prompt":
+      return t("sent-you-a-review-request");
+    case "review":
+      return t("created-a-review");
     default:
       return "";
   }

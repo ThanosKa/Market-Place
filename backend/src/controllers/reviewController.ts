@@ -5,11 +5,20 @@ import User from "../models/User";
 import Product from "../models/Product"; // Assuming you have a Product model
 import { createActivity } from "./activityController";
 import mongoose from "mongoose";
-
 export const createReview = async (req: Request, res: Response) => {
   try {
     const { revieweeId, productId, rating, comment } = req.body;
     const reviewerId = (req as any).userId;
+
+    // Check if all required fields are present
+    if (!revieweeId || !productId || rating === undefined || !comment) {
+      return res.status(400).json({
+        success: 0,
+        message:
+          "Missing required fields: revieweeId, productId, rating, and comment are mandatory",
+        data: null,
+      });
+    }
 
     // Check if revieweeId is a valid user
     const reviewee = await User.findById(revieweeId);

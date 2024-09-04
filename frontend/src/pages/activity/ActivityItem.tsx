@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+import ReviewModal from "./ReviewModal";
 
 interface ActivityItemProps {
   item: Activity;
@@ -27,6 +28,10 @@ interface ActivityItemProps {
 }
 
 const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
+  const [isReviewModalVisible, setReviewModalVisible] = useState(false);
+  const { t } = useTranslation();
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>
@@ -54,8 +59,6 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
     );
   };
 
-  const { t } = useTranslation();
-
   const renderProfilePicture = () => {
     if (item.sender.profilePicture) {
       return (
@@ -72,10 +75,15 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
       );
     }
   };
-  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
   const handleActivityPress = () => {
-    if (item.type === "product_like" && !item.product) {
+    console.log("Activity type:", item.type);
+
+    if (item.type === "review_prompt") {
+      setReviewModalVisible(true);
+    } else if (item.type === "review") {
+      navigation.navigate("Profile", {});
+    } else if (item.type === "product_like" && !item.product) {
       Toast.show({
         type: "info",
         text1: t("could-not-find-product"),
@@ -84,15 +92,11 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
         visibilityTime: 3000,
         bottomOffset: 110,
       });
-    }
-    if (item.type === "profile_like") {
+    } else if (item.type === "profile_like") {
       navigation.navigate("Profile", {});
     } else if (item.type === "product_like" && item.product) {
-      // Check if the product still exists
-      console.log("Product");
       if (item.product._id) {
         navigation.navigate("Product", { productId: item.product._id });
-        console.log("Product");
       }
     }
   };
@@ -116,14 +120,25 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
               {getTranslatableTimeString(new Date(item.createdAt), t)}
             </Text>
           </View>
-          {item.type === "product_like" && item.product && (
-            <Image
-              source={{ uri: `${BASE_URL}${item.product.images[0]}` }}
-              style={styles.productImage}
-            />
-          )}
+          {(item.type === "product_like" ||
+            item.type === "review_prompt" ||
+            item.type === "review") &&
+            item.product && (
+              <Image
+                source={{ uri: `${BASE_URL}${item.product.images[0]}` }}
+                style={styles.productImage}
+              />
+            )}
         </View>
       </TouchableOpacity>
+      <ReviewModal
+        isVisible={isReviewModalVisible}
+        onClose={() => setReviewModalVisible(false)}
+        productId={item.product?._id}
+        productName={item.product?.title}
+        productImage={item.product?.images[0]}
+        revieweeId={item.sender._id} // Add this line to pass the seller's ID
+      />
     </Swipeable>
   );
 };

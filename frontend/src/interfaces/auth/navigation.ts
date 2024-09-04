@@ -29,7 +29,10 @@ export type MainStackParamList = {
   Sell: undefined;
   Activity: { refreshActivity?: number; unseenCount?: number };
 
-  Profile: { refreshProfile?: number };
+  Profile: {
+    refreshProfile?: number;
+    // activeTab?: "profile" | "listings" | "reviews";
+  };
   UserProfile: {
     userId: string;
     firstName?: string;

@@ -20,12 +20,18 @@ export interface ActivityProduct {
   _id: string;
   title: string;
   images: string[];
+  price: number;
 }
 
 export interface Activity {
   _id: string;
   user: string;
-  type: "message" | "product_like" | "profile_like";
+  type:
+    | "message"
+    | "product_like"
+    | "profile_like"
+    | "review_prompt"
+    | "review";
   sender: {
     _id: string;
     firstName: string;
@@ -35,6 +41,7 @@ export interface Activity {
   content: string;
   read: boolean;
   createdAt: string;
+  lastSentAt: string;
   __v: number;
   product?: ActivityProduct;
 }

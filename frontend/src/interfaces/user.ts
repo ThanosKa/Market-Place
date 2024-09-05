@@ -31,7 +31,8 @@ export interface Activity {
     | "product_like"
     | "profile_like"
     | "review_prompt"
-    | "review";
+    | "review"
+    | "product_purchased";
   sender: {
     _id: string;
     firstName: string;

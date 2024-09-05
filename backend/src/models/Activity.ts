@@ -2,14 +2,19 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IActivity extends Document {
   user: mongoose.Types.ObjectId;
-  type: "product_like" | "profile_like" | "review" | "review_prompt";
+  type:
+    | "product_like"
+    | "profile_like"
+    | "review"
+    | "review_prompt"
+    | "product_purchased";
   sender: mongoose.Types.ObjectId;
   content: string;
   product?: mongoose.Types.ObjectId;
   read: boolean;
   createdAt: Date;
-  lastSentAt: Date; // New field to track when the activity was last sent
-  reviewDone?: boolean; // New field
+  lastSentAt: Date;
+  reviewDone?: boolean;
 }
 
 const ActivitySchema: Schema = new Schema({
@@ -17,18 +22,23 @@ const ActivitySchema: Schema = new Schema({
   type: {
     type: String,
     required: true,
-    enum: ["product_like", "profile_like", "review", "review_prompt"],
+    enum: [
+      "product_like",
+      "profile_like",
+      "review",
+      "review_prompt",
+      "product_purchased",
+    ],
   },
   sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
   content: { type: String, required: true },
   product: { type: Schema.Types.ObjectId, ref: "Product" },
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
-  lastSentAt: { type: Date, default: Date.now }, // New field
-  reviewDone: { type: Boolean, default: false }, // New field
+  lastSentAt: { type: Date, default: Date.now },
+  reviewDone: { type: Boolean, default: false },
 });
 
-// Updated index to include lastSentAt
 ActivitySchema.index({
   user: 1,
   type: 1,

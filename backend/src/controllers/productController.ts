@@ -7,6 +7,7 @@ import Product, {
   CONDITION_TYPES,
 } from "../models/Product";
 import User from "../models/User";
+import { createActivity } from "./activityController";
 
 // Create a new product
 
@@ -454,9 +455,9 @@ export const purchaseProduct = async (req: Request, res: Response) => {
     const product = await Product.findById(productId)
       .populate({
         path: "seller",
-        select: "firstName lastName profilePicture _id", // Only select these fields from the seller
+        select: "firstName lastName profilePicture _id",
       })
-      .select("title price images category condition sold seller"); // Include seller field to check ownership
+      .select("title price images category condition sold seller");
 
     if (!product) {
       return res.status(404).json({
@@ -486,7 +487,7 @@ export const purchaseProduct = async (req: Request, res: Response) => {
 
     // Update the sold information in the product
     product.sold = {
-      to: buyerId, // Only store the ObjectId of the buyer
+      to: buyerId,
       date: new Date(),
     };
 
@@ -497,6 +498,19 @@ export const purchaseProduct = async (req: Request, res: Response) => {
       path: "sold.to",
       select: "firstName lastName profilePicture",
     });
+
+    // Create an activity for the seller
+    const buyer = await User.findById(buyerId).select("firstName lastName");
+    const activityContent = `${buyer!.firstName} ${
+      buyer!.lastName
+    } has purchased your product "${product.title}".`;
+    await createActivity(
+      product.seller._id.toString(),
+      "product_purchased",
+      buyerId.toString(),
+      activityContent,
+      productId
+    );
 
     res.json({
       success: true,
@@ -510,7 +524,7 @@ export const purchaseProduct = async (req: Request, res: Response) => {
           category: product.category,
           condition: product.condition,
           seller: product.seller,
-          sold: product.sold, // Includes populated buyer info
+          sold: product.sold,
         },
       },
     });

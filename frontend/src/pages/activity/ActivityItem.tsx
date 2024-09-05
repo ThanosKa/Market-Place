@@ -105,7 +105,10 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
       });
     } else if (item.type === "profile_like") {
       navigation.navigate("Profile", {});
-    } else if (item.type === "product_like" && item.product) {
+    } else if (
+      (item.type === "product_like" || item.type === "product_purchased") &&
+      item.product
+    ) {
       if (item.product._id) {
         navigation.navigate("Product", { productId: item.product._id });
       }
@@ -133,6 +136,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
           </View>
           {(item.type === "product_like" ||
             item.type === "review_prompt" ||
+            item.type === "product_purchased" ||
             item.type === "review") &&
             item.product && (
               <Image

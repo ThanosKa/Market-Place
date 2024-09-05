@@ -7,7 +7,12 @@ import Review from "../models/Review";
 
 export const createActivity = async (
   userId: string,
-  type: "product_like" | "profile_like" | "review",
+  type:
+    | "product_like"
+    | "profile_like"
+    | "review"
+    | "review_prompt"
+    | "product_purchased",
   senderId: string,
   content: string,
   productId?: string
@@ -26,6 +31,7 @@ export const createActivity = async (
       product: productId ? new mongoose.Types.ObjectId(productId) : undefined,
       read: false,
       createdAt: new Date(),
+      lastSentAt: new Date(),
     };
 
     const activity = await Activity.findOneAndUpdate(

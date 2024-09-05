@@ -62,6 +62,8 @@ export const getActivityMessage = (type: string): string => {
       return t("sent-you-a-review-request");
     case "review":
       return t("created-a-review");
+    case "product_purchased":
+      return t("purchased-your-product");
     default:
       return "";
   }

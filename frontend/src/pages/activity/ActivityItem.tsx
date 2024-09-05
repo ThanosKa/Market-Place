@@ -80,7 +80,18 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
     console.log("Activity type:", item.type);
 
     if (item.type === "review_prompt") {
-      setReviewModalVisible(true);
+      if (item.reviewDone) {
+        Toast.show({
+          type: "info",
+          text1: t("review-done"),
+          text2: t("you-have-already-reviewed-this-product"),
+          position: "bottom",
+          visibilityTime: 3000,
+          bottomOffset: 110,
+        });
+      } else {
+        setReviewModalVisible(true);
+      }
     } else if (item.type === "review") {
       navigation.navigate("Profile", {});
     } else if (item.type === "product_like" && !item.product) {

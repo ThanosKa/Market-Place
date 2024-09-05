@@ -5,6 +5,8 @@ import User from "../models/User";
 import Product from "../models/Product"; // Assuming you have a Product model
 import { createActivity } from "./activityController";
 import mongoose from "mongoose";
+import Activity from "../models/Activity";
+
 export const createReview = async (req: Request, res: Response) => {
   try {
     const { revieweeId, productId, rating, comment } = req.body;
@@ -83,6 +85,16 @@ export const createReview = async (req: Request, res: Response) => {
     reviewee.reviewCount = newReviewCount;
     await reviewee.save();
 
+    // Update the corresponding review_prompt activity
+    await Activity.findOneAndUpdate(
+      {
+        user: reviewerId,
+        type: "review_prompt",
+        product: productId,
+      },
+      { reviewDone: true }
+    );
+
     // Populate the reviewer and product information
     const populatedReview = await Review.findById(newReview._id)
       .populate("reviewer", "firstName lastName email username profilePicture")
@@ -96,7 +108,7 @@ export const createReview = async (req: Request, res: Response) => {
       `New review for product ${product.title}: ${comment.substring(0, 50)}${
         comment.length > 50 ? "..." : ""
       }`,
-      newReview._id.toString()
+      productId
     );
 
     res.status(201).json({

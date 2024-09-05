@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BASE_URL } from "../../services/axiosConfig";
 import { useTranslation } from "react-i18next";
 import { createReview } from "../../services/reviews";
+import { markAllActivitiesAsRead } from "../../services/activity";
 
 const { width } = Dimensions.get("window");
 const MODAL_WIDTH = width * 0.9;
@@ -56,6 +57,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
         comment: review,
       });
       onClose();
+      await markAllActivitiesAsRead();
     } catch (error) {
       console.error("Error submitting review:", error);
       // You might want to show an error message to the user here

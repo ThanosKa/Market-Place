@@ -9,6 +9,7 @@ export interface IActivity extends Document {
   read: boolean;
   createdAt: Date;
   lastSentAt: Date; // New field to track when the activity was last sent
+  reviewDone?: boolean; // New field
 }
 
 const ActivitySchema: Schema = new Schema({
@@ -24,6 +25,7 @@ const ActivitySchema: Schema = new Schema({
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   lastSentAt: { type: Date, default: Date.now }, // New field
+  reviewDone: { type: Boolean, default: false }, // New field
 });
 
 // Updated index to include lastSentAt

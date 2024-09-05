@@ -42,6 +42,8 @@ export interface Activity {
   read: boolean;
   createdAt: string;
   lastSentAt: string;
+  reviewDone: string;
+  reviewStatus: string;
   __v: number;
   product?: ActivityProduct;
 }

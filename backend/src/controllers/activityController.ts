@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import Activity, { IActivity } from "../models/Activity";
 import mongoose from "mongoose";
 import Product from "../models/Product";
+import User from "../models/User";
+import Review from "../models/Review";
 
 export const createActivity = async (
   userId: string,
@@ -47,23 +49,47 @@ export const createActivity = async (
 export const getActivities = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
     const activitiesItems = await Activity.find({ user: userId })
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .populate("sender", "firstName lastName profilePicture")
       .populate("product", "title images");
 
+    const totalActivities = await Activity.countDocuments({ user: userId });
     const unseenCount = await Activity.countDocuments({
       user: userId,
       read: false,
     });
+
+    // Transform the activities to include a formatted reviewStatus
+    const formattedActivities = activitiesItems.map((activity) => ({
+      ...activity.toObject(),
+      reviewStatus:
+        activity.type === "review_prompt"
+          ? activity.reviewDone
+            ? "Reviewed"
+            : "Pending"
+          : undefined,
+    }));
 
     res.json({
       success: 1,
       message: "Activities retrieved successfully",
       data: {
         activities: {
-          items: activitiesItems,
+          items: formattedActivities,
           unseenCount,
+          pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(totalActivities / limit),
+            totalItems: totalActivities,
+            itemsPerPage: limit,
+          },
         },
       },
     });
@@ -187,7 +213,7 @@ export const createReviewPromptActivity = async (
       _id: productId,
       seller: sellerId,
       "sold.to": { $ne: null },
-    }).populate("sold.to", "firstName lastName");
+    }).populate("sold.to", "firstName lastName profilePicture");
 
     if (!product) {
       return res.status(404).json({
@@ -208,6 +234,20 @@ export const createReviewPromptActivity = async (
       });
     }
 
+    // Check if the buyer has already created a review for this product
+    const existingReview = await Review.findOne({
+      reviewer: buyerId,
+      product: productId,
+    });
+
+    if (existingReview) {
+      return res.status(200).json({
+        success: 1,
+        message: "Buyer has already reviewed this product",
+        data: 1,
+      });
+    }
+
     // Check if a review prompt activity already exists
     let existingActivity = await Activity.findOne({
       user: buyerId,
@@ -218,10 +258,10 @@ export const createReviewPromptActivity = async (
 
     if (existingActivity) {
       if (!existingActivity.read) {
-        return res.status(400).json({
-          success: 0,
+        return res.status(200).json({
+          success: 1,
           message: "Review prompt activity already sent and not yet read",
-          data: null,
+          data: 0,
         });
       } else {
         // If the activity exists and has been read, update it
@@ -230,13 +270,13 @@ export const createReviewPromptActivity = async (
         await existingActivity.save();
 
         const populatedActivity = await Activity.findById(existingActivity._id)
-          .populate("user", "firstName lastName")
+          .populate("user", "firstName lastName profilePicture")
           .populate({
             path: "product",
             select: "title price images category condition",
             populate: {
               path: "seller",
-              select: "firstName lastName",
+              select: "firstName lastName profilePicture",
             },
           });
 
@@ -268,15 +308,20 @@ export const createReviewPromptActivity = async (
     const activity = await Activity.create(activityData);
 
     const populatedActivity = await Activity.findById(activity._id)
-      .populate("user", "firstName lastName")
+      .populate("user", "firstName lastName profilePicture")
       .populate({
         path: "product",
         select: "title price images category condition",
         populate: {
           path: "seller",
-          select: "firstName lastName",
+          select: "firstName lastName profilePicture",
         },
       });
+
+    const seller = await User.findById(
+      sellerId,
+      "firstName lastName profilePicture"
+    );
 
     res.status(201).json({
       success: 1,
@@ -285,6 +330,7 @@ export const createReviewPromptActivity = async (
         activity: {
           ...populatedActivity!.toObject(),
           buyer: populatedActivity!.user,
+          seller: seller,
           user: undefined,
         },
       },

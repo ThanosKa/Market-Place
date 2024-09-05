@@ -32,6 +32,8 @@ import { Feather } from "@expo/vector-icons";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import EditProductForm from "./EditProductForm";
 import BuyBottomSheet from "./BuyBottomSheet";
+import { createReviewPromptActivity } from "../../services/activity";
+import Toast from "react-native-toast-message";
 
 type ProductScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -65,6 +67,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   const createChatMutation = useMutation(createChat);
   const deleteProductMutation = useMutation(deleteProduct);
   const updateProductMutation = useMutation(updateProduct);
+  const createReviewPromptMutation = useMutation(createReviewPromptActivity);
 
   const {
     data: product,
@@ -128,15 +131,29 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   };
 
   const handleMorePress = () => {
+    const options = [t("edit"), t("delete"), t("cancel")];
+    const destructiveButtonIndex = 1;
+    const cancelButtonIndex = 2;
+
     showActionSheetWithOptions(
       {
-        options: [t("edit"), t("delete"), t("cancel")],
-        cancelButtonIndex: 2,
-        destructiveButtonIndex: 1,
+        options,
+        cancelButtonIndex,
+        destructiveButtonIndex,
       },
       (buttonIndex) => {
         if (buttonIndex === 0) {
-          setIsEditing(true);
+          if (product?.sold) {
+            Toast.show({
+              type: "info",
+              text1: t("cannot-edit-sold-item"),
+              position: "bottom",
+              visibilityTime: 3000,
+              bottomOffset: 150,
+            });
+          } else {
+            setIsEditing(true);
+          }
         } else if (buttonIndex === 1) {
           handleDelete();
         }
@@ -144,6 +161,43 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
     );
   };
 
+  const handleSendReviewRequest = () => {
+    createReviewPromptMutation.mutate(productId, {
+      onSuccess: (data) => {
+        if (data.data === 0) {
+          Toast.show({
+            type: "info",
+            text1: t("review-request-already-sent"),
+            position: "bottom",
+            visibilityTime: 3000,
+            bottomOffset: 150,
+          });
+        } else if (data.data === 1) {
+          Toast.show({
+            type: "info",
+            text1: t("user-already-left-review"),
+            position: "bottom",
+            visibilityTime: 3000,
+            bottomOffset: 150,
+          });
+        } else {
+          Toast.show({
+            type: "success",
+            text1: t("review-request-sent"),
+            position: "bottom",
+            visibilityTime: 3000,
+            bottomOffset: 150,
+          });
+        }
+      },
+      onError: () => {
+        Toast.show({
+          type: "error",
+          text1: t("failed-to-send-review-request"),
+        });
+      },
+    });
+  };
   const handleDelete = () => {
     Alert.alert(
       t("delete-product"),
@@ -156,8 +210,6 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           onPress: () => {
             deleteProductMutation.mutate(productId, {
               onSuccess: () => {
-                // queryClient.invalidateQueries(["product", productId]);
-                // Navigate to Home screen with a refresh trigger
                 navigation.navigate("Home", { refreshHome: Date.now() });
               },
               onError: (error) => {
@@ -170,6 +222,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
       ]
     );
   };
+
   const handleBuyPress = useCallback(() => {
     setIsBuyBottomSheetVisible(true);
   }, []);
@@ -188,14 +241,6 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   const handleCloseBuyBottomSheet = useCallback(() => {
     setIsBuyBottomSheetVisible(false);
   }, []);
-
-  const handleFinalBuy = useCallback(() => {
-    console.log(
-      `Proceeding with ${selectedPaymentMethod} payment, option: ${selectedOption}`
-    );
-    setIsBuyBottomSheetVisible(false);
-    // Add your logic here to proceed with the payment process
-  }, [selectedPaymentMethod, selectedOption]);
 
   const handleSave = (editedProduct: Partial<Product>) => {
     updateProductMutation.mutate(
@@ -238,6 +283,8 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
     );
   }
 
+  const isSold = product.sold !== null;
+
   return (
     <View style={styles.container}>
       <ScrollView>
@@ -263,7 +310,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
               </View>
             ))}
           </Swiper>
-          {isCurrentUserSeller && !isEditing && (
+          {isCurrentUserSeller && (
             <TouchableOpacity
               style={styles.moreButton}
               onPress={handleMorePress}
@@ -271,17 +318,21 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
               <Feather name="more-vertical" size={24} color="white" />
             </TouchableOpacity>
           )}
+
+          {isSold && (
+            <View style={styles.soldOverlay}>
+              <Text style={styles.soldText}>{t("sold")}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.contentContainer}>
           {isEditing ? (
-            <>
-              <EditProductForm
-                product={product}
-                onSave={handleSave}
-                onCancel={() => setIsEditing(false)}
-              />
-            </>
+            <EditProductForm
+              product={product}
+              onSave={handleSave}
+              onCancel={() => setIsEditing(false)}
+            />
           ) : (
             <>
               <Text style={styles.titleText}>{product.title}</Text>
@@ -338,10 +389,23 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      {!isCurrentUserSeller && !isEditing && (
+      {!isCurrentUserSeller && !isEditing && !isSold && (
         <View style={styles.buyButtonContainer}>
           <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
             <Text style={styles.buyButtonText}>{t("buy")}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {isCurrentUserSeller && !isEditing && isSold && (
+        <View style={styles.buyButtonContainer}>
+          <TouchableOpacity
+            style={styles.reviewRequestButton}
+            onPress={handleSendReviewRequest}
+          >
+            <Text style={styles.reviewRequestButtonText}>
+              {t("send-review-request")}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -398,6 +462,9 @@ const styles = StyleSheet.create({
     height: 300,
     resizeMode: "cover",
   },
+  soldProductImage: {
+    opacity: 0.7,
+  },
   pagination: {
     bottom: -30,
   },
@@ -408,6 +475,35 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderRadius: 20,
     padding: 8,
+    zIndex: 2,
+  },
+  soldBadge: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    backgroundColor: colors.danger,
+    borderRadius: 5,
+    padding: 5,
+  },
+  soldBadgeText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  soldOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  soldText: {
+    color: "white",
+    fontSize: 32,
+    fontWeight: "bold",
+    textTransform: "uppercase",
   },
   contentContainer: {
     padding: 20,
@@ -430,6 +526,7 @@ const styles = StyleSheet.create({
   conditionText: {
     fontSize: 16,
   },
+
   categoryText: {
     fontSize: 16,
     color: colors.secondary,
@@ -482,6 +579,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   buyButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  reviewRequestButton: {
+    backgroundColor: colors.primary,
+    padding: 15,
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  reviewRequestButtonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",

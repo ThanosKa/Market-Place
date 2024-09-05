@@ -5,7 +5,7 @@ export interface Product {
   images: string[];
   category: string;
   condition: string;
-  description: string;
+  description?: string; // Making this optional as it wasn't in the example response
   seller: {
     _id: string;
     email: string;
@@ -16,6 +16,16 @@ export interface Product {
   likes: string[];
   createdAt: string;
   updatedAt: string;
+  __v?: number; // Version key from MongoDB, usually internal
+  sold: {
+    to: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+      profilePicture: string;
+    };
+    date: string;
+  } | null; // Using null to indicate that the product might not be sold
 }
 
 export interface ProductsResponse {

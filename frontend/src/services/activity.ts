@@ -50,3 +50,23 @@ export const getActivities = async (): Promise<GetActivitiesResponse> => {
     throw error;
   }
 };
+
+interface CreateReviewPromptActivityResponse {
+  success: number;
+  message: string;
+  data: 0 | 1 | { activity: any }; // You might want to define a more specific type for the activity
+}
+
+export const createReviewPromptActivity = async (
+  productId: string
+): Promise<CreateReviewPromptActivityResponse> => {
+  try {
+    const response = await axiosInstance.post("/activities/review-prompt", {
+      productId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating review prompt activity:", error);
+    throw error;
+  }
+};

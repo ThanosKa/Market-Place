@@ -37,21 +37,27 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
     };
     checkCurrentUser();
   }, [review.reviewer._id]);
-
+  const handleProductPress = () => {
+    if (review.product && review.product._id) {
+      navigation.navigate("Product", { productId: review.product._id });
+    }
+  };
   return (
     <View style={styles.outerContainer}>
       <View style={styles.reviewContainer}>
         <View style={styles.reviewContent}>
           <View style={styles.reviewImageContainer}>
-            <Image
-              source={{
-                uri:
-                  review.product?.images && review.product.images.length > 0
-                    ? `${BASE_URL}${review.product.images[0]}`
-                    : undefined,
-              }}
-              style={styles.reviewProductImage}
-            />
+            <TouchableOpacity onPress={handleProductPress}>
+              <Image
+                source={{
+                  uri:
+                    review.product?.images && review.product.images.length > 0
+                      ? `${BASE_URL}${review.product.images[0]}`
+                      : undefined,
+                }}
+                style={styles.reviewProductImage}
+              />
+            </TouchableOpacity>
             {review.reviewer.profilePicture ? (
               <Image
                 source={{

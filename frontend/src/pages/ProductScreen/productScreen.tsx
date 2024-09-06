@@ -162,12 +162,32 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   };
 
   const handleSendReviewRequest = () => {
+    if (!product || !product.sold) {
+      console.error("Product or sold information is missing");
+      Toast.show({
+        type: "error",
+        text1: t("review-request-failed"),
+        text2: t("product-information-is-incomplete"),
+        position: "bottom",
+        visibilityTime: 3000,
+        bottomOffset: 150,
+      });
+      return;
+    }
+
     createReviewPromptMutation.mutate(productId, {
       onSuccess: (data) => {
+        const buyerFirstName = product?.sold?.to?.firstName ?? t("unknown");
+        const buyerLastName = product?.sold?.to?.lastName ?? t("buyer");
+        const buyerName = `${buyerFirstName} ${buyerLastName}`;
+
         if (data.data === 0) {
           Toast.show({
             type: "info",
             text1: t("review-request-already-sent"),
+            text2: t("{{buyerName}}-has-already-received-a-review-request", {
+              buyerName,
+            }),
             position: "bottom",
             visibilityTime: 3000,
             bottomOffset: 150,
@@ -176,6 +196,9 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           Toast.show({
             type: "info",
             text1: t("user-already-left-review"),
+            text2: t("{{buyerName}}-has-already-created-a-review", {
+              buyerName,
+            }),
             position: "bottom",
             visibilityTime: 3000,
             bottomOffset: 150,
@@ -184,16 +207,24 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           Toast.show({
             type: "success",
             text1: t("review-request-sent"),
+            text2: t("{{buyerName}}-has-received-a-review-request", {
+              buyerName,
+            }),
             position: "bottom",
             visibilityTime: 3000,
             bottomOffset: 150,
           });
         }
       },
-      onError: () => {
+      onError: (error) => {
+        console.error("Error sending review request:", error);
         Toast.show({
           type: "error",
           text1: t("failed-to-send-review-request"),
+          text2: t("please-try-again-later"),
+          position: "bottom",
+          visibilityTime: 3000,
+          bottomOffset: 150,
         });
       },
     });

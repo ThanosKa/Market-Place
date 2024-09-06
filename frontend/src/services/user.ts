@@ -63,7 +63,7 @@ export const editUser = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error editing user:", error);
+    // console.error("Error editing user:", error);
     return null;
   }
 };

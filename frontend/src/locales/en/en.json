@@ -1,4 +1,5 @@
 {
+  "password-mismatch": "Password mismatch",
   "product-information-is-incomplete": "Product information is incomplete",
   "buyer": "Buyer",
   "{{buyerName}}-has-already-received-a-review-request": "{{buyerName}} has already received a review request",

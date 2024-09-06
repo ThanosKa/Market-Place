@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     padding: 15,
     alignItems: "center",
-    borderRadius: 10,
+    borderRadius: 12,
   },
   buyButtonText: {
     color: "white",

@@ -42,6 +42,10 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
       navigation.navigate("Product", { productId: review.product._id });
     }
   };
+  // If the product doesn't exist, don't render the review
+  if (!review.product) {
+    return null;
+  }
   return (
     <View style={styles.outerContainer}>
       <View style={styles.reviewContainer}>

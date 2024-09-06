@@ -50,3 +50,26 @@ export interface GetProductsParams {
   page?: number;
   limit?: number;
 }
+
+export interface PurchasedProductsResponse {
+  success: number;
+  message: string;
+  data: {
+    products: Product[];
+    page: number;
+    limit: number;
+    totalPurchasedProducts: number;
+    totalPages: number;
+  };
+}
+export interface SoldProductsResponse {
+  success: number;
+  message: string;
+  data: {
+    products: Product[];
+    page: number;
+    limit: number;
+    totalSoldProducts: number;
+    totalPages: number;
+  };
+}

@@ -44,4 +44,6 @@ export type MainStackParamList = {
   ChangeEmailScreen: undefined;
   ChangePasswordScreen: undefined;
   SellProduct: undefined;
+  Purchases: undefined;
+  Sales: undefined;
 };

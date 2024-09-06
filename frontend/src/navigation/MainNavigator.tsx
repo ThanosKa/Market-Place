@@ -11,29 +11,17 @@ import { colors } from "../colors/colors";
 import ChangePasswordScreen from "../pages/EditProfileScreen/ChangePassword/changePassword";
 import UserProfileScreen from "../pages/UserProfile/userProfile";
 import { UnseenActivitiesProvider } from "../components/UnseenActivities/UnseenActivities";
-import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import SellScreen from "../pages/sell/SellScreen";
 import MessageScreen from "../pages/MessagesScreen/MessagesScreen";
 import ChatScreen from "../pages/ChatScreen/chatScreen";
 import ProductScreen from "../pages/ProductScreen/productScreen";
-import { useLoggedUser } from "../hooks/useLoggedUser";
-import { getActivities } from "../services/activity";
-import { useQuery } from "react-query";
+import PurchasesScreen from "../pages/PurchasesScreen/purchases";
+import SalesScreen from "../pages/SalesScreen/sales";
 const MainStack = createStackNavigator<MainStackParamList>();
 
 const MainNavigator = () => {
-  // const { data: act, refetch } = useQuery("activities", getActivities, {
-  //   // enabled: false,
-  // });
   const { t } = useTranslation();
-
-  // const { refetch } = useLoggedUser();
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     refetch();
-  //   }, [refetch])
-  // );
 
   return (
     <UnseenActivitiesProvider>
@@ -283,6 +271,62 @@ const MainNavigator = () => {
           options={({ navigation }) => ({
             headerShown: true,
             headerTitle: t("product"),
+            headerTitleAlign: "center",
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 15 }}
+              >
+                <Ionicons
+                  name="chevron-back-sharp"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ),
+            headerStyle: {
+              backgroundColor: "white",
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 0,
+            },
+            headerTintColor: colors.primary,
+          })}
+        />
+        <MainStack.Screen
+          name="Purchases"
+          component={PurchasesScreen}
+          options={({ navigation }) => ({
+            headerShown: true,
+            headerTitle: t("purchases"),
+            headerTitleAlign: "center",
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 15 }}
+              >
+                <Ionicons
+                  name="chevron-back-sharp"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            ),
+            headerStyle: {
+              backgroundColor: "white",
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 0,
+            },
+            headerTintColor: colors.primary,
+          })}
+        />
+        <MainStack.Screen
+          name="Sales"
+          component={SalesScreen}
+          options={({ navigation }) => ({
+            headerShown: true,
+            headerTitle: t("sales"),
             headerTitleAlign: "center",
             headerLeft: () => (
               <TouchableOpacity

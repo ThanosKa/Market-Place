@@ -99,9 +99,12 @@ const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
       <SectionTitle title={t("transactions")} />
       <SectionItem
         label={t("purchases")}
-        onPress={() => console.log("purchases")}
+        onPress={() => navigation.navigate("Purchases")}
       />
-      <SectionItem label={t("sales")} onPress={() => console.log("sales")} />
+      <SectionItem
+        label={t("sales")}
+        onPress={() => navigation.navigate("Sales")}
+      />
       <SectionItem
         label={t("balance")}
         onPress={() => console.log("Balance")}

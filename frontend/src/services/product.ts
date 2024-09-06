@@ -2,6 +2,8 @@ import {
   GetProductsParams,
   Product,
   ProductsResponse,
+  PurchasedProductsResponse,
+  SoldProductsResponse,
 } from "../interfaces/product";
 import axiosInstance from "./axiosConfig";
 
@@ -88,4 +90,31 @@ export const updateProduct = async ({
     updatedData
   );
   return response.data;
+};
+
+export const getPurchasedProducts =
+  async (): Promise<PurchasedProductsResponse> => {
+    try {
+      const response = await axiosInstance.get<PurchasedProductsResponse>(
+        "/products/user/purchased"
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching purchased products:", error);
+      throw error;
+    }
+  };
+
+export const getSoldProducts = async (): Promise<SoldProductsResponse> => {
+  try {
+    const response = await axiosInstance.get<SoldProductsResponse>(
+      "/products/user/sold"
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching sold products:", error);
+    throw error;
+  }
 };

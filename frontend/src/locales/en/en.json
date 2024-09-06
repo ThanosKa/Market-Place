@@ -1,4 +1,7 @@
 {
+  "product-upload-success": "Product listed for sale",
+  "back": "Back",
+  "submit": "Submit",
   "purchase-successful": "Purchase Successful",
   "purchase-failed": "Purchase Failed",
   "please-try-again": "Please try again",

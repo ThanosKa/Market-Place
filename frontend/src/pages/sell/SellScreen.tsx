@@ -40,6 +40,7 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
   const [formData, setFormData] = useState<ProductFormData>({
     title: "",
     price: "",
+    description: "",
     category: null,
     condition: null,
   });
@@ -54,6 +55,7 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
     setFormData({
       title: "",
       price: "",
+      description: "",
       category: null,
       condition: null,
     });
@@ -136,6 +138,8 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
     const submitFormData = new FormData();
     submitFormData.append("title", submittedFormData.title);
     submitFormData.append("price", submittedFormData.price);
+    if (submittedFormData.description)
+      submitFormData.append("description", submittedFormData.description);
     submitFormData.append("category", submittedFormData.category as string);
     submitFormData.append("condition", submittedFormData.condition as string);
 

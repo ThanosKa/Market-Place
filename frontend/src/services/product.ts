@@ -1,3 +1,4 @@
+import { AxiosResponse } from "axios";
 import {
   GetProductsParams,
   Product,
@@ -92,19 +93,21 @@ export const updateProduct = async ({
   return response.data;
 };
 
-export const getPurchasedProducts =
-  async (): Promise<PurchasedProductsResponse> => {
-    try {
-      const response = await axiosInstance.get<PurchasedProductsResponse>(
-        "/products/user/purchased"
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching purchased products:", error);
-      throw error;
-    }
-  };
+export const getPurchasedProducts = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<PurchasedProductsResponse> => {
+  try {
+    const response: AxiosResponse<PurchasedProductsResponse> =
+      await axiosInstance.get("/products/user/purchased", {
+        params: { page, limit },
+      });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching purchased products:", error);
+    throw error;
+  }
+};
 
 export const getSoldProducts = async (): Promise<SoldProductsResponse> => {
   try {

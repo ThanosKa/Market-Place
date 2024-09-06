@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { BottomSheet } from "@rneui/themed";
 import { TabView, SceneMap, TabBar } from "react-native-tab-view";
@@ -13,6 +14,9 @@ import { colors } from "../../colors/colors";
 import { Product } from "../../interfaces/product";
 import { BASE_URL } from "../../services/axiosConfig";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
+import { useMutation, useQueryClient } from "react-query";
+import { purchaseProduct } from "../../services/payment";
 
 interface BuyBottomSheetProps {
   isVisible: boolean;
@@ -95,7 +99,6 @@ const PayByCardRoute = ({
         selected={selectedOption === "nfc"}
         onSelect={() => onSelectOption("nfc")}
       />
-
       <PaymentOption
         label={t("pay-with-paypal")}
         selected={selectedOption === "paypal"}
@@ -118,6 +121,14 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
   ]);
   const [selectedOption, setSelectedOption] = useState("balance");
   const { t } = useTranslation();
+
+  // Reset state when the sheet is closed
+  useEffect(() => {
+    if (!isVisible) {
+      setIndex(0);
+      setSelectedOption("balance");
+    }
+  }, [isVisible]);
 
   const handleSelectOption = (option: string) => {
     setSelectedOption(option);
@@ -159,8 +170,49 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
     />
   );
 
+  const queryClient = useQueryClient();
+
+  const purchaseMutation = useMutation(() => purchaseProduct(product._id), {
+    onSuccess: () => {
+      onClose();
+      Toast.show({
+        type: "success",
+        text1: t("purchase-successful"),
+        position: "bottom",
+        visibilityTime: 3000,
+      });
+      queryClient.invalidateQueries(["product", product._id]);
+      onContinue("inPerson", selectedOption);
+    },
+
+    onError: (error) => {
+      console.error("Purchase failed:", error);
+      Toast.show({
+        type: "error",
+        text1: t("purchase-failed"),
+        text2: t("please-try-again"),
+        position: "bottom",
+        bottomOffset: 130,
+        visibilityTime: 3000,
+      });
+    },
+  });
+
   const handleContinue = () => {
-    onContinue(index === 0 ? "inPerson" : "card", selectedOption);
+    if (index === 0 && selectedOption === "meet") {
+      purchaseMutation.mutate();
+    } else {
+      onClose();
+      Toast.show({
+        type: "info",
+        text1: t("feature-not-available"),
+        text2: t("coming-soon"),
+        position: "bottom",
+        bottomOffset: 130,
+        visibilityTime: 3000,
+      });
+      onContinue(index === 0 ? "inPerson" : "card", selectedOption);
+    }
   };
 
   return (
@@ -192,10 +244,18 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
           </View>
         </View>
         <TouchableOpacity
-          style={styles.continueButton}
+          style={[
+            styles.continueButton,
+            purchaseMutation.isLoading && styles.continueButtonDisabled,
+          ]}
           onPress={handleContinue}
+          disabled={purchaseMutation.isLoading}
         >
-          <Text style={styles.continueButtonText}>{t("continue")}</Text>
+          {purchaseMutation.isLoading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text style={styles.continueButtonText}>{t("continue")}</Text>
+          )}
         </TouchableOpacity>
       </View>
     </BottomSheet>
@@ -309,6 +369,9 @@ const styles = StyleSheet.create({
 
   radioButtonOuterSelected: {
     borderColor: colors.primary,
+  },
+  continueButtonDisabled: {
+    opacity: 0.5,
   },
 
   paymentOptionTextSelected: {

@@ -1,4 +1,9 @@
 {
+  "purchase-successful": "Purchase Successful",
+  "purchase-failed": "Purchase Failed",
+  "please-try-again": "Please try again",
+  "feature-not-available": "Feature not available",
+  "coming-soon": "Coming soon",
   "password-mismatch": "Password mismatch",
   "product-information-is-incomplete": "Product information is incomplete",
   "buyer": "Buyer",
@@ -21,10 +26,10 @@
   "share-thoughts-placeholder": "Share your thoughts about the product...",
   "submit-review": "Submit review",
   "pay-with-balance": "Pay with your balance.",
-  "you-will-meet-and-pay": "Meet seller, inspect product, and pay in person",
+  "you-will-meet-and-pay": "Meet seller, inspect product, and pay in person.",
   "pay-with-your-phone-cards": "Pay with NFC feature.",
 
-  "pay-with-paypal": "Pay with PayPal",
+  "pay-with-paypal": "Pay with PayPal.",
 
   "pay-in-person": "Pay in Person",
   "pay-by-card": "Pay by Card",

@@ -282,7 +282,6 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           refetch();
         },
         onError: (error) => {
-          console.error("Error updating product:", error);
           Alert.alert(t("error"), t("failed-to-update-product"));
         },
       }
@@ -607,7 +606,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     padding: 15,
     alignItems: "center",
-    borderRadius: 12,
+    borderRadius: 10,
   },
   buyButtonText: {
     color: "white",

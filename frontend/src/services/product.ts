@@ -109,12 +109,15 @@ export const getPurchasedProducts = async (
   }
 };
 
-export const getSoldProducts = async (): Promise<SoldProductsResponse> => {
+export const getSoldProducts = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<SoldProductsResponse> => {
   try {
-    const response = await axiosInstance.get<SoldProductsResponse>(
-      "/products/user/sold"
-    );
-
+    const response: AxiosResponse<SoldProductsResponse> =
+      await axiosInstance.get("/products/user/sold", {
+        params: { page, limit },
+      });
     return response.data;
   } catch (error) {
     console.error("Error fetching sold products:", error);

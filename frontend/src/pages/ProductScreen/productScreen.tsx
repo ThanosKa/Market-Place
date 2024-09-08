@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   reviewRequestButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.customBlueDarker,
     padding: 15,
     alignItems: "center",
     borderRadius: 10,

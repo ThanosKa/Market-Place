@@ -217,7 +217,6 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
         }
       },
       onError: (error) => {
-        console.error("Error sending review request:", error);
         Toast.show({
           type: "error",
           text1: t("failed-to-send-review-request"),

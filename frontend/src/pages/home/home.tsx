@@ -25,20 +25,23 @@ import { colors } from "../../colors/colors";
 import { useDispatch } from "react-redux";
 import { setUnreadChatsCount } from "../../redux/useSlice";
 import { getActivities } from "../../services/activity";
-import FilterModal from "./filtermodal"; // You'll need to create this component
-import FilterChip from "./filterchip"; // You'll need to create this component
+import FilterModal from "./filtermodal";
+import FilterChip from "./filterchip";
 
 type HomeScreenRouteProp = RouteProp<MainStackParamList, "Home">;
 
 interface HomeScreenProps {
   route: HomeScreenRouteProp;
 }
-interface Filters {
+
+export interface Filters {
   minPrice: string;
   maxPrice: string;
+  sort: "price" | "createdAt" | null;
   order: "" | "asc" | "desc";
-  condition: string;
+  conditions: string[];
 }
+
 const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const route = useRoute<HomeScreenRouteProp>();
   const searchQuery = route.params?.searchQuery || "";
@@ -51,9 +54,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const [filters, setFilters] = useState<Filters>({
     minPrice: "",
     maxPrice: "",
+    sort: "createdAt",
     order: "",
-    condition: "",
+    conditions: [],
   });
+
   const { refetch: refetchUnreadChatsCount } = useQuery(
     "unreadChatsCount",
     getUnreadChatsCount,
@@ -66,6 +71,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
       },
     }
   );
+
   const { refetch: refetchActivities } = useQuery("activities", getActivities, {
     enabled: false,
   });
@@ -115,62 +121,87 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const selectedCategoryValues = selectedCategories
     .map((id) => categories.find((cat) => cat.id === id)?.value)
     .filter(Boolean) as string[];
+
   const handleFilterChange = (newFilters: Filters) => {
     setFilters(newFilters);
     setFilterModalVisible(false);
     queryClient.invalidateQueries(["products"]);
   };
 
-  const removeFilter = (filterKey: keyof Filters) => {
-    setFilters((prev) => ({ ...prev, [filterKey]: "" }));
+  const removeFilter = (filterKey: keyof Filters, value?: string) => {
+    if (filterKey === "conditions" && value) {
+      setFilters((prev) => ({
+        ...prev,
+        conditions: prev.conditions.filter((c) => c !== value),
+      }));
+    } else if (filterKey !== "conditions") {
+      setFilters((prev) => ({ ...prev, [filterKey]: "" }));
+    }
     queryClient.invalidateQueries(["products"]);
   };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ScrollView
-        style={styles.container}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <DummySearchBar placeholder={searchQuery || t("search")} />
-        <View style={styles.filterSection}>
-          <TouchableOpacity
-            style={styles.filterChip}
-            onPress={() => setFilterModalVisible(true)}
-          >
-            <Text>{t("filter")}</Text>
-          </TouchableOpacity>
-          {(Object.keys(filters) as Array<keyof Filters>).map(
-            (key) =>
-              filters[key] && (
-                <FilterChip
-                  key={key}
-                  label={`${t(key)}: ${filters[key]}`}
-                  onRemove={() => removeFilter(key)}
-                />
-              )
-          )}
-        </View>
-        <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
-        <View style={styles.categoriesContainer}>
-          {categories.map((category, index) => (
-            <CategoryIcon
-              key={index}
-              label={t(category.label)}
-              iconName={category.id}
-              isSelected={selectedCategories.includes(category.id)}
-              onPress={() => toggleCategory(category.id)}
-            />
-          ))}
-        </View>
-        <ProductGrid
-          onRefreshComplete={handleRefreshComplete}
-          selectedCategories={selectedCategoryValues}
-          filters={filters}
-        />
-
+      <View style={styles.container}>
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <DummySearchBar placeholder={searchQuery || t("search")} />
+          <View style={styles.headerRow}>
+            <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setFilterModalVisible(true)}
+            >
+              <Text style={styles.filterButtonText}>{t("filters")}</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.filterChipsContainer}>
+            {filters.minPrice && (
+              <FilterChip
+                label={`${t("min-price")}: ${filters.minPrice}`}
+                onRemove={() => removeFilter("minPrice")}
+              />
+            )}
+            {filters.maxPrice && (
+              <FilterChip
+                label={`${t("max-price")}: ${filters.maxPrice}`}
+                onRemove={() => removeFilter("maxPrice")}
+              />
+            )}
+            {filters.order && (
+              <FilterChip
+                label={`order: ${filters.order}`}
+                onRemove={() => removeFilter("order")}
+              />
+            )}
+            {filters.conditions.map((condition) => (
+              <FilterChip
+                key={condition}
+                label={condition}
+                onRemove={() => removeFilter("conditions", condition)}
+              />
+            ))}
+          </View>
+          <View style={styles.categoriesContainer}>
+            {categories.map((category, index) => (
+              <CategoryIcon
+                key={index}
+                label={t(category.label)}
+                iconName={category.id}
+                isSelected={selectedCategories.includes(category.id)}
+                onPress={() => toggleCategory(category.id)}
+              />
+            ))}
+          </View>
+          <ProductGrid
+            onRefreshComplete={handleRefreshComplete}
+            selectedCategories={selectedCategoryValues}
+            filters={filters}
+          />
+        </ScrollView>
         <FilterModal
           visible={isFilterModalVisible}
           onClose={() => setFilterModalVisible(false)}
@@ -178,7 +209,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
           initialFilters={filters}
           conditions={conditions}
         />
-      </ScrollView>
+      </View>
     </TouchableWithoutFeedback>
   );
 };
@@ -188,30 +219,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginVertical: 10,
-    marginLeft: 10,
-  },
   categoriesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
   },
-  filterSection: {
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    marginVertical: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  filterButton: {
+    borderWidth: 1,
+    borderColor: colors.senderBubble,
+    backgroundColor: colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterButtonText: {
+    color: colors.primary,
+    fontWeight: "500",
+  },
+  filterChipsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    alignItems: "center",
-    padding: 10,
-  },
-  filterChip: {
-    backgroundColor: colors.lightGray,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
+    paddingHorizontal: 10,
+    marginBottom: 10,
   },
 });
 

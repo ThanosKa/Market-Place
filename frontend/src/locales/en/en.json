@@ -1,4 +1,9 @@
 {
+  "min-price": "Min price",
+  "max-price": "Max price",
+  "filters": "Filters",
+  "price-range": "Price range",
+  "order": "Order",
   "deleted": "Deleted",
   "failed-to-send-review-request": "Review request error",
   "date-sold": "Date sold",

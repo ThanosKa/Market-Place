@@ -209,6 +209,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
 };
 
 // Get all products with filters
+
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const {
@@ -223,7 +224,74 @@ export const getProducts = async (req: Request, res: Response) => {
       limit = 10,
     } = req.query;
 
+    // Validate sort parameter
+    const validSortFields = ["price", "createdAt"];
+    if (!validSortFields.includes(sort as string)) {
+      return res.status(400).json({
+        success: 0,
+        message: `Invalid sort parameter. Valid options are: ${validSortFields.join(
+          ", "
+        )}`,
+        data: null,
+      });
+    }
+
+    // Validate order parameter
+    const validOrderValues = [
+      "asc",
+      "desc",
+      "ascending",
+      "descending",
+      "1",
+      "-1",
+    ];
+    if (!validOrderValues.includes(order as string)) {
+      return res.status(400).json({
+        success: 0,
+        message: `Invalid order parameter. Valid options are: ${validOrderValues.join(
+          ", "
+        )}`,
+        data: null,
+      });
+    }
+
     const filter: mongoose.FilterQuery<IProduct> = { sold: null };
+
+    // Validate and process category
+    if (category) {
+      const categories = Array.isArray(category) ? category : [category];
+      const invalidCategories = categories.filter(
+        (cat) => !CATEGORY_TYPES.includes(cat as any)
+      );
+      if (invalidCategories.length > 0) {
+        return res.status(400).json({
+          success: 0,
+          message: `Invalid categories: ${invalidCategories.join(
+            ", "
+          )}. Correct categories are: ${CATEGORY_TYPES.join(", ")}`,
+          data: null,
+        });
+      }
+      filter.category = { $in: categories };
+    }
+
+    // Validate and process condition
+    if (condition) {
+      const conditions = Array.isArray(condition) ? condition : [condition];
+      const invalidConditions = conditions.filter(
+        (cond) => !CONDITION_TYPES.includes(cond as any)
+      );
+      if (invalidConditions.length > 0) {
+        return res.status(400).json({
+          success: 0,
+          message: `Invalid conditions: ${invalidConditions.join(
+            ", "
+          )}. Correct conditions are: ${CONDITION_TYPES.join(", ")}`,
+          data: null,
+        });
+      }
+      filter.condition = { $in: conditions };
+    }
 
     if (typeof search === "string") {
       filter.$or = [
@@ -231,14 +299,7 @@ export const getProducts = async (req: Request, res: Response) => {
         { description: { $regex: search, $options: "i" } },
       ];
     }
-    if (category) {
-      filter.category = {
-        $in: Array.isArray(category) ? category : [category],
-      };
-    }
-    if (typeof condition === "string") {
-      filter.condition = condition;
-    }
+
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
@@ -260,6 +321,8 @@ export const getProducts = async (req: Request, res: Response) => {
         total,
         page: Number(page),
         limit: Number(limit),
+        sort,
+        order,
       },
     });
   } catch (err) {

@@ -40,17 +40,16 @@ export interface ProductsResponse {
 }
 
 export interface GetProductsParams {
+  limit?: number;
+  page?: number;
   search?: string;
   category?: string | string[];
-  condition?: string;
-  minPrice?: number;
-  maxPrice?: number;
+  condition?: string | string[];
+  minPrice?: string;
+  maxPrice?: string;
   sort?: string;
   order?: "asc" | "desc";
-  page?: number;
-  limit?: number;
 }
-
 export interface PurchasedProductsResponse {
   success: number;
   message: string;

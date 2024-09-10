@@ -31,8 +31,10 @@ export const getProducts = async (
         ...params,
         minPrice: params.minPrice || undefined,
         maxPrice: params.maxPrice || undefined,
+        sort: params.sort || undefined,
         order: params.order || undefined,
-        condition: params.condition || undefined,
+        category: params.category,
+        condition: params.condition,
       }).filter(([_, v]) => v != null && v !== "")
     );
 
@@ -45,7 +47,6 @@ export const getProducts = async (
     throw error;
   }
 };
-
 export const getUserProducts = async (params?: {
   search?: string;
   category?: string | string[];

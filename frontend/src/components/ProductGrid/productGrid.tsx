@@ -31,7 +31,7 @@ interface ProductGridProps {
     minPrice: string;
     maxPrice: string;
     order: string;
-    condition: string;
+    conditions: string[];
   };
 }
 
@@ -52,16 +52,20 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const queryParams: GetProductsParams = useMemo(() => {
     const params: GetProductsParams = {
       limit: 10,
-      condition: filters.condition || undefined,
+      sort: "price", // Add this line
       order: filters.order as "asc" | "desc" | undefined,
     };
 
     if (filters.minPrice) {
-      params.minPrice = Number(filters.minPrice);
+      params.minPrice = filters.minPrice;
     }
 
     if (filters.maxPrice) {
-      params.maxPrice = Number(filters.maxPrice);
+      params.maxPrice = filters.maxPrice;
+    }
+
+    if (filters.conditions && filters.conditions.length > 0) {
+      params.condition = filters.conditions;
     }
 
     if (selectedCategories.length > 0) {

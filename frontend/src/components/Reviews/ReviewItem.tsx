@@ -37,31 +37,44 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
     };
     checkCurrentUser();
   }, [review.reviewer._id]);
+
   const handleProductPress = () => {
     if (review.product && review.product._id) {
       navigation.navigate("Product", { productId: review.product._id });
     }
   };
-  // If the product doesn't exist, don't render the review
-  if (!review.product) {
-    return null;
-  }
+
+  const renderProductImage = () => {
+    if (!review.product) {
+      return (
+        <View
+          style={[styles.reviewProductImage, styles.deletedProductPlaceholder]}
+        >
+          <Text style={styles.deletedText}>{`(${t("deleted")})`}</Text>
+        </View>
+      );
+    }
+    return (
+      <TouchableOpacity onPress={handleProductPress}>
+        <Image
+          source={{
+            uri:
+              review.product.images && review.product.images.length > 0
+                ? `${BASE_URL}${review.product.images[0]}`
+                : undefined,
+          }}
+          style={styles.reviewProductImage}
+        />
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.outerContainer}>
       <View style={styles.reviewContainer}>
         <View style={styles.reviewContent}>
           <View style={styles.reviewImageContainer}>
-            <TouchableOpacity onPress={handleProductPress}>
-              <Image
-                source={{
-                  uri:
-                    review.product?.images && review.product.images.length > 0
-                      ? `${BASE_URL}${review.product.images[0]}`
-                      : undefined,
-                }}
-                style={styles.reviewProductImage}
-              />
-            </TouchableOpacity>
+            {renderProductImage()}
             {review.reviewer.profilePicture ? (
               <Image
                 source={{
@@ -77,9 +90,13 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
           </View>
           <View style={styles.reviewInfoContainer}>
             <View style={styles.reviewHeader}>
-              {review.product && (
-                <Text style={styles.itemName}>{review.product.title}</Text>
-              )}
+              <Text
+                style={
+                  review.product ? styles.itemName : styles.deletedItemName
+                }
+              >
+                {review.product ? review.product.title : `(${t("deleted")})`}
+              </Text>
               <View style={styles.ratingContainer}>
                 {[...Array(5)].map((_, index) => (
                   <AntDesign
@@ -167,6 +184,15 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     right: -10,
   },
+  deletedProductPlaceholder: {
+    backgroundColor: colors.secondary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  deletedText: {
+    color: "#fff",
+    // fontWeight: "bold",
+  },
   reviewInfoContainer: {
     flex: 1,
   },
@@ -183,6 +209,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: colors.primary,
+    marginBottom: 10,
+  },
+  deletedItemName: {
+    fontSize: 16,
+    // fontWeight: "bold",
+    color: colors.secondary,
     marginBottom: 10,
   },
   reviewComment: {

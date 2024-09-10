@@ -27,11 +27,18 @@ import { colors } from "../../colors/colors";
 interface ProductGridProps {
   onRefreshComplete: () => void;
   selectedCategories: string[];
+  filters: {
+    minPrice: string;
+    maxPrice: string;
+    order: string;
+    condition: string;
+  };
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
   onRefreshComplete,
   selectedCategories,
+  filters,
 }) => {
   const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(
     new Set()
@@ -43,12 +50,26 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const queryClient = useQueryClient();
 
   const queryParams: GetProductsParams = useMemo(() => {
-    const params: GetProductsParams = { limit: 10 };
+    const params: GetProductsParams = {
+      limit: 10,
+      condition: filters.condition || undefined,
+      order: filters.order as "asc" | "desc" | undefined,
+    };
+
+    if (filters.minPrice) {
+      params.minPrice = Number(filters.minPrice);
+    }
+
+    if (filters.maxPrice) {
+      params.maxPrice = Number(filters.maxPrice);
+    }
+
     if (selectedCategories.length > 0) {
       params.category = selectedCategories;
     }
+
     return params;
-  }, [selectedCategories]);
+  }, [selectedCategories, filters]);
 
   const { data: userLikedProducts, isLoading: likedProductsLoading } = useQuery<
     Product[]

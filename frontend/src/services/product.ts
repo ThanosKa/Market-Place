@@ -27,11 +27,19 @@ export const getProducts = async (
 ): Promise<ProductsResponse> => {
   try {
     const cleanParams = Object.fromEntries(
-      Object.entries(params).filter(([_, v]) => v != null && v !== "")
+      Object.entries({
+        ...params,
+        minPrice: params.minPrice || undefined,
+        maxPrice: params.maxPrice || undefined,
+        order: params.order || undefined,
+        condition: params.condition || undefined,
+      }).filter(([_, v]) => v != null && v !== "")
     );
+
     const response = await axiosInstance.get<ProductsResponse>("/products", {
       params: cleanParams,
     });
+
     return response.data;
   } catch (error) {
     throw error;

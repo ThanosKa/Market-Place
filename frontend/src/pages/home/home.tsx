@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   RefreshControl,
+  TouchableOpacity,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQueryClient, useQuery } from "react-query";
@@ -15,19 +16,29 @@ import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { getUnreadChatsCount } from "../../services/chat";
 import DummySearchBar from "../../components/DummySearchBar/DummySearchBar";
 import CategoryIcon from "../../components/CategoryIcons/categoryIcons";
-import { categories } from "../../interfaces/exploreCategories/iconsCategory";
+import {
+  categories,
+  conditions,
+} from "../../interfaces/exploreCategories/iconsCategory";
 import ProductGrid from "../../components/ProductGrid/productGrid";
 import { colors } from "../../colors/colors";
 import { useDispatch } from "react-redux";
 import { setUnreadChatsCount } from "../../redux/useSlice";
 import { getActivities } from "../../services/activity";
+import FilterModal from "./filtermodal"; // You'll need to create this component
+import FilterChip from "./filterchip"; // You'll need to create this component
 
 type HomeScreenRouteProp = RouteProp<MainStackParamList, "Home">;
 
 interface HomeScreenProps {
   route: HomeScreenRouteProp;
 }
-
+interface Filters {
+  minPrice: string;
+  maxPrice: string;
+  order: "" | "asc" | "desc";
+  condition: string;
+}
 const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const route = useRoute<HomeScreenRouteProp>();
   const searchQuery = route.params?.searchQuery || "";
@@ -36,7 +47,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
-
+  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    minPrice: "",
+    maxPrice: "",
+    order: "",
+    condition: "",
+  });
   const { refetch: refetchUnreadChatsCount } = useQuery(
     "unreadChatsCount",
     getUnreadChatsCount,
@@ -98,6 +115,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const selectedCategoryValues = selectedCategories
     .map((id) => categories.find((cat) => cat.id === id)?.value)
     .filter(Boolean) as string[];
+  const handleFilterChange = (newFilters: Filters) => {
+    setFilters(newFilters);
+    setFilterModalVisible(false);
+    queryClient.invalidateQueries(["products"]);
+  };
+
+  const removeFilter = (filterKey: keyof Filters) => {
+    setFilters((prev) => ({ ...prev, [filterKey]: "" }));
+    queryClient.invalidateQueries(["products"]);
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -108,7 +135,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
         }
       >
         <DummySearchBar placeholder={searchQuery || t("search")} />
-
+        <View style={styles.filterSection}>
+          <TouchableOpacity
+            style={styles.filterChip}
+            onPress={() => setFilterModalVisible(true)}
+          >
+            <Text>{t("filter")}</Text>
+          </TouchableOpacity>
+          {(Object.keys(filters) as Array<keyof Filters>).map(
+            (key) =>
+              filters[key] && (
+                <FilterChip
+                  key={key}
+                  label={`${t(key)}: ${filters[key]}`}
+                  onRemove={() => removeFilter(key)}
+                />
+              )
+          )}
+        </View>
         <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
         <View style={styles.categoriesContainer}>
           {categories.map((category, index) => (
@@ -124,6 +168,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
         <ProductGrid
           onRefreshComplete={handleRefreshComplete}
           selectedCategories={selectedCategoryValues}
+          filters={filters}
+        />
+
+        <FilterModal
+          visible={isFilterModalVisible}
+          onClose={() => setFilterModalVisible(false)}
+          onApply={handleFilterChange}
+          initialFilters={filters}
+          conditions={conditions}
         />
       </ScrollView>
     </TouchableWithoutFeedback>
@@ -145,6 +198,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
+  },
+  filterSection: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    padding: 10,
+  },
+  filterChip: {
+    backgroundColor: colors.lightGray,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
   },
 });
 

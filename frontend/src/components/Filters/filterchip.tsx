@@ -7,14 +7,45 @@ import { colors } from "../../colors/colors";
 interface FilterChipProps {
   label: string;
   onRemove: () => void;
+  type: "price" | "sort" | "condition";
+  sortType?: "price" | "createdAt";
+  sortOrder?: "asc" | "desc" | null;
 }
 
-const FilterChip: React.FC<FilterChipProps> = ({ label, onRemove }) => {
+const FilterChip: React.FC<FilterChipProps> = ({
+  label,
+  onRemove,
+  type,
+  sortType,
+  sortOrder,
+}) => {
   const { t } = useTranslation();
+
+  const getChipLabel = () => {
+    switch (type) {
+      case "price":
+        return `${t("price")}: ${label}`;
+      case "sort":
+        if (sortType === "price") {
+          return `${t("sort-by")}: ${
+            sortOrder === "asc" ? t("cheapest") : t("most-expensive")
+          }`;
+        } else if (sortType === "createdAt") {
+          return `${t("sort-by")}: ${
+            sortOrder === "asc" ? t("oldest") : t("newest")
+          }`;
+        }
+        return `${t("sort-by")}: ${label}`;
+      case "condition":
+        return t(label);
+      default:
+        return t(label);
+    }
+  };
 
   return (
     <TouchableOpacity style={styles.chip} onPress={onRemove}>
-      <Text style={styles.chipText}>{t(label)}</Text>
+      <Text style={styles.chipText}>{getChipLabel()}</Text>
       <Ionicons name="close" size={18} color={colors.primary} />
     </TouchableOpacity>
   );

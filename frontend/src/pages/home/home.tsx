@@ -25,8 +25,12 @@ import { colors } from "../../colors/colors";
 import { useDispatch } from "react-redux";
 import { setUnreadChatsCount } from "../../redux/useSlice";
 import { getActivities } from "../../services/activity";
-import FilterModal from "./filtermodal";
-import FilterChip from "./filterchip";
+import FilterModal, {
+  FilterOption,
+  FilterOptions,
+  SortOption,
+} from "../../components/Filters/filtermodal";
+import FilterChip from "../../components/Filters/filterchip";
 
 type HomeScreenRouteProp = RouteProp<MainStackParamList, "Home">;
 
@@ -38,7 +42,7 @@ export interface Filters {
   minPrice: string;
   maxPrice: string;
   sort: "price" | "createdAt" | null;
-  order: "" | "asc" | "desc";
+  order: "asc" | "desc" | null;
   conditions: string[];
 }
 
@@ -54,11 +58,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const [filters, setFilters] = useState<Filters>({
     minPrice: "",
     maxPrice: "",
-    sort: "createdAt",
-    order: "",
+    sort: null,
+    order: null,
     conditions: [],
   });
-
+  const filterOptions: FilterOptions = {
+    conditions: conditions as FilterOption[],
+    sortOptions: [
+      { id: "price", label: "price" },
+      { id: "createdAt", label: "date" },
+    ] as SortOption[],
+  };
   const { refetch: refetchUnreadChatsCount } = useQuery(
     "unreadChatsCount",
     getUnreadChatsCount,
@@ -134,11 +144,52 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
         ...prev,
         conditions: prev.conditions.filter((c) => c !== value),
       }));
-    } else if (filterKey !== "conditions") {
+    } else if (filterKey === "sort" || filterKey === "order") {
+      setFilters((prev) => ({ ...prev, [filterKey]: null }));
+    } else {
       setFilters((prev) => ({ ...prev, [filterKey]: "" }));
     }
     queryClient.invalidateQueries(["products"]);
   };
+
+  const renderFilterChips = () => (
+    <View style={styles.filterChipsContainer}>
+      {filters.minPrice && (
+        <FilterChip
+          label={`${filters.minPrice}`}
+          onRemove={() => removeFilter("minPrice")}
+          type="price"
+        />
+      )}
+      {filters.maxPrice && (
+        <FilterChip
+          label={`${filters.maxPrice}`}
+          onRemove={() => removeFilter("maxPrice")}
+          type="price"
+        />
+      )}
+      {filters.sort && (
+        <FilterChip
+          label=""
+          onRemove={() => {
+            removeFilter("sort");
+            removeFilter("order");
+          }}
+          type="sort"
+          sortType={filters.sort}
+          sortOrder={filters.order}
+        />
+      )}
+      {filters.conditions.map((condition) => (
+        <FilterChip
+          key={condition}
+          label={condition}
+          onRemove={() => removeFilter("conditions", condition)}
+          type="condition"
+        />
+      ))}
+    </View>
+  );
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -158,33 +209,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
               <Text style={styles.filterButtonText}>{t("filters")}</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.filterChipsContainer}>
-            {filters.minPrice && (
-              <FilterChip
-                label={`${t("min-price")}: ${filters.minPrice}`}
-                onRemove={() => removeFilter("minPrice")}
-              />
-            )}
-            {filters.maxPrice && (
-              <FilterChip
-                label={`${t("max-price")}: ${filters.maxPrice}`}
-                onRemove={() => removeFilter("maxPrice")}
-              />
-            )}
-            {filters.order && (
-              <FilterChip
-                label={`order: ${filters.order}`}
-                onRemove={() => removeFilter("order")}
-              />
-            )}
-            {filters.conditions.map((condition) => (
-              <FilterChip
-                key={condition}
-                label={condition}
-                onRemove={() => removeFilter("conditions", condition)}
-              />
-            ))}
-          </View>
+          {renderFilterChips()}
+
           <View style={styles.categoriesContainer}>
             {categories.map((category, index) => (
               <CategoryIcon
@@ -207,13 +233,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
           onClose={() => setFilterModalVisible(false)}
           onApply={handleFilterChange}
           initialFilters={filters}
-          conditions={conditions}
+          filterOptions={filterOptions}
+          showPriceFilter={true}
+          showSortFilter={true}
+          showConditionFilter={true}
         />
       </View>
     </TouchableWithoutFeedback>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

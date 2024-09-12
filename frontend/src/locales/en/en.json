@@ -1,4 +1,11 @@
 {
+  "apply-filters": "Apply filters",
+  "date": "Date",
+  "sort-by": "Sort by",
+  "cheapest": "Cheapest",
+  "most-expensive": "Most expensive",
+  "oldest": "Oldest",
+  "newest": "Newest",
   "min-price": "Min price",
   "max-price": "Max price",
   "filters": "Filters",

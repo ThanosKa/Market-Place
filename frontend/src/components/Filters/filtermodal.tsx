@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,14 +12,40 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheet } from "@rneui/themed";
 import { colors } from "../../colors/colors";
-import { Filters } from "./home";
+
+export interface Filters {
+  minPrice: string;
+  maxPrice: string;
+  sort: "price" | "createdAt" | null;
+  order: "asc" | "desc" | null;
+  conditions: string[];
+}
+
+export interface FilterOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface SortOption {
+  id: "price" | "createdAt";
+  label: string;
+}
+
+export interface FilterOptions {
+  conditions: FilterOption[];
+  sortOptions: SortOption[];
+}
 
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
   onApply: (filters: Filters) => void;
   initialFilters: Filters;
-  conditions: Array<{ id: string; label: string; value: string }>;
+  filterOptions: FilterOptions;
+  showPriceFilter?: boolean;
+  showSortFilter?: boolean;
+  showConditionFilter?: boolean;
 }
 
 const { width } = Dimensions.get("window");
@@ -29,10 +55,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onClose,
   onApply,
   initialFilters,
-  conditions,
+  filterOptions,
+  showPriceFilter = true,
+  showSortFilter = true,
+  showConditionFilter = true,
 }) => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<Filters>(initialFilters);
+
+  useEffect(() => {
+    setFilters(initialFilters);
+  }, [initialFilters]);
 
   const handleApply = () => {
     onApply(filters);
@@ -43,14 +76,14 @@ const FilterModal: React.FC<FilterModalProps> = ({
     setFilters((prevFilters) => ({
       ...prevFilters,
       sort: prevFilters.sort === newSort ? null : newSort,
-      order: "", // Reset order when changing sort
+      order: null,
     }));
   };
 
   const toggleOrder = (order: "asc" | "desc") => {
     setFilters((prevFilters) => ({
       ...prevFilters,
-      order: prevFilters.order === order ? "" : order,
+      order: prevFilters.order === order ? null : order,
     }));
   };
 
@@ -85,64 +118,55 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t("price-range")}</Text>
-            <View style={styles.priceInputContainer}>
-              <TextInput
-                style={styles.priceInput}
-                placeholder={t("min-price")}
-                keyboardType="numeric"
-                value={filters.minPrice}
-                onChangeText={(text) => handlePriceInput("minPrice", text)}
-              />
-              <Text style={styles.priceSeparator}>-</Text>
-              <TextInput
-                style={styles.priceInput}
-                placeholder={t("max-price")}
-                keyboardType="numeric"
-                value={filters.maxPrice}
-                onChangeText={(text) => handlePriceInput("maxPrice", text)}
-              />
+          {showPriceFilter && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t("price-range")}</Text>
+              <View style={styles.priceInputContainer}>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder={t("min-price")}
+                  keyboardType="numeric"
+                  value={filters.minPrice}
+                  onChangeText={(text) => handlePriceInput("minPrice", text)}
+                />
+                <Text style={styles.priceSeparator}>-</Text>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder={t("max-price")}
+                  keyboardType="numeric"
+                  value={filters.maxPrice}
+                  onChangeText={(text) => handlePriceInput("maxPrice", text)}
+                />
+              </View>
             </View>
-          </View>
+          )}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t("sort-by")}</Text>
-            <View style={styles.sortContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.sortButton,
-                  filters.sort === "price" && styles.selectedSort,
-                ]}
-                onPress={() => toggleSort("price")}
-              >
-                <Text
-                  style={[
-                    styles.sortButtonText,
-                    filters.sort === "price" && styles.selectedSortText,
-                  ]}
-                >
-                  {t("price")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.sortButton,
-                  filters.sort === "createdAt" && styles.selectedSort,
-                ]}
-                onPress={() => toggleSort("createdAt")}
-              >
-                <Text
-                  style={[
-                    styles.sortButtonText,
-                    filters.sort === "createdAt" && styles.selectedSortText,
-                  ]}
-                >
-                  {t("date")}
-                </Text>
-              </TouchableOpacity>
+          {showSortFilter && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t("sort-by")}</Text>
+              <View style={styles.sortContainer}>
+                {filterOptions.sortOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.sortButton,
+                      filters.sort === option.id && styles.selectedSort,
+                    ]}
+                    onPress={() => toggleSort(option.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.sortButtonText,
+                        filters.sort === option.id && styles.selectedSortText,
+                      ]}
+                    >
+                      {t(option.label)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {filters.sort && (
             <View style={styles.section}>
@@ -155,11 +179,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   ]}
                   onPress={() => toggleOrder("asc")}
                 >
-                  <Ionicons
-                    name="arrow-up"
-                    size={18}
-                    color={filters.order === "asc" ? "#fff" : "#333"}
-                  />
                   <Text
                     style={[
                       styles.orderButtonText,
@@ -176,11 +195,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   ]}
                   onPress={() => toggleOrder("desc")}
                 >
-                  <Ionicons
-                    name="arrow-down"
-                    size={18}
-                    color={filters.order === "desc" ? "#fff" : "#333"}
-                  />
                   <Text
                     style={[
                       styles.orderButtonText,
@@ -196,32 +210,34 @@ const FilterModal: React.FC<FilterModalProps> = ({
             </View>
           )}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t("condition")}</Text>
-            <View style={styles.conditionContainer}>
-              {conditions.map((condition) => (
-                <TouchableOpacity
-                  key={condition.value}
-                  style={[
-                    styles.conditionButton,
-                    filters.conditions.includes(condition.value) &&
-                      styles.selectedCondition,
-                  ]}
-                  onPress={() => toggleCondition(condition.value)}
-                >
-                  <Text
+          {showConditionFilter && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t("condition")}</Text>
+              <View style={styles.conditionContainer}>
+                {filterOptions.conditions.map((condition) => (
+                  <TouchableOpacity
+                    key={condition.value}
                     style={[
-                      styles.conditionButtonText,
+                      styles.conditionButton,
                       filters.conditions.includes(condition.value) &&
-                        styles.selectedConditionText,
+                        styles.selectedCondition,
                     ]}
+                    onPress={() => toggleCondition(condition.value)}
                   >
-                    {t(condition.label)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.conditionButtonText,
+                        filters.conditions.includes(condition.value) &&
+                          styles.selectedConditionText,
+                      ]}
+                    >
+                      {t(condition.label)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
         </ScrollView>
 
         <TouchableOpacity style={styles.applyButton} onPress={handleApply}>

@@ -26,20 +26,12 @@ export const getProducts = async (
   params: GetProductsParams = {}
 ): Promise<ProductsResponse> => {
   try {
-    const cleanParams = Object.fromEntries(
-      Object.entries({
-        ...params,
-        minPrice: params.minPrice || undefined,
-        maxPrice: params.maxPrice || undefined,
-        sort: params.sort || undefined,
-        order: params.order || undefined,
-        category: params.category,
-        condition: params.condition,
-      }).filter(([_, v]) => v != null && v !== "")
-    );
-
     const response = await axiosInstance.get<ProductsResponse>("/products", {
-      params: cleanParams,
+      params: {
+        ...params,
+        page: params.page || 1,
+        limit: params.limit || 10,
+      },
     });
 
     return response.data;

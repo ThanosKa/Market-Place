@@ -23,16 +23,12 @@ import { BASE_URL } from "../../services/axiosConfig";
 import { getProducts } from "../../services/product";
 import { getLikedProducts, toggleLikeProduct } from "../../services/likes";
 import { colors } from "../../colors/colors";
+import { Filters } from "../../pages/home/home";
 
 interface ProductGridProps {
   onRefreshComplete: () => void;
   selectedCategories: string[];
-  filters: {
-    minPrice: string;
-    maxPrice: string;
-    order: string;
-    conditions: string[];
-  };
+  filters: Filters;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
@@ -49,12 +45,22 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
+  // Inside your ProductGrid component
+
+  // Inside your ProductGrid component
   const queryParams: GetProductsParams = useMemo(() => {
     const params: GetProductsParams = {
+      page: 1,
       limit: 10,
-      sort: "price", // Add this line
-      order: filters.order as "asc" | "desc" | undefined,
     };
+
+    if (filters.sort) {
+      params.sort = filters.sort;
+    }
+
+    if (filters.order) {
+      params.order = filters.order;
+    }
 
     if (filters.minPrice) {
       params.minPrice = filters.minPrice;

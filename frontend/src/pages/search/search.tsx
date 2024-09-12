@@ -42,7 +42,7 @@ const SearchScreen = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const route = useRoute<SearchScreenRouteProp>();
-
+  const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -52,6 +52,7 @@ const SearchScreen = () => {
   const debouncedSearch = useCallback(
     debounce((text: string) => {
       setDebouncedSearchQuery(text);
+      setIsSearching(false);
     }, 300),
     []
   );
@@ -149,9 +150,9 @@ const SearchScreen = () => {
     setIsFocused(false);
     setShowSearchBar(false);
   };
-
   const handleSearch = (text: string) => {
     setSearchQuery(text);
+    setIsSearching(true);
     debouncedSearch(text);
   };
 
@@ -249,7 +250,7 @@ const SearchScreen = () => {
 
       {isFocused && searchQuery.length > 0 && (
         <>
-          {productsLoading ? (
+          {isSearching || productsLoading ? (
             <ActivityIndicator size="small" color={colors.secondary} />
           ) : products.length > 0 ? (
             <SearchResults

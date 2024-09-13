@@ -61,6 +61,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
 
   const { data: likedProfiles, refetch: refetchLikedProfiles } = useQuery<
     LikedUser[]
@@ -97,7 +98,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         }
         return undefined;
       },
-      enabled: activeTab === "listings",
+      enabled: activeTab === "listings" || activeTab === "about",
+      onSuccess: (data) => {
+        // Update total products count only when there's no search query
+        if (!searchQuery) {
+          setTotalProductsCount(data.pages[0].data.total);
+        }
+      },
     }
   );
 
@@ -264,7 +271,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <UserInfo user={user} totalProducts={totalProducts} />
+        <UserInfo user={user} totalProducts={totalProductsCount} />
         <TabSelector
           tabs={tabs}
           activeTab={activeTab}

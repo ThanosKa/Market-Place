@@ -50,7 +50,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [scrollPosition, setScrollPosition] = useState(0);
-
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
   const {
     data: userDetails,
     isLoading: userLoading,
@@ -79,7 +79,13 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         }
         return undefined;
       },
-      enabled: activeTab === "listings",
+      enabled: activeTab === "listings" || activeTab === "profile",
+      onSuccess: (data) => {
+        // Update total products count only when there's no search query
+        if (!searchQuery) {
+          setTotalProductsCount(data.pages[0].data.total);
+        }
+      },
     }
   );
 
@@ -185,7 +191,6 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   }
 
   const user: User = userDetails.data.user;
-  console.log("user", userProducts);
 
   const totalProducts = userProducts?.pages[0]?.data.total || 0;
 
@@ -208,7 +213,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       >
         <UserInfo
           user={user}
-          totalProducts={totalProducts}
+          totalProducts={totalProductsCount}
           totalLikes={totalLikes}
         />
         <TabSelector

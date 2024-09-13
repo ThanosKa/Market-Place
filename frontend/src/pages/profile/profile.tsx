@@ -28,6 +28,7 @@ import { useInfiniteQuery, useQuery } from "react-query";
 import { getUserDetails } from "../../services/user";
 import { getUserProducts } from "../../services/product";
 import { getUserReviews } from "../../services/reviews";
+import { GetUserProductsParams } from "../../interfaces/product";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
@@ -67,13 +68,13 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     ["userProducts", searchQuery],
     ({ pageParam = 1 }) =>
       getUserProducts({
-        ...(searchQuery ? { search: searchQuery } : {}),
+        search: searchQuery,
         page: pageParam,
         limit: 10,
-      }),
+      } as GetUserProductsParams),
     {
       getNextPageParam: (lastPage) => {
-        if (lastPage.data.page < lastPage.data.totalPages) {
+        if (lastPage.data.page < lastPage.data.total / lastPage.data.limit) {
           return lastPage.data.page + 1;
         }
         return undefined;
@@ -178,13 +179,16 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   if (!userDetails) {
     return (
       <View style={styles.container}>
-        <Text>Error loading user data</Text>
+        <Text> {t("errorLoadingData")}</Text>
       </View>
     );
   }
 
   const user: User = userDetails.data.user;
-  const totalProducts = userDetails.data.totalProducts;
+  console.log("user", userProducts);
+
+  const totalProducts = userProducts?.pages[0]?.data.total || 0;
+
   const totalLikes = userDetails.data.totalLikes;
 
   const tabs = [
@@ -247,6 +251,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "center",
     backgroundColor: "#fff",
   },
 });

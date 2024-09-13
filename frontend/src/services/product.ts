@@ -1,10 +1,12 @@
 import { AxiosResponse } from "axios";
 import {
   GetProductsParams,
+  GetUserProductsParams,
   Product,
   ProductsResponse,
   PurchasedProductsResponse,
   SoldProductsResponse,
+  UserProductsResponse,
 } from "../interfaces/product";
 import axiosInstance from "./axiosConfig";
 
@@ -39,41 +41,49 @@ export const getProducts = async (
     throw error;
   }
 };
-export const getUserProducts = async (params?: {
-  search?: string;
-  category?: string | string[];
-  condition?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  sort?: string;
-  order?: "asc" | "desc";
-  page?: number;
-  limit?: number;
-}) => {
-  const response = await axiosInstance.get("/products/user", { params });
-  return response.data;
+
+export const getUserProducts = async (
+  params: GetUserProductsParams = {}
+): Promise<UserProductsResponse> => {
+  try {
+    const response = await axiosInstance.get<UserProductsResponse>(
+      "/products/user",
+      {
+        params: {
+          ...params,
+          page: params.page || 1,
+          limit: params.limit || 10,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 export const getUserProductsById = async (
   userId: string,
-  params?: {
-    search?: string;
-    category?: string | string[];
-    condition?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sort?: string;
-    order?: "asc" | "desc";
-    page?: number;
-    limit?: number;
-  }
-) => {
-  const response = await axiosInstance.get(`/products/user/${userId}`, {
-    params,
-  });
-  return response.data;
-};
+  params: GetUserProductsParams = {}
+): Promise<UserProductsResponse> => {
+  try {
+    const response = await axiosInstance.get<UserProductsResponse>(
+      `/products/user/${userId}`,
+      {
+        params: {
+          ...params,
+          page: params.page || 1,
+          limit: params.limit || 10,
+        },
+      }
+    );
 
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 export const getProductById = async (productId: string) => {
   const response = await axiosInstance.get(`/products/${productId}`);
   return response.data;

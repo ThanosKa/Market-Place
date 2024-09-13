@@ -72,3 +72,28 @@ export interface SoldProductsResponse {
     totalPages: number;
   };
 }
+
+export interface UserProductsResponse {
+  success: number;
+  message: string;
+  data: {
+    products: Product[];
+    total: number;
+    page: number;
+    limit: number;
+    sort: string;
+    order: "asc" | "desc";
+  };
+}
+
+export interface GetUserProductsParams {
+  limit?: number;
+  page?: number;
+  search?: string;
+  category?: string | string[];
+  condition?: string | string[];
+  minPrice?: string;
+  maxPrice?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+}

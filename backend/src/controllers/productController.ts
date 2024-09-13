@@ -346,75 +346,112 @@ export const getUserProducts = async (req: Request, res: Response) => {
 
     const userId = new mongoose.Types.ObjectId((req as any).userId);
 
-    const productFilter: mongoose.FilterQuery<IProduct> = {
-      seller: userId,
-      sold: null,
-    };
-
-    if (typeof search === "string") {
-      productFilter.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ];
-    }
-    if (category) {
-      productFilter.category = {
-        $in: Array.isArray(category) ? category : [category],
-      };
-    }
-    if (typeof condition === "string") {
-      productFilter.condition = condition;
-    }
-    if (minPrice || maxPrice) {
-      productFilter.price = {};
-      if (minPrice) productFilter.price.$gte = Number(minPrice);
-      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
-    }
-
-    const user = await User.findById(userId)
-      .select("-password")
-      .populate({
-        path: "products",
-        match: productFilter,
-        options: {
-          sort: { [sort as string]: order as mongoose.SortOrder },
-          skip: (Number(page) - 1) * Number(limit),
-          limit: Number(limit),
-        },
-        model: Product,
-      });
-
-    if (!user) {
-      return res.status(404).json({
+    // Validate sort parameter
+    const validSortFields = ["price", "createdAt"];
+    if (!validSortFields.includes(sort as string)) {
+      return res.status(400).json({
         success: 0,
-        message: "User not found",
+        message: `Invalid sort parameter. Valid options are: ${validSortFields.join(
+          ", "
+        )}`,
         data: null,
       });
     }
 
-    const totalProducts = await Product.countDocuments({
+    // Validate order parameter
+    const validOrderValues = [
+      "asc",
+      "desc",
+      "ascending",
+      "descending",
+      "1",
+      "-1",
+    ];
+    if (!validOrderValues.includes(order as string)) {
+      return res.status(400).json({
+        success: 0,
+        message: `Invalid order parameter. Valid options are: ${validOrderValues.join(
+          ", "
+        )}`,
+        data: null,
+      });
+    }
+
+    const filter: mongoose.FilterQuery<IProduct> = {
       seller: userId,
-      ...productFilter,
-    });
+      sold: null,
+    };
+
+    // Validate and process category
+    if (category) {
+      const categories = Array.isArray(category) ? category : [category];
+      const invalidCategories = categories.filter(
+        (cat) => !CATEGORY_TYPES.includes(cat as any)
+      );
+      if (invalidCategories.length > 0) {
+        return res.status(400).json({
+          success: 0,
+          message: `Invalid categories: ${invalidCategories.join(
+            ", "
+          )}. Correct categories are: ${CATEGORY_TYPES.join(", ")}`,
+          data: null,
+        });
+      }
+      filter.category = { $in: categories };
+    }
+
+    // Validate and process condition
+    if (condition) {
+      const conditions = Array.isArray(condition) ? condition : [condition];
+      const invalidConditions = conditions.filter(
+        (cond) => !CONDITION_TYPES.includes(cond as any)
+      );
+      if (invalidConditions.length > 0) {
+        return res.status(400).json({
+          success: 0,
+          message: `Invalid conditions: ${invalidConditions.join(
+            ", "
+          )}. Correct conditions are: ${CONDITION_TYPES.join(", ")}`,
+          data: null,
+        });
+      }
+      filter.condition = { $in: conditions };
+    }
+
+    if (typeof search === "string") {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    const total = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
+      .sort({ [sort as string]: order as mongoose.SortOrder })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
 
     res.json({
       success: 1,
       message: "User products retrieved successfully",
       data: {
-        products: user.products,
+        products,
+        total,
         page: Number(page),
         limit: Number(limit),
-        totalProducts,
-        totalPages: Math.ceil(totalProducts / Number(limit)),
+        sort,
+        order,
       },
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      success: 0,
-      message: "Server error",
-      data: null,
-    });
+    res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
 export const getUserByIdProducts = async (req: Request, res: Response) => {
@@ -432,56 +469,113 @@ export const getUserByIdProducts = async (req: Request, res: Response) => {
     } = req.query;
 
     const userId = new mongoose.Types.ObjectId(req.params.id);
-    const productFilter: mongoose.FilterQuery<IProduct> = {
+
+    // Validate sort parameter
+    const validSortFields = ["price", "createdAt"];
+    if (!validSortFields.includes(sort as string)) {
+      return res.status(400).json({
+        success: 0,
+        message: `Invalid sort parameter. Valid options are: ${validSortFields.join(
+          ", "
+        )}`,
+        data: null,
+      });
+    }
+
+    // Validate order parameter
+    const validOrderValues = [
+      "asc",
+      "desc",
+      "ascending",
+      "descending",
+      "1",
+      "-1",
+    ];
+    if (!validOrderValues.includes(order as string)) {
+      return res.status(400).json({
+        success: 0,
+        message: `Invalid order parameter. Valid options are: ${validOrderValues.join(
+          ", "
+        )}`,
+        data: null,
+      });
+    }
+
+    const filter: mongoose.FilterQuery<IProduct> = {
       seller: userId,
       sold: null,
     };
 
-    if (typeof search === "string") {
-      productFilter.title = { $regex: search, $options: "i" };
-    }
+    // Validate and process category
     if (category) {
-      productFilter.category = {
-        $in: Array.isArray(category) ? category : [category],
-      };
+      const categories = Array.isArray(category) ? category : [category];
+      const invalidCategories = categories.filter(
+        (cat) => !CATEGORY_TYPES.includes(cat as any)
+      );
+      if (invalidCategories.length > 0) {
+        return res.status(400).json({
+          success: 0,
+          message: `Invalid categories: ${invalidCategories.join(
+            ", "
+          )}. Correct categories are: ${CATEGORY_TYPES.join(", ")}`,
+          data: null,
+        });
+      }
+      filter.category = { $in: categories };
     }
+
+    // Validate and process condition
+    if (condition) {
+      const conditions = Array.isArray(condition) ? condition : [condition];
+      const invalidConditions = conditions.filter(
+        (cond) => !CONDITION_TYPES.includes(cond as any)
+      );
+      if (invalidConditions.length > 0) {
+        return res.status(400).json({
+          success: 0,
+          message: `Invalid conditions: ${invalidConditions.join(
+            ", "
+          )}. Correct conditions are: ${CONDITION_TYPES.join(", ")}`,
+          data: null,
+        });
+      }
+      filter.condition = { $in: conditions };
+    }
+
     if (typeof search === "string") {
-      productFilter.$or = [
+      filter.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
       ];
     }
+
     if (minPrice || maxPrice) {
-      productFilter.price = {};
-      if (minPrice) productFilter.price.$gte = Number(minPrice);
-      if (maxPrice) productFilter.price.$lte = Number(maxPrice);
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    const products = await Product.find(productFilter)
+    const total = await Product.countDocuments(filter);
+    const products = await Product.find(filter)
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
-
-    const totalProducts = await Product.countDocuments(productFilter);
 
     res.json({
       success: 1,
       message: "User products retrieved successfully",
       data: {
         products,
+        total,
         page: Number(page),
         limit: Number(limit),
-        totalProducts,
-        totalPages: Math.ceil(totalProducts / Number(limit)),
+        sort,
+        order,
       },
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      success: 0,
-      message: "Server error",
-      data: null,
-    });
+    res.status(500).json({ success: 0, message: "Server error", data: null });
   }
 };
 

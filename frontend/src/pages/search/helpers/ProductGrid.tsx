@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   FlatList,
   Image,
@@ -10,7 +10,7 @@ import {
 import { Product } from "../../../interfaces/product";
 import { BASE_URL } from "../../../services/axiosConfig";
 import { colors } from "../../../colors/colors";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../../interfaces/auth/navigation";
 
@@ -30,6 +30,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   isLoadingMore,
 }) => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+  const flatListRef = useRef(null);
+  useScrollToTop(flatListRef);
 
   const handleClickProduct = (product: Product) => {
     navigation.navigate("Product", { productId: product._id });
@@ -61,6 +63,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
   return (
     <FlatList
+      ref={flatListRef}
       data={products}
       renderItem={renderProductGrid}
       keyExtractor={(item) => item._id}

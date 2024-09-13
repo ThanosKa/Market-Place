@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,11 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
-import { RouteProp, useNavigation } from "@react-navigation/native";
+import {
+  RouteProp,
+  useNavigation,
+  useScrollToTop,
+} from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useActivityManagement } from "./useActivityManagement";
 import ActivityItem from "./ActivityItem";
@@ -36,6 +40,8 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
   } = useActivityManagement();
 
   const [refreshing, setRefreshing] = React.useState(false);
+  const flatListRef = useRef(null);
+  useScrollToTop(flatListRef);
 
   useEffect(() => {
     const markAllReadOnBlur = navigation.addListener("blur", markAllAsRead);
@@ -76,6 +82,7 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
     <View style={styles.container}>
       <Text style={styles.notificationTitle}>{t("Notifications")}</Text>
       <FlatList
+        ref={flatListRef}
         data={getSections(groupedActivities)}
         renderItem={({ item }) => (
           <>

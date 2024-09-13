@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,12 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQueryClient, useQuery } from "react-query";
-import { RouteProp, useFocusEffect, useRoute } from "@react-navigation/native";
+import {
+  RouteProp,
+  useFocusEffect,
+  useRoute,
+  useScrollToTop,
+} from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { getUnreadChatsCount } from "../../services/chat";
 import DummySearchBar from "../../components/DummySearchBar/DummySearchBar";
@@ -55,6 +60,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollViewRef);
   const [filters, setFilters] = useState<Filters>({
     minPrice: "",
     maxPrice: "",
@@ -62,6 +69,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     order: null,
     conditions: [],
   });
+
   const filterOptions: FilterOptions = {
     conditions: conditions as FilterOption[],
     sortOptions: [
@@ -195,6 +203,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         <ScrollView
+          ref={scrollViewRef}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }

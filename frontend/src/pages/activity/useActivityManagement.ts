@@ -1,13 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "react-query";
 import { useDispatch } from "react-redux";
-import {
-  useNavigation,
-  useIsFocused,
-  NavigationProp,
-} from "@react-navigation/native";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { Activity } from "../../interfaces/user";
-import { MainStackParamList } from "../../interfaces/auth/navigation"; // Adjust this import path as needed
+import { MainStackParamList } from "../../interfaces/auth/navigation";
 import {
   getActivities,
   GetActivitiesResponse,
@@ -15,21 +12,11 @@ import {
   markAllActivitiesAsRead,
 } from "../../services/activity";
 import { setUnseenActivitiesCount } from "../../redux/useSlice";
-import {
-  updateLocalActivities,
-  removeActivityFromLocal,
-  getUnseenCount,
-} from "./activityUtils";
-
-type ActivityScreenNavigationProp = NavigationProp<
-  MainStackParamList,
-  "Activity"
->;
 
 export const useActivityManagement = () => {
   const [localActivities, setLocalActivities] = useState<Activity[]>([]);
   const dispatch = useDispatch();
-  const navigation = useNavigation<ActivityScreenNavigationProp>();
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
   const isFocused = useIsFocused();
 
   const { data, isLoading, error, refetch } = useQuery<
@@ -76,8 +63,10 @@ export const useActivityManagement = () => {
   const handleDeleteItem = async (id: string) => {
     try {
       await deleteActivity(id);
-      setLocalActivities((prev) => removeActivityFromLocal(prev, id));
-      const unseenCount = getUnseenCount(localActivities);
+      setLocalActivities((prev) =>
+        prev.filter((activity) => activity._id !== id)
+      );
+      const unseenCount = localActivities.filter((a) => !a.read).length - 1;
       updateUnseenCount(unseenCount);
     } catch (error) {
       console.error("Error deleting activity:", error);
@@ -91,5 +80,6 @@ export const useActivityManagement = () => {
     refetch,
     markAllAsRead,
     handleDeleteItem,
+    navigation,
   };
 };

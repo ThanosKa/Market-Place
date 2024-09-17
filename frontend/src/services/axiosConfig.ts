@@ -8,7 +8,6 @@ import i18n from "../utils/i18n";
 
 const API_URL = `${env.PROTOCOL}://${env.SERVER}:${env.PORT}/${env.API_BASEPATH}`;
 export const BASE_URL = `${env.PROTOCOL}://${env.SERVER}:${env.PORT}`;
-console.log("BASE_URL:", BASE_URL);
 
 if (!env.PROTOCOL || !env.SERVER || !env.PORT) {
   console.error("Environment variables are not set correctly");

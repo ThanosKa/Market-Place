@@ -13,8 +13,6 @@ import { useQuery, useInfiniteQuery, useMutation } from "react-query";
 import { createChat, deleteChat, getUserChats } from "../../services/chat";
 import { getAllUsersInfo } from "../../services/user";
 import { Swipeable } from "react-native-gesture-handler";
-import { Chat } from "../../interfaces/chat";
-import { User } from "../../interfaces/user";
 import { t } from "i18next";
 import { Ionicons } from "@expo/vector-icons";
 import SearchBar from "../../components/SearchBarComponenet";
@@ -28,6 +26,8 @@ import {
   PaginatedUsersResponse,
   MessageScreenNavigationProp,
 } from "./MessageScreenTypes";
+import { Chat } from "../../interfaces/chat";
+import { User } from "../../interfaces/user";
 const MessageScreen: React.FC = () => {
   const navigation = useNavigation<MessageScreenNavigationProp>();
   const [showSearchBar, setShowSearchBar] = useState<boolean>(false);

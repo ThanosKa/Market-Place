@@ -14,11 +14,11 @@ import { useTranslation } from "react-i18next";
 import { toggleLikeUser } from "../../services/likes";
 import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
-import { LikedUser } from "../../interfaces/user";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useNavigation } from "@react-navigation/native";
 import { getUserId } from "../../services/authStorage";
+import { LikedUser } from "../../interfaces/user";
 
 type Props = {
   likedProfilesData: LikedUser[];

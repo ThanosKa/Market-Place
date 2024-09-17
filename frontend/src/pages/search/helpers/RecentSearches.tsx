@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   clearAllText: {
-    color: colors.primary,
+    color: colors.secondary,
     fontSize: 14,
   },
   recentSearchesList: {

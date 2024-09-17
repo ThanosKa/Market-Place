@@ -1,16 +1,17 @@
 import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Feather } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { getUserId } from "../../services/authStorage";
-import { Feather } from "@expo/vector-icons";
+
 type ProductCardProps = {
   userImage: string | null;
   userName: string;
   userId: string;
+  productId: string; // Add this prop
   productImage: string | null;
   title: string;
   price: string;
@@ -24,6 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   userImage,
   userName,
   userId,
+  productId,
   productImage,
   title,
   price,
@@ -38,16 +40,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
     if (userId) {
       const loggedUserId = await getUserId();
       if (loggedUserId === userId) {
-        // Navigate to the Profile tab
         navigation.navigate("MainTabs");
         navigation.navigate("Profile", { refreshProfile: Date.now() });
       } else {
-        // If it's a different user, navigate to their UserProfile
         navigation.navigate("UserProfile", { userId });
       }
     } else {
       console.warn("User ID is missing");
     }
+  };
+
+  const handleProductPress = () => {
+    navigation.navigate("Product", { productId });
   };
 
   return (
@@ -64,18 +68,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </View>
         <Text style={styles.userName}>{userName}</Text>
       </TouchableOpacity>
-      {productImage ? (
-        <Image source={{ uri: productImage }} style={styles.productImage} />
-      ) : (
-        <Text style={styles.noImageText}>No Image Available</Text>
-      )}
-      <View style={styles.productContainer}>
-        <Text style={styles.title} numberOfLines={2}>
-          {title}
-        </Text>
-        <Text style={styles.price}>{price}</Text>
-        <Text style={styles.condition}>{condition}</Text>
-      </View>
+      <TouchableOpacity onPress={handleProductPress}>
+        {productImage ? (
+          <Image source={{ uri: productImage }} style={styles.productImage} />
+        ) : (
+          <Text style={styles.noImageText}>No Image Available</Text>
+        )}
+        <View style={styles.productContainer}>
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
+          </Text>
+          <Text style={styles.price}>{price}</Text>
+          <Text style={styles.condition}>{condition}</Text>
+        </View>
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={onLikeToggle}
         style={styles.likeButton}

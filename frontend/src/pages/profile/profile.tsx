@@ -28,6 +28,8 @@ import { useInfiniteQuery, useQuery } from "react-query";
 import { getUserDetails } from "../../services/user";
 import { getUserProducts } from "../../services/product";
 import { getUserReviews } from "../../services/reviews";
+import { GetUserProductsParams } from "../../interfaces/product";
+import FlexibleSkeleton from "../../components/Skeleton/FlexibleSkeleton";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
@@ -49,7 +51,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [scrollPosition, setScrollPosition] = useState(0);
-
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
   const {
     data: userDetails,
     isLoading: userLoading,
@@ -67,18 +69,24 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     ["userProducts", searchQuery],
     ({ pageParam = 1 }) =>
       getUserProducts({
-        ...(searchQuery ? { search: searchQuery } : {}),
+        search: searchQuery,
         page: pageParam,
         limit: 10,
-      }),
+      } as GetUserProductsParams),
     {
       getNextPageParam: (lastPage) => {
-        if (lastPage.data.page < lastPage.data.totalPages) {
+        if (lastPage.data.page < lastPage.data.total / lastPage.data.limit) {
           return lastPage.data.page + 1;
         }
         return undefined;
       },
-      enabled: activeTab === "listings",
+      enabled: activeTab === "listings" || activeTab === "profile",
+      onSuccess: (data) => {
+        // Update total products count only when there's no search query
+        if (!searchQuery) {
+          setTotalProductsCount(data.pages[0].data.total);
+        }
+      },
     }
   );
 
@@ -167,29 +175,25 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       }
     }
   };
-  if (userLoading && !userDetails) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="small" color={colors.secondary} />
-      </View>
-    );
-  }
-
-  if (!userDetails) {
-    return (
-      <View style={styles.container}>
-        <Text>Error loading user data</Text>
-      </View>
-    );
-  }
-
-  const user: User = userDetails.data.user;
-  const totalProducts = userDetails.data.totalProducts;
   const tabs = [
     { key: "profile", label: t("profile") },
     { key: "listings", label: t("listings") },
     { key: "reviews", label: t("reviews") },
   ];
+
+  if (!userDetails) {
+    return (
+      <View style={styles.container}>
+        <Text> {t("errorLoadingData")}</Text>
+      </View>
+    );
+  }
+
+  const user: User = userDetails.data.user;
+
+  const totalProducts = userProducts?.pages[0]?.data.total || 0;
+
+  const totalLikes = userDetails.data.totalLikes;
 
   return (
     <View style={styles.container}>
@@ -200,39 +204,76 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <UserInfo user={user} totalProducts={totalProducts} />
-        <TabSelector
-          tabs={tabs}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
+        {userLoading ? (
+          <FlexibleSkeleton type="userInfo" itemCount={1} />
+        ) : (
+          <UserInfo
+            user={user}
+            totalProducts={totalProductsCount}
+            totalLikes={totalLikes}
+          />
+        )}
+
+        {userLoading ? (
+          <FlexibleSkeleton
+            type="line"
+            itemCount={1}
+            lineWidth="90%"
+            lineHeight={14}
+          />
+        ) : (
+          <TabSelector
+            tabs={tabs}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        )}
+
         {activeTab === "profile" && (
-          <ProfileTab user={user} navigation={navigation} />
+          <>
+            {userLoading ? (
+              <FlexibleSkeleton type="list" itemCount={2} contentLines={3} />
+            ) : (
+              <ProfileTab user={user} navigation={navigation} />
+            )}
+          </>
         )}
-        {activeTab === "listings" && (
-          <ListingsTab
-            products={allProducts}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            onSearch={handleSearch}
-            isLoading={productsLoading}
-            loadMore={fetchNextProductsPage}
-            hasMore={!!hasNextProductsPage}
-            isLoadingMore={isFetchingNextProductsPage}
-            onLayout={handleContentLayout}
-          />
-        )}
-        {activeTab === "reviews" && (
-          <ReviewsTab
-            user
-            reviews={allReviews}
-            isLoading={reviewsLoading}
-            loadMore={fetchNextReviewsPage}
-            hasMore={!!hasNextReviewsPage}
-            isLoadingMore={isFetchingNextReviewsPage}
-            onLayout={handleContentLayout}
-          />
-        )}
+        {activeTab === "listings" &&
+          (productsLoading && !searchQuery ? (
+            <FlexibleSkeleton
+              type="grid"
+              itemCount={6}
+              columns={2}
+              hasProfileImage={false}
+              contentLines={2}
+            />
+          ) : (
+            <ListingsTab
+              products={allProducts}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onSearch={handleSearch}
+              isLoading={productsLoading}
+              loadMore={fetchNextProductsPage}
+              hasMore={!!hasNextProductsPage}
+              isLoadingMore={isFetchingNextProductsPage}
+              onLayout={handleContentLayout}
+            />
+          ))}
+        {activeTab === "reviews" &&
+          (reviewsLoading ? (
+            <FlexibleSkeleton type="userInfo" itemCount={5} />
+          ) : (
+            <ReviewsTab
+              user
+              reviews={allReviews}
+              isLoading={reviewsLoading}
+              loadMore={fetchNextReviewsPage}
+              hasMore={!!hasNextReviewsPage}
+              isLoadingMore={isFetchingNextReviewsPage}
+              onLayout={handleContentLayout}
+            />
+          ))}
       </ScrollView>
     </View>
   );
@@ -241,7 +282,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    alignContent: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
   },
 });
 

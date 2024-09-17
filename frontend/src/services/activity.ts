@@ -10,6 +10,7 @@ export interface GetActivitiesResponse {
     unseenCount: number;
   };
 }
+
 export const deleteActivity = async (activityId: string): Promise<void> => {
   try {
     await axiosInstance.delete(`/activities/${activityId}`);
@@ -42,9 +43,29 @@ export const getActivities = async (): Promise<GetActivitiesResponse> => {
     const response = await axiosInstance.get<GetActivitiesResponse>(
       "/activities"
     );
-    return response.data;
+    const data = response.data;
+    return data;
   } catch (error) {
     console.error("Error fetching activities:", error);
+    throw error;
+  }
+};
+
+interface CreateReviewPromptActivityResponse {
+  success: number;
+  message: string;
+  data: 0 | 1 | { activity: any };
+}
+
+export const createReviewPromptActivity = async (
+  productId: string
+): Promise<CreateReviewPromptActivityResponse> => {
+  try {
+    const response = await axiosInstance.post("/activities/review-prompt", {
+      productId,
+    });
+    return response.data;
+  } catch (error) {
     throw error;
   }
 };

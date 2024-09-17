@@ -36,6 +36,7 @@ import { getReviewsForUser } from "../../services/reviews";
 import { toggleLikeUser, getLikedProfiles } from "../../services/likes";
 import { AntDesign } from "@expo/vector-icons";
 import { User, LikedUser } from "../../interfaces/user";
+import { GetUserProductsParams } from "../../interfaces/product";
 
 type CombinedParamList = RootStackParamList & MainStackParamList;
 
@@ -60,6 +61,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
 
   const { data: likedProfiles, refetch: refetchLikedProfiles } = useQuery<
     LikedUser[]
@@ -82,18 +84,27 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     ["userProducts", userId, searchQuery],
     ({ pageParam = 1 }) =>
       getUserProductsById(userId, {
-        ...(searchQuery ? { search: searchQuery } : {}),
+        search: searchQuery,
         page: pageParam,
         limit: 10,
-      }),
+      } as GetUserProductsParams),
     {
       getNextPageParam: (lastPage) => {
-        if (lastPage.data.page < lastPage.data.totalPages) {
+        if (
+          lastPage.data.page <
+          Math.ceil(lastPage.data.total / lastPage.data.limit)
+        ) {
           return lastPage.data.page + 1;
         }
         return undefined;
       },
-      enabled: activeTab === "listings",
+      enabled: activeTab === "listings" || activeTab === "about",
+      onSuccess: (data) => {
+        // Update total products count only when there's no search query
+        if (!searchQuery) {
+          setTotalProductsCount(data.pages[0].data.total);
+        }
+      },
     }
   );
 
@@ -138,6 +149,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const allProducts =
     userProducts?.pages?.flatMap((page) => page.data.products) || [];
+  const totalProducts = userProducts?.pages[0]?.data.total || 0;
+
   const allReviews =
     userReviews?.pages?.flatMap((page) => page.data.reviews) || [];
 
@@ -236,13 +249,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   if (!userDetails) {
     return (
       <View style={styles.container}>
-        <Text>Error loading user data</Text>
+        <Text> {t("errorLoadingData")}</Text>
       </View>
     );
   }
 
   const user: User = userDetails.data.user;
-  const totalProducts = userDetails.data.totalProducts;
 
   const tabs = [
     { key: "about", label: t("about") },
@@ -259,7 +271,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <UserInfo user={user} totalProducts={totalProducts} />
+        <UserInfo user={user} totalProducts={totalProductsCount} />
         <TabSelector
           tabs={tabs}
           activeTab={activeTab}
@@ -301,6 +313,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+    justifyContent: "center",
   },
 });
 

@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Image,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -13,16 +12,18 @@ import {
   Keyboard,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { colors } from "../../colors/colors";
-import * as ImagePicker from "expo-image-picker";
-import { editUser, getLoggedUser } from "../../services/user";
+import { editUser, getUserDetails } from "../../services/user";
 import { BASE_URL } from "../../services/axiosConfig";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import Toast from "react-native-toast-message";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
+import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet";
+import ProfileImageSection from "./ProfileImageSection";
+import SecuritySection from "./SecuritySection";
+import CameraComponent from "../sell/CameraComponent";
+import { Ionicons } from "@expo/vector-icons";
 
 type EditProfileScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -39,46 +40,108 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const firstNameRef = useRef<TextInput>(null);
   const lastNameRef = useRef<TextInput>(null);
   const bioRef = useRef<TextInput>(null);
-  const { data: userData, isLoading: userLoading, refetch } = useLoggedUser();
-  console.log(userData?.data.user.email);
-  const [firstName, setFirstName] = useState(
-    userData?.data.user.firstName || ""
-  );
-  const [lastName, setLastName] = useState(userData?.data.user.lastName || "");
-  const [bio, setBio] = useState(userData?.data.user.bio || "");
-  const [profilePicture, setProfilePicture] = useState(
-    userData?.data.user.profilePicture
-      ? `${BASE_URL}/${userData.data.user.profilePicture}`
-      : null
-  );
+  const actionSheetRef = useRef<ActionSheetRef>(null);
 
+  const {
+    data: userData,
+    isLoading: userLoading,
+    refetch: refetchUserDetails,
+  } = useQuery("userDetails", getUserDetails);
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [bio, setBio] = useState("");
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isProfileChanged, setIsProfileChanged] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  const [initialUserData, setInitialUserData] = useState({
+    firstName: "",
+    lastName: "",
+    bio: "",
+    profilePicture: null as string | null,
+  });
+
+  const updateNavigationOptions = useCallback(() => {
+    navigation.setOptions({
+      headerShown: !isCameraOpen,
+      headerTitle: t("edit-profile"),
+      headerTitleAlign: "center" as const,
+      headerLeft: () =>
+        isCameraOpen ? null : (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ marginLeft: 15 }}
+          >
+            <Ionicons
+              name="chevron-back-sharp"
+              size={24}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        ),
+      headerBackTitle: " ",
+      headerStyle: {
+        backgroundColor: "white",
+      },
+      headerTintColor: colors.primary,
+      headerTitleStyle: {
+        fontWeight: "bold",
+      },
+    });
+  }, [navigation, isCameraOpen, t]);
+
+  useEffect(() => {
+    updateNavigationOptions();
+  }, [updateNavigationOptions]);
+
   useEffect(() => {
     if (userData?.data.user) {
-      const isChanged =
-        (firstName !== userData.data.user.firstName ||
-          lastName !== userData.data.user.lastName ||
-          bio !== userData.data.user.bio ||
-          (profilePicture &&
-            userData.data.user.profilePicture &&
-            !profilePicture.startsWith(
-              `${BASE_URL}/${userData.data.user.profilePicture}`
-            ))) &&
-        firstName.trim() !== "" &&
-        lastName.trim() !== "";
+      const user = userData.data.user;
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+      setBio(user.bio || "");
+      setProfilePicture(
+        user.profilePicture ? `${BASE_URL}/${user.profilePicture}` : null
+      );
 
-      setIsProfileChanged(Boolean(isChanged));
+      setInitialUserData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        bio: user.bio || "",
+        profilePicture: user.profilePicture
+          ? `${BASE_URL}/${user.profilePicture}`
+          : null,
+      });
     }
-  }, [firstName, lastName, bio, profilePicture, userData]);
+  }, [userData]);
+
+  useEffect(() => {
+    const isChanged =
+      firstName !== initialUserData.firstName ||
+      lastName !== initialUserData.lastName ||
+      bio !== initialUserData.bio ||
+      profilePicture !== initialUserData.profilePicture;
+
+    setIsProfileChanged(isChanged);
+  }, [firstName, lastName, bio, profilePicture, initialUserData]);
 
   const editUserMutation = useMutation(editUser, {
     onSuccess: () => {
-      queryClient.invalidateQueries("loggedUser");
+      queryClient.invalidateQueries("userDetails");
       firstNameRef.current?.blur();
       lastNameRef.current?.blur();
       bioRef.current?.blur();
       Keyboard.dismiss();
       setIsProfileChanged(false);
+
+      setInitialUserData({
+        firstName,
+        lastName,
+        bio,
+        profilePicture,
+      });
+
       Toast.show({
         type: "success",
         text1: t("success"),
@@ -86,7 +149,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         position: "bottom",
         bottomOffset: 110,
       });
-      // navigation.goBack();
     },
     onError: () => {
       Toast.show({
@@ -105,27 +167,28 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     formData.append("lastName", lastName);
     formData.append("bio", bio);
 
-    if (profilePicture && !profilePicture.startsWith(BASE_URL)) {
-      formData.append("profilePicture", {
-        uri: profilePicture,
-        type: "image/jpeg",
-        name: "profile.jpg",
-      });
+    if (profilePicture) {
+      if (profilePicture.startsWith("file://")) {
+        formData.append("profilePicture", {
+          uri: profilePicture,
+          type: "image/jpeg",
+          name: "profile.jpg",
+        } as any);
+      }
+    } else if (initialUserData.profilePicture && !profilePicture) {
+      formData.append("removeProfilePicture", "true");
     }
+
     editUserMutation.mutate(formData);
   };
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+  const handleCaptureImage = (uri: string) => {
+    setProfilePicture(uri);
+    setIsCameraOpen(false);
+  };
 
-    if (!result.canceled) {
-      setProfilePicture(result.assets[0].uri);
-    }
+  const handleCloseCameraComponent = () => {
+    setIsCameraOpen(false);
   };
 
   if (userLoading) {
@@ -136,6 +199,18 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
+  if (isCameraOpen) {
+    return (
+      <CameraComponent
+        onCapture={handleCaptureImage}
+        onClose={handleCloseCameraComponent}
+        showGallery={false}
+        onPickImages={() => {}}
+        currentImageCount={0}
+      />
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -143,28 +218,17 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <ScrollView style={styles.scrollView}>
-        <View style={styles.profileImageContainer}>
-          {profilePicture ? (
-            <Image
-              source={{ uri: profilePicture }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Ionicons name="person" size={60} color={colors.lightGray} />
-            </View>
-          )}
-          <TouchableOpacity style={styles.imageButton} onPress={pickImage}>
-            <Text style={styles.imageButtonText}>
-              {t("edit-profile-picture")}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <ProfileImageSection
+          profilePicture={profilePicture}
+          setProfilePicture={setProfilePicture}
+          actionSheetRef={actionSheetRef}
+          setIsCameraOpen={setIsCameraOpen}
+        />
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>{t("first-name")}</Text>
           <TextInput
-            // ref={firstNameRef}
+            ref={firstNameRef}
             style={styles.input}
             value={firstName}
             onChangeText={setFirstName}
@@ -175,7 +239,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>{t("last-name")}</Text>
           <TextInput
-            // ref={lastName}
+            ref={lastNameRef}
             style={styles.input}
             value={lastName}
             onChangeText={setLastName}
@@ -186,7 +250,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>{t("bio")}</Text>
           <TextInput
-            // ref={bio}
+            ref={bioRef}
             style={styles.input}
             value={bio}
             onChangeText={setBio}
@@ -195,26 +259,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{t("account-privacy")}</Text>
-          <TouchableOpacity
-            style={styles.securityButton}
-            onPress={() => navigation.navigate("ChangeEmailScreen")}
-          >
-            <Text style={styles.securityButtonText}>{t("change-email")}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.securityButton}
-            onPress={() => navigation.navigate("ChangePasswordScreen")}
-          >
-            <Text style={styles.securityButtonText}>
-              {t("change-password")}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <SecuritySection navigation={navigation} />
       </ScrollView>
-
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[
@@ -244,31 +290,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  profileImageContainer: {
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  placeholderImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.lightGray,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageButton: {
-    marginTop: 10,
-  },
-  imageButtonText: {
-    fontWeight: "bold",
-    color: colors.customBlue,
-    fontSize: 16,
-  },
   inputContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -288,30 +309,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 2,
   },
-  sectionContainer: {
-    paddingTop: 20,
-    borderTopWidth: 10,
-    borderTopColor: colors.lightGray,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: colors.secondary,
-    marginBottom: 10,
-    height: 40,
-    padding: 8,
-  },
-  securityButton: {
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
-  },
-  securityButtonText: {
-    color: colors.customBlue,
-    fontSize: 16,
-  },
   buttonContainer: {
     padding: 16,
     marginBottom: 35,
@@ -320,7 +317,7 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: colors.customBlueDarker,
     padding: 12,
-    borderRadius: 25,
+    borderRadius: 12,
     alignItems: "center",
     width: "100%",
   },

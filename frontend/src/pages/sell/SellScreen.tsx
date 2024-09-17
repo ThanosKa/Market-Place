@@ -19,12 +19,12 @@ import { useTranslation } from "react-i18next";
 import { useMutation } from "react-query";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { axiosFormDataInstance } from "../../services/axiosConfig";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import CameraComponent from "./CameraComponent";
 import ImageGallery from "./ImageGallery";
 import ProductForm, { ProductFormData } from "./ProductForm";
 import Toast from "react-native-toast-message";
+import { createProduct } from "../../services/product";
 
 export interface SellScreenRef {
   resetState: () => void;
@@ -40,6 +40,7 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
   const [formData, setFormData] = useState<ProductFormData>({
     title: "",
     price: "",
+    description: "",
     category: null,
     condition: null,
   });
@@ -54,6 +55,7 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
     setFormData({
       title: "",
       price: "",
+      description: "",
       category: null,
       condition: null,
     });
@@ -70,7 +72,7 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
   }));
 
   const mutation = useMutation(
-    (formData: FormData) => axiosFormDataInstance.post("/products", formData),
+    (formData: FormData) => createProduct(formData),
     {
       onSuccess: () => {
         Toast.show({
@@ -136,6 +138,8 @@ const SellScreen = forwardRef<SellScreenRef, {}>((props, ref) => {
     const submitFormData = new FormData();
     submitFormData.append("title", submittedFormData.title);
     submitFormData.append("price", submittedFormData.price);
+    if (submittedFormData.description)
+      submitFormData.append("description", submittedFormData.description);
     submitFormData.append("category", submittedFormData.category as string);
     submitFormData.append("condition", submittedFormData.condition as string);
 

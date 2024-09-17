@@ -1,5 +1,6 @@
 import { User } from "../interfaces/user";
 import axiosInstance, { axiosFormDataInstance } from "./axiosConfig";
+import { UserDetailsResponse } from "../interfaces/user";
 
 export interface ApiResponse {
   success: number;
@@ -46,18 +47,24 @@ export const getLoggedUser = async (params?: {
     throw error;
   }
 };
+
 export const editUser = async (
   formData: FormData
 ): Promise<ApiResponse | null> => {
   try {
     const response = await axiosFormDataInstance.put<ApiResponse>(
       "/users",
-      formData
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   } catch (error) {
-    console.error("Error editing user:", error);
-    return null; // Return null instead of throwing
+    // console.error("Error editing user:", error);
+    return null;
   }
 };
 
@@ -66,8 +73,10 @@ export const getUserById = async (userId: string) => {
   return response.data;
 };
 
-export const getUserDetails = async () => {
-  const response = await axiosInstance.get("/users/details");
+export const getUserDetails = async (): Promise<UserDetailsResponse> => {
+  const response = await axiosInstance.get<UserDetailsResponse>(
+    "/users/details"
+  );
   return response.data;
 };
 

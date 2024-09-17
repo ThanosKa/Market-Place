@@ -11,10 +11,10 @@ import {
 import { AntDesign } from "@expo/vector-icons";
 import { useMutation } from "react-query";
 import { useTranslation } from "react-i18next";
-import { Product } from "../../interfaces/product";
 import { toggleLikeProduct } from "../../services/likes";
 import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
+import { Product } from "../../interfaces/product";
 
 type Props = {
   likedProductsData: Product[] | undefined;

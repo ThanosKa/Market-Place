@@ -5,7 +5,13 @@ import {
   PaginatedChatDetails,
 } from "../interfaces/chat";
 import axiosInstance from "./axiosConfig";
-
+interface UnreadChatsCountResponse {
+  success: number;
+  message: string;
+  data: {
+    unreadChatsCount: number;
+  };
+}
 export const createChat = async (participantId: string): Promise<Chat> => {
   try {
     const response = await axiosInstance.post<{
@@ -153,3 +159,16 @@ export const deleteChat = async (chatId: string): Promise<void> => {
     throw error;
   }
 };
+
+export const getUnreadChatsCount =
+  async (): Promise<UnreadChatsCountResponse> => {
+    try {
+      const response = await axiosInstance.get<UnreadChatsCountResponse>(
+        "/chats/unread-count"
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching unread chats count:", error);
+      throw error;
+    }
+  };

@@ -1,6 +1,4 @@
-// ChatScreen.tsx
-
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import {
   View,
   FlatList,
@@ -10,25 +8,16 @@ import {
   TouchableOpacity,
   Text,
 } from "react-native";
-import {
-  InfiniteData,
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from "react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "react-query";
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-import { ChatMessage, PaginatedChatDetails } from "../../interfaces/chat";
 import { colors } from "../../colors/colors";
 import { t } from "i18next";
 import {
-  updateQueryDataWithNewMessage,
-  updateQueryDataWithServerResponse,
   setupNavigationOptions,
   sendMessageAndUpdateUI,
   renderMessageAvatar,
-  renderFooter,
 } from "./chatUtils";
 import {
   getChatMessages,
@@ -39,6 +28,7 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import MessageBubble from "./MessageBubble";
 import ChatInput from "./ChatInput";
+import { ChatMessage, PaginatedChatDetails } from "../../interfaces/chat";
 
 type ChatScreenRouteProp = RouteProp<MainStackParamList, "Chat">;
 type ChatScreenNavigationProp = StackNavigationProp<MainStackParamList, "Chat">;
@@ -108,7 +98,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     }
   );
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (data?.pages[0]) {
       setupNavigationOptions(navigation, data.pages[0].otherParticipant);
     }
@@ -116,7 +106,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
 
   const handleSendMessage = useCallback(
     async (text: string, imageUris: string[]) => {
-      console.log("Received image URIs in ChatScreen:", imageUris);
       await sendMessageAndUpdateUI(
         queryClient,
         chatId || "",
@@ -135,32 +124,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const deleteMessageMutation = useMutation(
     (messageId: string) => deleteMessage(chatId || "", messageId),
     {
-      onMutate: async (messageId) => {
-        await queryClient.cancelQueries(["chatMessages", chatId]);
-        const previousMessages = queryClient.getQueryData<
-          InfiniteData<PaginatedChatDetails>
-        >(["chatMessages", chatId]);
-        queryClient.setQueryData<
-          InfiniteData<PaginatedChatDetails> | undefined
-        >(["chatMessages", chatId], (old) => {
-          if (!old) return undefined;
-          return {
-            pages: old.pages.map((page) => ({
-              ...page,
-              messages: page.messages.filter((msg) => msg._id !== messageId),
-            })),
-            pageParams: old.pageParams,
-          };
-        });
-        return { previousMessages };
-      },
-      onError: (err, messageId, context) => {
-        queryClient.setQueryData(
-          ["chatMessages", chatId],
-          context?.previousMessages
-        );
-      },
-      onSettled: () => {
+      onSuccess: () => {
         queryClient.invalidateQueries(["chatMessages", chatId]);
       },
     }
@@ -173,34 +137,125 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     [deleteMessageMutation]
   );
 
+  const renderListEmptyComponent = useCallback(() => {
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={50}
+          color={colors.secondary}
+        />
+        <Text style={styles.emptyText}>{t("start-chatting")}</Text>
+      </View>
+    );
+  }, []);
+
+  const renderSeparator = useCallback(({ type }: { type: string }) => {
+    return (
+      <View style={styles.separatorContainer}>
+        <View style={styles.separatorLine} />
+        <Text style={styles.separatorText}>{t(type)}</Text>
+        <View style={styles.separatorLine} />
+      </View>
+    );
+  }, []);
+  const processedMessages = useMemo(() => {
+    if (!flatListContent.length) return [];
+
+    let hasShownNewestSeparator = false;
+    let firstUnseenMessageIndex = -1;
+
+    // Find the index of the first unseen message from the other user
+    for (let i = flatListContent.length - 1; i >= 0; i--) {
+      if (!flatListContent[i].isOwnMessage && !flatListContent[i].seen) {
+        firstUnseenMessageIndex = i;
+        break;
+      }
+    }
+
+    return flatListContent.map((message, index) => {
+      const showNewestSeparator =
+        !hasShownNewestSeparator &&
+        index === firstUnseenMessageIndex &&
+        !message.isOwnMessage &&
+        !message.seen;
+
+      if (showNewestSeparator) {
+        hasShownNewestSeparator = true;
+      }
+
+      return { ...message, showNewestSeparator };
+    });
+  }, [flatListContent]);
   const renderMessage = useCallback(
-    ({ item, index }: { item: ChatMessage; index: number }) => {
+    ({
+      item,
+      index,
+    }: {
+      item: ChatMessage & { showNewestSeparator: boolean };
+      index: number;
+    }) => {
       const showAvatar =
         !item.isOwnMessage &&
-        (index === 0 || flatListContent[index - 1].isOwnMessage);
+        (index === 0 || processedMessages[index - 1].isOwnMessage);
       const isSending = sendingMessages.has(item._id);
       const isLastMessage = index === 0;
 
       return (
-        <MessageBubble
-          message={item}
-          showAvatar={showAvatar}
-          isSending={isSending}
-          isLastMessage={isLastMessage}
-          onDeleteMessage={handleDeleteMessage}
-          senderId={item.sender?._id}
-          renderAvatar={() => renderMessageAvatar(item.sender, showAvatar)}
-        />
+        <>
+          <MessageBubble
+            message={item}
+            showAvatar={showAvatar}
+            isSending={isSending}
+            isLastMessage={isLastMessage}
+            onDeleteMessage={handleDeleteMessage}
+            senderId={item.sender?._id}
+            renderAvatar={() => renderMessageAvatar(item.sender, showAvatar)}
+          />
+          {item.showNewestSeparator &&
+            renderSeparator({ type: "newest-messages" })}
+        </>
       );
     },
-    [flatListContent, sendingMessages, handleDeleteMessage]
+    [processedMessages, sendingMessages, handleDeleteMessage, renderSeparator]
   );
+
+  const renderFooter = useCallback(() => {
+    if (!data) return null;
+
+    const lastPage = data.pages[data.pages.length - 1];
+    const { totalMessages, currentPage, totalPages, hasNextPage } = lastPage;
+
+    if (totalMessages === 0) {
+      return null;
+    }
+
+    if (isFetchingNextPage) {
+      return (
+        <>
+          {renderSeparator({ type: "older-messages" })}
+          <ActivityIndicator size="small" color={colors.secondary} />
+        </>
+      );
+    }
+
+    if (hasNextPage) {
+      return renderSeparator({ type: "older-messages" });
+    }
+
+    if (currentPage === totalPages && totalPages > 1) {
+      return renderSeparator({ type: "no-older-messages" });
+    }
+
+    return null;
+  }, [data, isFetchingNextPage, renderSeparator]);
 
   const loadMoreMessages = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -209,42 +264,26 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     );
   }
 
-  if (!data) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.noMessagesContainer}>
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={50}
-            color={colors.secondary}
-          />
-          <Text style={styles.noMessagesText}>{t("no-messages-yet")}</Text>
-        </View>
-        <ChatInput
-          value={message}
-          onChangeText={(text: string) => setMessage(text)}
-          handleSendMessage={handleSendMessage}
-        />
-      </View>
-    );
-  }
+  const totalMessages = data?.pages[0]?.totalMessages || 0;
 
   return (
     <View style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={flatListContent}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item._id}
-        inverted
-        onEndReached={loadMoreMessages}
-        onEndReachedThreshold={0.1}
-        ListFooterComponent={() =>
-          renderFooter(isFetchingNextPage, hasNextPage)
-        }
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      />
+      {totalMessages === 0 ? (
+        renderListEmptyComponent()
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={processedMessages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item._id}
+          inverted
+          onEndReached={loadMoreMessages}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={renderFooter}
+          onScroll={handleScroll}
+          scrollEventThrottle={20}
+        />
+      )}
       <Animated.View
         style={[styles.scrollButtonContainer, { opacity: scrollButtonOpacity }]}
       >
@@ -279,31 +318,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
-  },
-  headerName: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  messageAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    marginLeft: 8,
-  },
-  olderMessagesText: {
-    textAlign: "center",
-    padding: 10,
-    color: colors.secondary,
-  },
   scrollButtonContainer: {
     position: "absolute",
     bottom: 90,
@@ -317,25 +331,45 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     width: 40,
     height: 40,
+    justifyContent: "center",
+    alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
-  noMessagesContainer: {
+  separatorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.secondary,
+  },
+  separatorText: {
+    paddingHorizontal: 10,
+    color: colors.secondary,
+    fontSize: 12,
+  },
+  emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
-  noMessagesText: {
+  emptyText: {
     fontSize: 18,
     color: colors.secondary,
-    fontStyle: "italic",
     marginTop: 10,
+  },
+  olderMessagesText: {
+    textAlign: "center",
+    padding: 10,
+    color: colors.secondary,
   },
 });
 

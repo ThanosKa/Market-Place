@@ -19,7 +19,7 @@ export const updateQueryDataWithNewMessage = (
   queryClient.setQueryData<InfiniteData<PaginatedChatDetails>>(
     ["chatMessages", chatId],
     (oldData): InfiniteData<PaginatedChatDetails> => {
-      if (!oldData) {
+      if (!oldData || oldData.pages.length === 0) {
         return {
           pages: [
             {
@@ -30,6 +30,7 @@ export const updateQueryDataWithNewMessage = (
               totalPages: 1,
               hasNextPage: false,
               hasPreviousPage: false,
+              totalMessages: 1,
             },
           ],
           pageParams: [undefined],
@@ -40,6 +41,7 @@ export const updateQueryDataWithNewMessage = (
       newPages[0] = {
         ...newPages[0],
         messages: [newMessage, ...newPages[0].messages],
+        totalMessages: (newPages[0].totalMessages || 0) + 1,
       };
       return { ...oldData, pages: newPages };
     }
@@ -134,8 +136,6 @@ export const sendMessageAndUpdateUI = async (
     images: imageUris,
   };
 
-  console.log("New message with images:", newMessage);
-
   updateQueryDataWithNewMessage(queryClient, chatId, newMessage);
   setSendingMessages((prev) => new Set(prev).add(tempId));
 
@@ -151,12 +151,10 @@ export const sendMessageAndUpdateUI = async (
     })
   );
 
-  console.log("Image files prepared:", imageFiles);
   sendMessageMutation.mutate(
     { content: text, images: imageUris, tempId },
     {
       onSuccess: (data: ChatMessage) => {
-        console.log("Message sent successfully:", data);
         updateQueryDataWithServerResponse(
           queryClient,
           chatId,

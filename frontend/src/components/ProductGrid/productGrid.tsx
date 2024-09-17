@@ -1,13 +1,19 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useInfiniteQuery, useMutation, useQueryClient } from "react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "react-query";
 import {
   Product,
   ProductsResponse,
@@ -16,33 +22,74 @@ import {
 import ProductCard from "../ProductCard/productCard";
 import { BASE_URL } from "../../services/axiosConfig";
 import { getProducts } from "../../services/product";
-import { toggleLikeProduct } from "../../services/likes";
-import { useLoggedUser } from "../../hooks/useLoggedUser";
+import { getLikedProducts, toggleLikeProduct } from "../../services/likes";
 import { colors } from "../../colors/colors";
+import { Filters } from "../../pages/home/home";
+import FlexibleSkeleton from "../Skeleton/FlexibleSkeleton";
 
 interface ProductGridProps {
   onRefreshComplete: () => void;
   selectedCategories: string[];
+  filters: Filters;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
   onRefreshComplete,
   selectedCategories,
+  filters,
 }) => {
-  const [likedProducts, setLikedProducts] = useState<string[]>([]);
-  const [disabledButtons, setDisabledButtons] = useState<string[]>([]);
+  const [localLikedProducts, setLocalLikedProducts] = useState<Set<string>>(
+    new Set()
+  );
+  const [disabledButtons, setDisabledButtons] = useState<Set<string>>(
+    new Set()
+  );
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
+  // Inside your ProductGrid component
+
+  // Inside your ProductGrid component
   const queryParams: GetProductsParams = useMemo(() => {
-    const params: GetProductsParams = { limit: 10 };
+    const params: GetProductsParams = {
+      page: 1,
+      limit: 10,
+    };
+
+    if (filters.sort) {
+      params.sort = filters.sort;
+    }
+
+    if (filters.order) {
+      params.order = filters.order;
+    }
+
+    if (filters.minPrice) {
+      params.minPrice = filters.minPrice;
+    }
+
+    if (filters.maxPrice) {
+      params.maxPrice = filters.maxPrice;
+    }
+
+    if (filters.conditions && filters.conditions.length > 0) {
+      params.condition = filters.conditions;
+    }
+
     if (selectedCategories.length > 0) {
       params.category = selectedCategories;
     }
-    return params;
-  }, [selectedCategories]);
 
-  const { data: userData, isLoading: userLoading } = useLoggedUser();
+    return params;
+  }, [selectedCategories, filters]);
+
+  const { data: userLikedProducts, isLoading: likedProductsLoading } = useQuery<
+    Product[]
+  >("likedProducts", getLikedProducts, {
+    onSuccess: (data) => {
+      setLocalLikedProducts(new Set(data.map((product) => product._id)));
+    },
+  });
 
   const {
     data,
@@ -65,38 +112,63 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     }
   );
 
-  useEffect(() => {
-    if (userData?.data?.user?.likedProducts) {
-      setLikedProducts(
-        userData.data.user.likedProducts.map((p: Product) => p._id)
-      );
-    }
-  }, [userData]);
-
   const toggleLikeMutation = useMutation(toggleLikeProduct, {
     onMutate: (productId) => {
-      setDisabledButtons((prev) => [...prev, productId]);
-      setLikedProducts((prev) =>
-        prev.includes(productId)
-          ? prev.filter((id) => id !== productId)
-          : [...prev, productId]
-      );
+      setDisabledButtons((prev) => new Set(prev).add(productId));
+      setLocalLikedProducts((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(productId)) {
+          newSet.delete(productId);
+        } else {
+          newSet.add(productId);
+        }
+        return newSet;
+      });
     },
     onSettled: (data, error, productId) => {
-      setDisabledButtons((prev) => prev.filter((id) => id !== productId));
+      setDisabledButtons((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
       if (error) {
-        setLikedProducts((prev) =>
-          prev.includes(productId)
-            ? prev.filter((id) => id !== productId)
-            : [...prev, productId]
-        );
+        setLocalLikedProducts((prev) => {
+          const newSet = new Set(prev);
+          if (newSet.has(productId)) {
+            newSet.delete(productId);
+          } else {
+            newSet.add(productId);
+          }
+          return newSet;
+        });
       }
-      queryClient.invalidateQueries("loggedInUser");
+      queryClient.invalidateQueries("likedProducts");
       queryClient.invalidateQueries(["products", queryParams]);
     },
   });
 
-  if (isLoading || userLoading) {
+  const toggleLike = useCallback(
+    (productId: string) => {
+      toggleLikeMutation.mutate(productId);
+    },
+    [toggleLikeMutation]
+  );
+
+  if (isLoading || likedProductsLoading) {
+    return (
+      <ScrollView>
+        <Text style={styles.containerLoading}>{t("your-daily-picks")}</Text>
+
+        <FlexibleSkeleton
+          type="grid"
+          itemCount={4}
+          columns={2}
+          hasProfileImage={true}
+          profileImagePosition="top"
+          contentLines={3}
+        />
+      </ScrollView>
+    );
     return <ActivityIndicator size="small" />;
   }
 
@@ -109,10 +181,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   if (products.length === 0) {
     return <Text style={styles.noProductsText}>{t("no-products-found")}</Text>;
   }
-
-  const toggleLike = (productId: string) => {
-    toggleLikeMutation.mutate(productId);
-  };
 
   const renderProduct = (product: Product) => (
     <ProductCard
@@ -130,9 +198,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       title={product.title}
       price={`$${product.price}`}
       condition={t(product.condition)}
-      isLiked={likedProducts.includes(product._id)}
+      isLiked={localLikedProducts.has(product._id)}
       onLikeToggle={() => toggleLike(product._id)}
-      isDisabled={disabledButtons.includes(product._id)}
+      isDisabled={disabledButtons.has(product._id)}
+      productId={product._id}
     />
   );
 
@@ -147,19 +216,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         ))}
       </View>
       {hasNextPage && (
-        <TouchableOpacity
-          style={styles.loadMoreButton}
-          onPress={() => fetchNextPage()}
-          disabled={isFetchingNextPage}
-        >
-          <View style={styles.loadMoreContent}>
-            {isFetchingNextPage ? (
-              <ActivityIndicator size="small" color={colors.secondary} />
-            ) : (
-              <Text style={styles.loadMoreText}>{t("load-more")}</Text>
-            )}
+        <View style={styles.loadMoreContainer}>
+          <View style={styles.separatorLine} />
+          <View style={styles.loadMoreButtonContainer}>
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <ActivityIndicator size="small" color={colors.secondary} />
+              ) : (
+                <Text style={styles.loadMoreText}>{t("load-more")}</Text>
+              )}
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+          <View style={styles.separatorLine} />
+        </View>
       )}
     </View>
   );
@@ -168,6 +241,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 const styles = StyleSheet.create({
   container: {
     padding: 10,
+  },
+  containerLoading: {
+    padding: 10,
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
   },
   title: {
     fontSize: 18,
@@ -188,14 +267,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
+  loadMoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.secondary,
+  },
+  loadMoreButtonContainer: {
+    paddingHorizontal: 15,
+  },
   loadMoreButton: {
     alignItems: "center",
     justifyContent: "center",
-    // padding: 10,
-    // marginTop: 10,
-  },
-  loadMoreContent: {
-    paddingBottom: 30,
+    paddingVertical: 10,
   },
   loadMoreText: {
     color: colors.secondary,

@@ -17,4 +17,5 @@ export const colors = {
   lighterBlue: "#F0FFFF",
   ownBubble: "#0084ff",
   senderBubble: "#e5e5ea",
+  borderFilter: "#e0e0e0",
 };

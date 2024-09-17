@@ -5,6 +5,7 @@ export interface Product {
   images: string[];
   category: string;
   condition: string;
+  description?: string; // Making this optional as it wasn't in the example response
   seller: {
     _id: string;
     email: string;
@@ -15,6 +16,16 @@ export interface Product {
   likes: string[];
   createdAt: string;
   updatedAt: string;
+  __v?: number; // Version key from MongoDB, usually internal
+  sold: {
+    to: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+      profilePicture: string;
+    };
+    date: string;
+  } | null; // Using null to indicate that the product might not be sold
 }
 
 export interface ProductsResponse {
@@ -29,13 +40,60 @@ export interface ProductsResponse {
 }
 
 export interface GetProductsParams {
+  limit?: number;
+  page?: number;
   search?: string;
   category?: string | string[];
-  condition?: string;
-  minPrice?: number;
-  maxPrice?: number;
+  condition?: string | string[];
+  minPrice?: string;
+  maxPrice?: string;
   sort?: string;
   order?: "asc" | "desc";
-  page?: number;
+}
+export interface PurchasedProductsResponse {
+  success: number;
+  message: string;
+  data: {
+    products: Product[];
+    page: number;
+    limit: number;
+    totalPurchasedProducts: number;
+    totalPages: number;
+  };
+}
+export interface SoldProductsResponse {
+  success: number;
+  message: string;
+  data: {
+    products: Product[];
+    page: number;
+    limit: number;
+    totalSoldProducts: number;
+    totalPages: number;
+  };
+}
+
+export interface UserProductsResponse {
+  success: number;
+  message: string;
+  data: {
+    products: Product[];
+    total: number;
+    page: number;
+    limit: number;
+    sort: string;
+    order: "asc" | "desc";
+  };
+}
+
+export interface GetUserProductsParams {
   limit?: number;
+  page?: number;
+  search?: string;
+  category?: string | string[];
+  condition?: string | string[];
+  minPrice?: string;
+  maxPrice?: string;
+  sort?: string;
+  order?: "asc" | "desc";
 }

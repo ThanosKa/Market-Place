@@ -1,7 +1,3 @@
-// ProductForm.tsx
-
-// ProductForm.tsx
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -23,6 +19,7 @@ import { colors } from "../../colors/colors";
 export interface ProductFormData {
   title: string;
   price: string;
+  description: string;
   category: string | null;
   condition: string | null;
 }
@@ -126,6 +123,20 @@ const ProductForm: React.FC<ProductFormProps> = ({
         />
       </View>
 
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>
+          {t("description")} ({t("optional")})
+        </Text>
+        <TextInput
+          style={[styles.input, styles.descriptionInput]}
+          value={formData.description}
+          onChangeText={(text) => handleChange("description", text)}
+          placeholder={t("Enter product description")}
+          multiline={true}
+          numberOfLines={4}
+          editable={!isLoading}
+        />
+      </View>
       <TouchableOpacity
         style={[
           styles.nextButton,
@@ -302,6 +313,10 @@ const styles = StyleSheet.create({
   },
   selectedItemLabel: {
     fontWeight: "bold",
+  },
+  descriptionInput: {
+    height: 100,
+    textAlignVertical: "top",
   },
 });
 

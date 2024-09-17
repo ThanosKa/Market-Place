@@ -21,6 +21,7 @@ import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
+import ImageViewerModal from "../../utils/imageClick";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -143,16 +144,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
   };
 
-  const renderImageViewerItem = ({ item }: { item: string }) => (
-    <View style={styles.imageViewerItem}>
-      <Image
-        source={{ uri: `${BASE_URL}${item}` }}
-        style={styles.fullScreenImage}
-        resizeMode="contain"
-      />
-    </View>
-  );
-
   const renderStatus = () => {
     if (!isOwnMessage || !isLastMessage) return null;
     return (
@@ -217,46 +208,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         </View>
       </View>
       {renderStatus()}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={isImageViewerVisible}
-        onRequestClose={closeImageModal}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={closeImageModal}
-          >
-            <Text style={styles.closeButtonText}>×</Text>
-          </TouchableOpacity>
-          <FlatList
-            ref={flatListRef}
-            data={message.images}
-            renderItem={renderImageViewerItem}
-            keyExtractor={(item, index) => index.toString()}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(event) => {
-              const contentOffset = event.nativeEvent.contentOffset;
-              const viewSize = event.nativeEvent.layoutMeasurement;
-              const pageNum = Math.floor(contentOffset.x / viewSize.width);
-              setCurrentImageIndex(Math.max(0, pageNum));
-            }}
-            getItemLayout={(data, index) => ({
-              length: Dimensions.get("window").width,
-              offset: Dimensions.get("window").width * index,
-              index,
-            })}
-          />
-          <View style={styles.imageCounterContainer}>
-            <Text style={styles.imageCounter}>
-              {currentImageIndex + 1} / {message.images?.length}
-            </Text>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      <ImageViewerModal
+        images={message.images || []}
+        isVisible={isImageViewerVisible}
+        onClose={closeImageModal}
+      />
     </View>
   );
 };

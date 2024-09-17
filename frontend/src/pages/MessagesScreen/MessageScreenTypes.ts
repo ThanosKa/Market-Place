@@ -1,11 +1,11 @@
 import { Animated } from "react-native";
-import { Chat } from "../../interfaces/chat";
-import { User } from "../../interfaces/user";
 import { TFunction } from "i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { UseMutationResult } from "react-query";
 import { Swipeable } from "react-native-gesture-handler";
+import { User } from "../../interfaces/user";
+import { Chat } from "../../interfaces/chat";
 
 export type MessageScreenNavigationProp = StackNavigationProp<
   MainStackParamList,

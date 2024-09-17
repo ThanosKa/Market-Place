@@ -17,13 +17,12 @@ import { useMutation, useQueryClient, useQuery } from "react-query";
 import { colors } from "../../../colors/colors";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../../interfaces/auth/navigation";
-import { editUser, getLoggedUser } from "../../../services/user";
+import { editUser, getUserDetails } from "../../../services/user";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import Toast from "react-native-toast-message";
 import { Animated } from "react-native";
-import { useLoggedUser } from "../../../hooks/useLoggedUser";
 
 type ChangeEmailScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -50,8 +49,11 @@ const ChangeEmailScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const emailInputRef = useRef<TextInput>(null);
 
-  const { data: userData, isLoading: userLoading } = useLoggedUser(); // Add this line
-
+  const {
+    data: userData,
+    isLoading: userLoading,
+    refetch: refetchUserDetails,
+  } = useQuery("userDetails", getUserDetails);
   const {
     control,
     handleSubmit,
@@ -116,7 +118,7 @@ const ChangeEmailScreen: React.FC<Props> = ({ navigation }) => {
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      queryClient.refetchQueries("loggedUser");
+      refetchUserDetails();
       fadeInCurrentEmail();
     });
   };
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.customBlueDarker,
     padding: 12,
-    borderRadius: 25,
+    borderRadius: 12,
     alignItems: "center",
     width: "100%",
   },

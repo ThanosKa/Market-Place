@@ -18,8 +18,8 @@ import { useForm, Controller } from "react-hook-form";
 import { editUser } from "../../../services/user";
 import Toast from "react-native-toast-message";
 import {
-  changePasswordSchema,
   ChangePasswordFormData,
+  createChangePasswordSchema,
 } from "../../../schema/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
 
@@ -32,6 +32,7 @@ const ChangePasswordScreen: React.FC<{
   navigation: ChangePasswordScreenNavigationProp;
 }> = ({ navigation }) => {
   const { t } = useTranslation();
+  const changePasswordSchema = createChangePasswordSchema(t);
   const {
     control,
     handleSubmit,
@@ -60,19 +61,31 @@ const ChangePasswordScreen: React.FC<{
       formData.append("currentPassword", data.currentPassword);
       formData.append("newPassword", data.newPassword);
       formData.append("confirmNewPassword", data.confirmNewPassword);
-      await editUser(formData);
-      currentPassword.current?.blur();
-      newPassword.current?.blur();
-      confirmNewPassword.current?.blur();
+
+      const response = await editUser(formData);
       reset();
-      Toast.show({
-        type: "success",
-        text1: t("success"),
-        text2: t("success-change-password"),
-        position: "bottom",
-        bottomOffset: 110,
-      });
-      //   navigation.goBack();
+      if (response?.success === 1) {
+        currentPassword.current?.blur();
+        newPassword.current?.blur();
+        confirmNewPassword.current?.blur();
+
+        Toast.show({
+          type: "success",
+          text1: t("success"),
+          text2: t("success-change-password"),
+          position: "bottom",
+          bottomOffset: 110,
+        });
+        navigation.goBack();
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("password-mismatch"),
+          text2: t("fail-change-password"),
+          position: "bottom",
+          bottomOffset: 110,
+        });
+      }
     } catch (error) {
       Toast.show({
         type: "error",
@@ -310,7 +323,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.customBlueDarker,
     padding: 12,
-    borderRadius: 25,
+    borderRadius: 12,
     alignItems: "center",
     width: "100%",
   },

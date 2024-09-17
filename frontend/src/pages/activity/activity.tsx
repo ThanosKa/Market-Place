@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,16 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
-import { RouteProp, useNavigation } from "@react-navigation/native";
+import {
+  RouteProp,
+  useNavigation,
+  useScrollToTop,
+} from "@react-navigation/native";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useActivityManagement } from "./useActivityManagement";
 import ActivityItem from "./ActivityItem";
 import { getSections, groupActivities } from "./helper";
+import FlexibleSkeleton from "../../components/Skeleton/FlexibleSkeleton";
 
 type ActivityScreenRouteProp = RouteProp<MainStackParamList, "Activity">;
 
@@ -36,6 +41,8 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
   } = useActivityManagement();
 
   const [refreshing, setRefreshing] = React.useState(false);
+  const flatListRef = useRef(null);
+  useScrollToTop(flatListRef);
 
   useEffect(() => {
     const markAllReadOnBlur = navigation.addListener("blur", markAllAsRead);
@@ -54,14 +61,6 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
     }
   }, [propRoute.params?.refreshActivity, onRefresh]);
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={colors.primary} />
-      </View>
-    );
-  }
-
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -76,6 +75,7 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
     <View style={styles.container}>
       <Text style={styles.notificationTitle}>{t("Notifications")}</Text>
       <FlatList
+        ref={flatListRef}
         data={getSections(groupedActivities)}
         renderItem={({ item }) => (
           <>
@@ -84,13 +84,23 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionHeaderText}>{item.title}</Text>
                 </View>
-                {item.data.map((activity) => (
-                  <ActivityItem
-                    key={activity._id}
-                    item={activity}
-                    onDelete={handleDeleteItem}
+                {isLoading ? (
+                  <FlexibleSkeleton
+                    type="search"
+                    itemCount={10}
+                    hasProfileImage={true}
+                    profileImagePosition="left"
+                    contentLines={1}
                   />
-                ))}
+                ) : (
+                  item.data.map((activity) => (
+                    <ActivityItem
+                      key={activity._id}
+                      item={activity}
+                      onDelete={handleDeleteItem}
+                    />
+                  ))
+                )}
               </>
             )}
           </>
@@ -121,8 +131,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: colors.background,
+    padding: 6,
   },
   errorContainer: {
     flex: 1,

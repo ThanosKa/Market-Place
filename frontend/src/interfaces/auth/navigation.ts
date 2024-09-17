@@ -13,7 +13,9 @@ export type RootStackParamList = {
 export type MainStackParamList = {
   // Chat: { chatId: string };
   Chat: { chatId?: string; userId?: string };
-
+  Product: {
+    productId: string;
+  };
   Messages: undefined;
   Likes: undefined;
   MainTabs: undefined;
@@ -27,7 +29,10 @@ export type MainStackParamList = {
   Sell: undefined;
   Activity: { refreshActivity?: number; unseenCount?: number };
 
-  Profile: { refreshProfile?: number };
+  Profile: {
+    refreshProfile?: number;
+    // activeTab?: "profile" | "listings" | "reviews";
+  };
   UserProfile: {
     userId: string;
     firstName?: string;
@@ -39,4 +44,6 @@ export type MainStackParamList = {
   ChangeEmailScreen: undefined;
   ChangePasswordScreen: undefined;
   SellProduct: undefined;
+  Purchases: undefined;
+  Sales: undefined;
 };

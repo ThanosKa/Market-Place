@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Text,
   RefreshControl,
+  ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,7 +15,7 @@ import {
   useQueryClient,
 } from "react-query";
 import debounce from "lodash.debounce";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 
 import { colors } from "../../colors/colors";
 import SearchBar from "../../components/SearchBarComponenet";
@@ -32,14 +33,18 @@ import {
 } from "../../services/recentSearch";
 
 import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { StackNavigationProp } from "@react-navigation/stack";
+import FlexibleSkeleton from "../../components/Skeleton/FlexibleSkeleton";
 
 type SearchScreenRouteProp = RouteProp<MainStackParamList, "Search">;
 
 const SearchScreen = () => {
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
+
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const route = useRoute<SearchScreenRouteProp>();
-
+  const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -49,6 +54,7 @@ const SearchScreen = () => {
   const debouncedSearch = useCallback(
     debounce((text: string) => {
       setDebouncedSearchQuery(text);
+      setIsSearching(false);
     }, 300),
     []
   );
@@ -116,7 +122,8 @@ const SearchScreen = () => {
 
   const deleteRecentSearchMutation = useMutation(deleteRecentSearch, {
     onSuccess: () => {
-      queryClient.invalidateQueries("recentSearches");
+      // queryClient.invalidateQueries("recentSearches");
+      refetchRecentSearches();
     },
   });
 
@@ -145,9 +152,9 @@ const SearchScreen = () => {
     setIsFocused(false);
     setShowSearchBar(false);
   };
-
   const handleSearch = (text: string) => {
     setSearchQuery(text);
+    setIsSearching(true);
     debouncedSearch(text);
   };
 
@@ -157,11 +164,14 @@ const SearchScreen = () => {
   };
 
   const handleClickRecentSearch = (productId: string) => {
-    console.log("Recent search product clicked:", productId);
+    // console.log("Recent search product clicked:", productId);
+    navigation.navigate("Product", { productId });
   };
 
   const handleClickSearchedProduct = (productId: string) => {
-    console.log("Searched product clicked:", productId);
+    // console.log("Searched product clicked:", productId);
+    navigation.navigate("Product", { productId });
+
     addRecentSearchMutation.mutate({
       query: searchQuery,
       productId: productId,
@@ -242,9 +252,18 @@ const SearchScreen = () => {
 
       {isFocused && searchQuery.length > 0 && (
         <>
-          {productsLoading ? (
-            <ActivityIndicator size="small" color={colors.secondary} />
-          ) : products.length > 0 ? (
+          {isSearching || productsLoading ? (
+            <ScrollView>
+              <FlexibleSkeleton
+                type="search"
+                itemCount={10}
+                hasProfileImage={true}
+                profileImagePosition="left"
+                contentLines={1}
+              />
+            </ScrollView>
+          ) : // <ActivityIndicator size="small" color={colors.secondary} />
+          products.length > 0 ? (
             <SearchResults
               products={products}
               onClickSearchedProduct={handleClickSearchedProduct}

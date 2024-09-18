@@ -59,7 +59,7 @@ const ListingsTab: React.FC<Props> = ({
         />
         <TextInput
           style={styles.searchInput}
-          placeholder={t("Search this profile")}
+          placeholder={t("search-this-profile")}
           value={searchQuery}
           onChangeText={handleSearch}
         />

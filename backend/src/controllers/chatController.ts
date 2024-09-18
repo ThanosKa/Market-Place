@@ -9,13 +9,33 @@ export const createChat = async (req: Request, res: Response) => {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
     const participantObjectId = new mongoose.Types.ObjectId(participantId);
 
-    // Check for existing chat
+    // Check for existing chat, including soft-deleted ones
     const existingChat = await Chat.findOne({
       participants: { $all: [userId, participantObjectId] },
-      deletedFor: { $not: { $elemMatch: { user: userId } } },
     });
 
     if (existingChat) {
+      // If the chat exists but was deleted by the current user, restore it
+      const deletedForCurrentUser = existingChat.deletedFor.find(
+        (deletion) => deletion.user.toString() === userId.toString()
+      );
+
+      if (deletedForCurrentUser) {
+        // Remove the deletion entry for the current user
+        await Chat.findOneAndUpdate(
+          { _id: existingChat._id },
+          { $pull: { deletedFor: { user: userId } } },
+          { new: true }
+        );
+
+        return res.status(200).json({
+          success: 1,
+          message: "Chat restored successfully",
+          data: { chat: existingChat },
+        });
+      }
+
+      // If the chat wasn't deleted, just return it
       return res.status(200).json({
         success: 1,
         message: "Chat already exists",
@@ -23,7 +43,7 @@ export const createChat = async (req: Request, res: Response) => {
       });
     }
 
-    // If no existing chat or it was deleted, create a new one
+    // If no existing chat, create a new one
     const newChat = new Chat({
       participants: [userId, participantObjectId],
       messages: [],
@@ -46,7 +66,6 @@ export const createChat = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserChats = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
@@ -166,7 +185,6 @@ export const getChatMessages = async (req: Request, res: Response) => {
         $match: {
           _id: new mongoose.Types.ObjectId(chatId),
           participants: userId,
-          deletedFor: { $not: { $elemMatch: { user: userId } } },
         },
       },
       {
@@ -191,12 +209,46 @@ export const getChatMessages = async (req: Request, res: Response) => {
               0,
             ],
           },
+          deletionInfo: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$deletedFor",
+                  as: "deletion",
+                  cond: { $eq: ["$$deletion.user", userId] },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          filteredMessages: {
+            $cond: {
+              if: { $ifNull: ["$deletionInfo.messagesDeletedAt", false] },
+              then: {
+                $filter: {
+                  input: "$messages",
+                  as: "message",
+                  cond: {
+                    $gt: [
+                      "$$message.timestamp",
+                      "$deletionInfo.messagesDeletedAt",
+                    ],
+                  },
+                },
+              },
+              else: "$messages",
+            },
+          },
         },
       },
       {
         $addFields: {
           paginatedMessages: {
-            $slice: [{ $reverseArray: "$messages" }, skip, limit],
+            $slice: [{ $reverseArray: "$filteredMessages" }, skip, limit],
           },
         },
       },
@@ -241,7 +293,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
             profilePicture: 1,
           },
           messages: 1,
-          totalMessages: { $size: "$messages" },
+          totalMessages: { $size: "$filteredMessages" },
         },
       },
     ]);
@@ -291,6 +343,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { content } = req.body;
@@ -305,7 +358,11 @@ export const sendMessage = async (req: Request, res: Response) => {
       });
     }
 
-    const chat = await Chat.findOne({ _id: chatId, participants: userId });
+    // Check if the user is a participant in the chat
+    const chat = await Chat.findOne({
+      _id: chatId,
+      participants: userId,
+    });
 
     if (!chat) {
       return res.status(403).json({
@@ -339,35 +396,29 @@ export const sendMessage = async (req: Request, res: Response) => {
       seen: false,
     };
 
-    chat.messages.push(newMessage);
-    chat.updatedAt = new Date();
-    await chat.save();
+    // Add the new message and update the chat
+    const updatedChat = await Chat.findOneAndUpdate(
+      { _id: chatId },
+      {
+        $push: { messages: newMessage },
+        $set: { updatedAt: new Date() },
+        $pull: { deletedFor: { user: { $ne: userId } } },
+      },
+      { new: true }
+    );
+
+    if (!updatedChat) {
+      return res.status(404).json({
+        success: 0,
+        message: "Chat not found",
+        data: null,
+      });
+    }
 
     const populatedMessage = await Chat.populate(newMessage, {
       path: "sender",
       select: "firstName lastName email username",
     });
-
-    const recipientId = chat.participants.find(
-      (participantId) => !participantId.equals(userId)
-    );
-    if (recipientId) {
-      let activityContent = "New message";
-      if (content) {
-        activityContent += `: ${content.substring(0, 50)}${
-          content.length > 50 ? "..." : ""
-        }`;
-      } else if (images.length > 0) {
-        activityContent += " with image(s)";
-      }
-      await createActivity(
-        recipientId.toString(),
-        "message",
-        userId.toString(),
-        activityContent,
-        chatId
-      );
-    }
 
     res.json({
       success: 1,
@@ -401,18 +452,41 @@ export const deleteChat = async (req: Request, res: Response) => {
       });
     }
 
-    // Mark the chat as deleted for this user
-    await Chat.updateOne(
+    const currentDate = new Date();
+
+    // Update the deletedFor array
+    const updatedChat = await Chat.findOneAndUpdate(
       { _id: chatId },
       {
-        $addToSet: {
-          deletedFor: {
-            user: userId,
-            deletedAt: new Date(),
-          },
+        $set: {
+          deletedFor: [
+            ...chat.deletedFor.filter((item) => !item.user.equals(userId)),
+            { user: userId, deletedAt: currentDate },
+          ],
         },
-      }
+      },
+      { new: true }
     );
+
+    if (!updatedChat) {
+      return res.status(500).json({
+        success: 0,
+        message: "Failed to update chat",
+        data: null,
+      });
+    }
+
+    // Check if all participants have deleted the chat
+    if (updatedChat.deletedFor.length === updatedChat.participants.length) {
+      // All participants have deleted the chat, so remove it from the database
+      await Chat.findByIdAndDelete(chatId);
+
+      return res.json({
+        success: 1,
+        message: "Chat completely removed from the database",
+        data: null,
+      });
+    }
 
     res.json({
       success: 1,
@@ -583,6 +657,68 @@ export const deleteMessage = async (req: Request, res: Response) => {
       success: 1,
       message: "Message deleted successfully",
       data: null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const getUnreadChatsCount = async (req: Request, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const unreadChatsCount = await Chat.aggregate([
+      {
+        $match: {
+          participants: userId,
+          deletedFor: { $not: { $elemMatch: { user: userId } } },
+        },
+      },
+      {
+        $addFields: {
+          hasUnreadMessages: {
+            $gt: [
+              {
+                $size: {
+                  $filter: {
+                    input: "$messages",
+                    as: "message",
+                    cond: {
+                      $and: [
+                        { $ne: ["$$message.sender", userId] },
+                        { $eq: ["$$message.seen", false] },
+                      ],
+                    },
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $match: {
+          hasUnreadMessages: true,
+        },
+      },
+      {
+        $count: "unreadChatsCount",
+      },
+    ]);
+
+    const count =
+      unreadChatsCount.length > 0 ? unreadChatsCount[0].unreadChatsCount : 0;
+
+    res.json({
+      success: 1,
+      message: "Unread chats count retrieved successfully",
+      data: { unreadChatsCount: count },
     });
   } catch (err) {
     console.error(err);

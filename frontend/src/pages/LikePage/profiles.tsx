@@ -14,11 +14,12 @@ import { useTranslation } from "react-i18next";
 import { toggleLikeUser } from "../../services/likes";
 import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
+import { LikedUser } from "../../interfaces/user";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useNavigation } from "@react-navigation/native";
 import { getUserId } from "../../services/authStorage";
-import { LikedUser } from "../../interfaces/user";
+import { Skeleton } from "@rneui/themed";
 
 type Props = {
   likedProfilesData: LikedUser[];
@@ -44,11 +45,18 @@ const RenderLikedProfiles: React.FC<Props> = ({
     const loggedUserId = await getUserId();
     if (loggedUserId === userId) {
       navigation.navigate("MainTabs");
-      navigation.navigate("Profile", { refreshProfile: Date.now() });
+      navigation.navigate("Profile", {});
     } else {
       navigation.navigate("UserProfile", { userId });
     }
   };
+
+  const handleProductPress = useCallback(
+    (productId: string) => {
+      navigation.navigate("Product", { productId });
+    },
+    [navigation]
+  );
 
   const handleToggleUserLike = useCallback(
     (userId: string) => {
@@ -62,7 +70,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
         useNativeDriver: true,
       }).start(() => {
         queryClient.setQueryData("likedProfiles", (oldData: LikedUser[]) => {
-          return oldData.filter((user) => user.id !== userId);
+          return oldData.filter((user) => user._id !== userId);
         });
 
         setRemovingUsers((prev) => prev.filter((id) => id !== userId));
@@ -119,20 +127,20 @@ const RenderLikedProfiles: React.FC<Props> = ({
     ({ item }: { item: LikedUser }) => {
       const productCount = item.products.length;
       const productsToShow = item.products.slice(0, 4);
-      const isRemoving = removingUsers.includes(item.id);
+      const isRemoving = removingUsers.includes(item._id);
 
-      if (!fadeAnims.current[item.id]) {
-        fadeAnims.current[item.id] = new Animated.Value(1);
+      if (!fadeAnims.current[item._id]) {
+        fadeAnims.current[item._id] = new Animated.Value(1);
       }
 
       return (
         <Animated.View
-          style={[styles.profileItem, { opacity: fadeAnims.current[item.id] }]}
+          style={[styles.profileItem, { opacity: fadeAnims.current[item._id] }]}
         >
           {productCount > 0 ? (
             <View style={styles.productGrid}>
               {productsToShow.map((product, index) => (
-                <View
+                <TouchableOpacity
                   key={index}
                   style={[
                     styles.gridItem,
@@ -142,6 +150,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
                     productCount >= 3 && index === 2 && styles.thirdGridItem,
                     productCount >= 4 && index === 3 && styles.fourthGridItem,
                   ]}
+                  onPress={() => handleProductPress(product._id)}
                 >
                   <Image
                     source={{ uri: `${BASE_URL}${product.images[0]}` }}
@@ -154,7 +163,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
                       </Text>
                     </View>
                   )}
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           ) : (
@@ -164,7 +173,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
             </View>
           )}
           <View style={styles.profileDetails}>
-            <TouchableOpacity onPress={() => handleUserPress(item.id)}>
+            <TouchableOpacity onPress={() => handleUserPress(item._id)}>
               <View style={styles.profileNameContainer}>
                 <View style={styles.profileImageNameContainer}>
                   <Image
@@ -180,7 +189,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
                   </Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => handleToggleUserLike(item.id)}
+                  onPress={() => handleToggleUserLike(item._id)}
                   disabled={isRemoving}
                 >
                   <AntDesign name="heart" size={18} color="red" />
@@ -208,6 +217,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
       navigation,
       handleUserPress,
       renderStars,
+      handleProductPress,
     ]
   );
 
@@ -215,7 +225,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
     <FlatList
       data={likedProfilesData}
       renderItem={renderProfileItem}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item._id}
       numColumns={2}
       columnWrapperStyle={styles.profileRow}
     />
@@ -301,7 +311,6 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     textAlign: "center",
   },
-
   emptyMessage: {
     fontSize: 16,
     textAlign: "center",
@@ -309,7 +318,6 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     padding: 20,
   },
-
   profileDetails: {
     padding: 10,
   },

@@ -1,4 +1,3 @@
-// models/Product.ts
 import mongoose, { Document, Schema } from "mongoose";
 
 export const CONDITION_TYPES = [
@@ -21,14 +20,21 @@ export const CATEGORY_TYPES = [
   "furniture",
 ] as const;
 
+interface SoldInfo {
+  to: mongoose.Types.ObjectId; // Reference to User
+  date: Date;
+}
+
 export interface IProduct extends Document {
   title: string;
   price: number;
   images: string[];
   category: (typeof CATEGORY_TYPES)[number];
   condition: (typeof CONDITION_TYPES)[number];
+  description?: string;
   seller: mongoose.Types.ObjectId;
   likes: mongoose.Types.ObjectId[];
+  sold: SoldInfo | null;
 }
 
 const ProductSchema: Schema = new Schema(
@@ -44,6 +50,15 @@ const ProductSchema: Schema = new Schema(
       required: true,
     },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    description: { type: String },
+    sold: {
+      type: {
+        to: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to User
+        date: Date,
+        _id: false,
+      },
+      default: null, // Ensure that 'sold' is set to null by default
+    },
   },
   { timestamps: true }
 );

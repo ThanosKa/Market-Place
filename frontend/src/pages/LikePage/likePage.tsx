@@ -17,6 +17,7 @@ import TabSelector from "../../components/TabSelector/tabSelector";
 import { getLikedProducts, getLikedProfiles } from "../../services/likes";
 import RenderLikedProducts from "./products";
 import RenderLikedProfiles from "./profiles";
+import FlexibleSkeleton from "../../components/Skeleton/FlexibleSkeleton";
 
 type LikesPageProp = RouteProp<MainStackParamList, "Likes">;
 type LikesPagePropScreenNavigationProp = StackNavigationProp<
@@ -73,7 +74,15 @@ const LikesPage: React.FC<Props> = () => {
   const renderContent = () => {
     if (activeTab === "liked-products") {
       if (isLoadingProducts) {
-        return <ActivityIndicator size="small" color={colors.primary} />;
+        return (
+          <FlexibleSkeleton
+            type="grid"
+            itemCount={6}
+            columns={2}
+            profileImagePosition="bottom"
+            contentLines={2}
+          />
+        );
       }
 
       if (productsError) {
@@ -88,7 +97,16 @@ const LikesPage: React.FC<Props> = () => {
       );
     } else {
       if (isLoadingProfiles) {
-        return <ActivityIndicator size="small" color={colors.primary} />;
+        return (
+          <FlexibleSkeleton
+            type="grid"
+            itemCount={6}
+            columns={2}
+            hasProfileImage={true}
+            profileImagePosition="bottom"
+            contentLines={1}
+          />
+        );
       }
 
       if (profilesError) {

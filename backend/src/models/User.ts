@@ -5,7 +5,7 @@ export interface IUser extends Document {
   password: string;
   firstName: string;
   lastName: string;
-  profilePicture?: string;
+  profilePicture: string | null;
   bio?: string;
   likedProducts: mongoose.Types.ObjectId[];
   likedUsers: mongoose.Types.ObjectId[];
@@ -22,7 +22,7 @@ const UserSchema: Schema = new Schema(
     password: { type: String, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
-    profilePicture: { type: String },
+    profilePicture: { type: String, default: null },
     bio: { type: String },
     likedProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     likedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

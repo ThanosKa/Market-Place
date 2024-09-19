@@ -6,20 +6,26 @@ import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
 import { Product } from "../../interfaces/product";
 import { BASE_URL } from "../../services/axiosConfig";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
 
 type Props = {
   product: Product;
   onLikeToggle: (productId: string) => Promise<void>;
   isLiked: boolean; // Add this prop
+  productId: string;
 };
 
 const ProductItem: React.FC<Props> = ({
   product,
   onLikeToggle,
+  productId,
   isLiked: initialIsLiked,
 }) => {
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [isLoading, setIsLoading] = useState(false);
+  const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
   useEffect(() => {
     setIsLiked(initialIsLiked);
@@ -43,11 +49,16 @@ const ProductItem: React.FC<Props> = ({
     }
   };
 
+  const handleProductPress = () => {
+    navigation.navigate("Product", { productId });
+  };
   return (
     <View style={styles.productItem}>
-      {imageUrl && (
-        <Image source={{ uri: imageUrl }} style={styles.productImage} />
-      )}
+      <TouchableOpacity onPress={handleProductPress}>
+        {imageUrl && (
+          <Image source={{ uri: imageUrl }} style={styles.productImage} />
+        )}
+      </TouchableOpacity>
       <Text style={styles.productTitle} numberOfLines={2}>
         {product.title}
       </Text>

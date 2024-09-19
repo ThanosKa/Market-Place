@@ -8,6 +8,9 @@ import { Product } from "../../interfaces/product";
 import { useMutation, useQueryClient, useQuery } from "react-query";
 import { toggleLikeProduct, getLikedProducts } from "../../services/likes";
 import { colors } from "../../colors/colors";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { MainStackParamList } from "../../interfaces/auth/navigation";
+import { useNavigation } from "@react-navigation/native";
 
 type Props = {
   products: Product[];
@@ -42,6 +45,7 @@ const ProductGrid: React.FC<Props> = ({ products }) => {
               product={product}
               onLikeToggle={handleLikeToggle}
               isLiked={likedProductIds.has(product._id)}
+              productId={product._id}
             />
           ))
         ) : (

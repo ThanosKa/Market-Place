@@ -13,6 +13,8 @@ import { useQuery, useInfiniteQuery, useMutation } from "react-query";
 import { createChat, deleteChat, getUserChats } from "../../services/chat";
 import { getAllUsersInfo } from "../../services/user";
 import { Swipeable } from "react-native-gesture-handler";
+import { Chat } from "../../interfaces/chat";
+import { User } from "../../interfaces/user";
 import { t } from "i18next";
 import { Ionicons } from "@expo/vector-icons";
 import SearchBar from "../../components/SearchBarComponenet";
@@ -26,8 +28,7 @@ import {
   PaginatedUsersResponse,
   MessageScreenNavigationProp,
 } from "./MessageScreenTypes";
-import { Chat } from "../../interfaces/chat";
-import { User } from "../../interfaces/user";
+import FlexibleSkeleton from "../../components/Skeleton/FlexibleSkeleton";
 const MessageScreen: React.FC = () => {
   const navigation = useNavigation<MessageScreenNavigationProp>();
   const [showSearchBar, setShowSearchBar] = useState<boolean>(false);
@@ -133,6 +134,90 @@ const MessageScreen: React.FC = () => {
     }
   }, [hasNextPage, fetchNextPage]);
 
+  const renderContent = () => {
+    if (chatsLoading || (showSearchBar && usersLoading)) {
+      return (
+        <FlexibleSkeleton
+          type="search"
+          itemCount={10}
+          hasProfileImage={true}
+          profileImagePosition="left"
+          contentLines={1}
+        />
+      );
+    }
+
+    if (showSearchBar) {
+      if (searchQuery) {
+        const users =
+          usersData?.pages.flatMap((page) => page?.data.users) || [];
+        return (
+          <FlatList
+            data={users}
+            renderItem={({ item }) =>
+              renderUserItem({
+                item,
+                chats,
+                createChatMutation,
+                navigation,
+              })
+            }
+            keyExtractor={(item: User) => item.id}
+            onEndReached={loadMoreUsers}
+            onEndReachedThreshold={0.1}
+            ListEmptyComponent={
+              <View style={styles.messageContainerNoUsers}>
+                <Text style={styles.messageTextNoUsers}>
+                  {t("no-users-found")} {searchQuery}
+                </Text>
+              </View>
+            }
+          />
+        );
+      } else {
+        return (
+          <View style={styles.messageContainer}>
+            <Text style={styles.messageText}>{t("search-users")}</Text>
+          </View>
+        );
+      }
+    } else if (chats && chats.length > 0) {
+      return (
+        <FlatList
+          data={chats}
+          renderItem={({ item }) =>
+            renderChatItem({
+              item,
+              navigation,
+              t,
+              renderRightActions: (progress, dragX) =>
+                renderRightActions({
+                  progress,
+                  dragX,
+                  chatId: item._id,
+                  handleDeleteChat,
+                }),
+              closeRow: () => closeRow(item._id),
+              rowRefs,
+            })
+          }
+          keyExtractor={(item: Chat) => item._id}
+          refreshControl={
+            <RefreshControl
+              refreshing={chatsLoading}
+              onRefresh={refetchChats}
+            />
+          }
+        />
+      );
+    } else {
+      return (
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageText}>{t("no-messages-yet")}</Text>
+        </View>
+      );
+    }
+  };
   return (
     <View style={styles.container}>
       {showSearchBar ? (
@@ -161,67 +246,7 @@ const MessageScreen: React.FC = () => {
         </TouchableOpacity>
       )}
 
-      {showSearchBar ? (
-        searchQuery ? (
-          <FlatList
-            data={usersData?.pages.flatMap((page) => page?.data.users) || []}
-            renderItem={({ item }) =>
-              renderUserItem({
-                item,
-                chats,
-                createChatMutation,
-                navigation,
-              })
-            }
-            keyExtractor={(item: User) => item.id}
-            onEndReached={loadMoreUsers}
-            onEndReachedThreshold={0.1}
-            refreshControl={
-              <RefreshControl refreshing={usersLoading} onRefresh={() => {}} />
-            }
-            ListEmptyComponent={
-              <View style={styles.messageContainer}>
-                <Text style={styles.messageText}>{t("no-users-found")}</Text>
-              </View>
-            }
-          />
-        ) : (
-          <View style={styles.messageContainer}>
-            <Text style={styles.messageText}>{t("search-users")}</Text>
-          </View>
-        )
-      ) : chats && chats.length > 0 ? (
-        <FlatList
-          data={chats}
-          renderItem={({ item }) =>
-            renderChatItem({
-              item,
-              navigation,
-              t,
-              renderRightActions: (progress, dragX) =>
-                renderRightActions({
-                  progress,
-                  dragX,
-                  chatId: item._id,
-                  handleDeleteChat,
-                }),
-              closeRow: () => closeRow(item._id),
-              rowRefs,
-            })
-          }
-          keyExtractor={(item: Chat) => item._id}
-          refreshControl={
-            <RefreshControl
-              refreshing={chatsLoading}
-              onRefresh={refetchChats}
-            />
-          }
-        />
-      ) : (
-        <View style={styles.messageContainer}>
-          <Text style={styles.messageText}>{t("no-messages-yet")}</Text>
-        </View>
-      )}
+      {renderContent()}
     </View>
   );
 };
@@ -256,6 +281,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 20,
     paddingLeft: 16,
+  },
+  messageContainerNoUsers: {
+    flex: 1,
+    // alignItems: "center",
+    paddingTop: 20,
+    paddingLeft: 16,
+  },
+  messageTextNoUsers: {
+    textAlign: "left",
+    marginLeft: 10,
+    fontSize: 16,
+    color: colors.secondary,
+    fontWeight: "bold",
   },
   messageText: {
     fontSize: 16,

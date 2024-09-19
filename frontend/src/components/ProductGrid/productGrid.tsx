@@ -48,8 +48,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const queryClient = useQueryClient();
 
   // Inside your ProductGrid component
-
-  // Inside your ProductGrid component
   const queryParams: GetProductsParams = useMemo(() => {
     const params: GetProductsParams = {
       page: 1,

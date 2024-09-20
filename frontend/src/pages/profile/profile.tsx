@@ -181,7 +181,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     { key: "reviews", label: t("reviews") },
   ];
 
-  if (!userDetails) {
+  if (!userDetails && !userLoading) {
     return (
       <View style={styles.container}>
         <Text> {t("errorLoadingData")}</Text>
@@ -189,11 +189,11 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  const user: User = userDetails.data.user;
-
+  // const user: User = userDetails?.data.user;
+  const user: User = userDetails?.data.user as User;
   const totalProducts = userProducts?.pages[0]?.data.total || 0;
 
-  const totalLikes = userDetails.data.totalLikes;
+  const totalLikes = userDetails?.data.totalLikes;
 
   return (
     <View style={styles.container}>

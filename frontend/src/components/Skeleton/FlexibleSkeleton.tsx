@@ -114,25 +114,27 @@ const ContentSkeleton: React.FC<{ width: number; lines: number }> = ({
 );
 
 interface FlexibleSkeletonProps {
-  type: "grid" | "list" | "search" | "userInfo" | "line"; // Add "line" to the type
-  itemCount: number;
+  type: "grid" | "list" | "search" | "userInfo" | "line" | "tabs";
+  itemCount?: number;
   columns?: number;
   hasProfileImage?: boolean;
   profileImagePosition?: "top" | "bottom" | "left";
   contentLines?: number;
-  lineWidth?: number | string; // Add this prop for line width
-  lineHeight?: number; // Add this prop for line height
+  lineWidth?: number | string;
+  lineHeight?: number;
+  tabWidth?: number | string;
 }
 
 const FlexibleSkeleton: React.FC<FlexibleSkeletonProps> = ({
   type,
-  itemCount,
+  itemCount = 1,
   columns = 2,
   hasProfileImage = false,
   profileImagePosition = "top",
   contentLines = 3,
-  lineWidth = "100%", // Default to full width
-  lineHeight = 1, // Default to 1 pixel height
+  lineWidth = "100%",
+  lineHeight = 1,
+  tabWidth = "28%",
 }) => {
   const { width: windowWidth } = useWindowDimensions();
   const containerPadding = 20;
@@ -141,6 +143,16 @@ const FlexibleSkeleton: React.FC<FlexibleSkeletonProps> = ({
     type === "grid"
       ? (windowWidth - containerPadding - itemSpacing * (columns - 1)) / columns
       : windowWidth - containerPadding;
+
+  const getWidthValue = (width: number | string): number => {
+    if (typeof width === "number") {
+      return width;
+    }
+    if (width.endsWith("%")) {
+      return (parseFloat(width) / 100) * windowWidth;
+    }
+    return windowWidth;
+  };
 
   const renderSkeletonItem = () => (
     <View style={[styles.item, { width: itemWidth }]}>
@@ -199,44 +211,57 @@ const FlexibleSkeleton: React.FC<FlexibleSkeletonProps> = ({
     </View>
   );
 
+  const renderTabsSkeleton = () => (
+    <View style={styles.tabsContainer}>
+      {[...Array(3)].map((_, index) => (
+        <Skeleton
+          key={index}
+          animation="pulse"
+          width={getWidthValue(tabWidth)}
+          height={15}
+          style={styles.tabSkeleton}
+        />
+      ))}
+    </View>
+  );
   const renderItems = () => {
-    if (type === "line") {
-      return [...Array(itemCount)].map((_, index) => (
-        <React.Fragment key={index}>{renderLineSkeleton()}</React.Fragment>
-      ));
+    switch (type) {
+      case "tabs":
+        return renderTabsSkeleton();
+      case "line":
+        return [...Array(itemCount)].map((_, index) => (
+          <React.Fragment key={index}>{renderLineSkeleton()}</React.Fragment>
+        ));
+      case "userInfo":
+        return [...Array(itemCount)].map((_, index) => (
+          <React.Fragment key={index}>
+            {renderUserInfoSkeleton()}
+          </React.Fragment>
+        ));
+      case "search":
+        return [...Array(itemCount)].map((_, index) => (
+          <React.Fragment key={index}>{renderSearchItem()}</React.Fragment>
+        ));
+      case "grid":
+        return [...Array(Math.ceil(itemCount / columns))].map((_, rowIndex) => (
+          <View key={rowIndex} style={styles.row}>
+            {[...Array(columns)].map((_, colIndex) => {
+              if (rowIndex * columns + colIndex < itemCount) {
+                return (
+                  <React.Fragment key={colIndex}>
+                    {renderSkeletonItem()}
+                  </React.Fragment>
+                );
+              }
+              return null;
+            })}
+          </View>
+        ));
+      default:
+        return [...Array(itemCount)].map((_, index) => (
+          <React.Fragment key={index}>{renderSkeletonItem()}</React.Fragment>
+        ));
     }
-    if (type === "userInfo") {
-      return [...Array(itemCount)].map((_, index) => (
-        <React.Fragment key={index}>{renderUserInfoSkeleton()}</React.Fragment>
-      ));
-    }
-
-    if (type === "search") {
-      return [...Array(itemCount)].map((_, index) => (
-        <React.Fragment key={index}>{renderSearchItem()}</React.Fragment>
-      ));
-    }
-
-    if (type === "grid") {
-      return [...Array(Math.ceil(itemCount / columns))].map((_, rowIndex) => (
-        <View key={rowIndex} style={styles.row}>
-          {[...Array(columns)].map((_, colIndex) => {
-            if (rowIndex * columns + colIndex < itemCount) {
-              return (
-                <React.Fragment key={colIndex}>
-                  {renderSkeletonItem()}
-                </React.Fragment>
-              );
-            }
-            return null;
-          })}
-        </View>
-      ));
-    }
-
-    return [...Array(itemCount)].map((_, index) => (
-      <React.Fragment key={index}>{renderSkeletonItem()}</React.Fragment>
-    ));
   };
 
   return <View style={styles.container}>{renderItems()}</View>;
@@ -310,6 +335,14 @@ const styles = StyleSheet.create({
   },
   lineSkeleton: {
     marginBottom: 10,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 8,
+  },
+  tabSkeleton: {
+    borderRadius: 8,
   },
 });
 

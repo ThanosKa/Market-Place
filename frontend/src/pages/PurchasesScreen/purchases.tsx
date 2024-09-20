@@ -87,7 +87,7 @@ const PurchasesScreen: React.FC = () => {
   };
 
   const allProducts = data?.pages?.flatMap((page) => page.data.products) || [];
-  if (!data) {
+  if (!data && !isLoading) {
     return (
       <View style={styles.container}>
         <Text> {t("errorLoadingData")}</Text>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -12,7 +12,11 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { RouteProp, useFocusEffect } from "@react-navigation/native";
+import {
+  RouteProp,
+  useFocusEffect,
+  useScrollToTop,
+} from "@react-navigation/native";
 import {
   MainStackParamList,
   RootStackParamList,
@@ -51,6 +55,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollViewRef);
   const [totalProductsCount, setTotalProductsCount] = useState(0);
   const {
     data: userDetails,
@@ -198,6 +204,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollViewRef}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
         }

@@ -85,60 +85,61 @@ const SharedProductList: React.FC<SharedProductListProps> = ({
     );
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.centeredLoading}>
-        <ScrollView>
-          <FlexibleSkeleton
-            type="grid"
-            itemCount={6}
-            columns={2}
-            hasProfileImage={true}
-            profileImagePosition="bottom"
-            contentLines={3}
-          />
-        </ScrollView>
-      </View>
-    );
-  }
-
-  if (error) {
+  if (error && !isLoading) {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>{t("errorLoadingData")}</Text>
       </View>
     );
   }
-
   return (
-    <View style={styles.container}>
+    <View style={isLoading ? styles.containerLoading : styles.container}>
       <Text style={styles.title}>{title}</Text>
-      {products.length > 0 ? (
-        <FlatList
-          data={products}
-          renderItem={renderProductItem}
-          keyExtractor={(item) => item._id}
-          numColumns={2}
-          columnWrapperStyle={styles.productRow}
-          contentContainerStyle={styles.listContent}
-          onEndReached={onLoadMore}
-          onEndReachedThreshold={0.1}
-          ListFooterComponent={renderFooter}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
-          }
+      {isLoading ? (
+        <FlexibleSkeleton
+          type="grid"
+          itemCount={6}
+          columns={2}
+          hasProfileImage={true}
+          profileImagePosition="bottom"
+          contentLines={3}
         />
       ) : (
-        <Text style={styles.emptyMessage}>{emptyMessage}</Text>
+        <>
+          {products.length > 0 ? (
+            <FlatList
+              data={products}
+              renderItem={renderProductItem}
+              keyExtractor={(item) => item._id}
+              numColumns={2}
+              columnWrapperStyle={styles.productRow}
+              contentContainerStyle={styles.listContent}
+              onEndReached={onLoadMore}
+              onEndReachedThreshold={0.1}
+              ListFooterComponent={renderFooter}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefetching}
+                  onRefresh={onRefresh}
+                />
+              }
+            />
+          ) : (
+            <Text style={styles.emptyMessage}>{emptyMessage}</Text>
+          )}
+        </>
       )}
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: colors.background,
+  },
+  containerLoading: {
+    flex: 1,
     backgroundColor: colors.background,
   },
   title: {

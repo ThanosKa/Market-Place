@@ -78,8 +78,6 @@ export interface UserResponse {
   };
 }
 
-// interfaces/user.ts
-
 export interface UserDetailsResponse {
   success: number;
   message: string;

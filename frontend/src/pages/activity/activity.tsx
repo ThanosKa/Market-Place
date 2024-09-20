@@ -1,12 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
 import {

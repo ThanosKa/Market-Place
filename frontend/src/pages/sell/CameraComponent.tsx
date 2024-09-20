@@ -116,7 +116,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
         </View>
         {isSelectingImages && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="white" />
+            <ActivityIndicator size="small" color="white" />
             <Text style={styles.loadingText}>{t("processing-images")}</Text>
           </View>
         )}

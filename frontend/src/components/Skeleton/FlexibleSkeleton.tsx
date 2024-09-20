@@ -1,75 +1,101 @@
-import React from "react";
-import { View, StyleSheet, useWindowDimensions, ViewStyle } from "react-native";
-import { Skeleton } from "@rneui/themed";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  StyleSheet,
+  Animated,
+  ViewStyle,
+  useWindowDimensions,
+} from "react-native";
 import { colors } from "../../colors/colors";
+
+interface CustomSkeletonProps {
+  width: number | string;
+  height: number;
+  style?: ViewStyle;
+  circle?: boolean;
+}
+
+const CustomSkeleton: React.FC<CustomSkeletonProps> = ({
+  width,
+  height,
+  style,
+  circle = false,
+}) => {
+  const animatedValue = useRef(new Animated.Value(0)).current;
+  const { width: windowWidth } = useWindowDimensions();
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const getWidth = (): number => {
+    if (typeof width === "number") {
+      return width;
+    }
+    if (width.endsWith("%")) {
+      const percentage = parseFloat(width) / 100;
+      return windowWidth * percentage;
+    }
+    return windowWidth;
+  };
+
+  const animatedStyle = {
+    opacity: animatedValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 0.8],
+    }),
+  };
+
+  return (
+    <Animated.View
+      style={[
+        styles.skeleton,
+        {
+          width: getWidth(),
+          height,
+          borderRadius: circle ? height / 2 : 4,
+        },
+        animatedStyle,
+        style,
+      ]}
+    />
+  );
+};
 
 // Basic skeleton shapes
 const CircleSkeleton: React.FC<{ size: number; style?: ViewStyle }> = ({
   size,
   style,
-}) => (
-  <Skeleton animation="pulse" width={size} height={size} circle style={style} />
-);
+}) => <CustomSkeleton width={size} height={size} circle style={style} />;
 
 const RectangleSkeleton: React.FC<{
   width: number | string;
   height: number;
   style?: ViewStyle;
-}> = ({ width, height, style }) => {
-  const { width: windowWidth } = useWindowDimensions();
-
-  const getWidth = (): number => {
-    if (typeof width === "number") {
-      return width;
-    }
-    // Convert percentage string to number
-    if (width.endsWith("%")) {
-      const percentage = parseFloat(width) / 100;
-      return windowWidth * percentage;
-    }
-    // Default to full width if invalid input
-    return windowWidth;
-  };
-
-  return (
-    <Skeleton
-      animation="pulse"
-      width={getWidth()}
-      height={height}
-      style={style}
-    />
-  );
-};
+}> = ({ width, height, style }) => (
+  <CustomSkeleton width={width} height={height} style={style} />
+);
 
 const LineSkeleton: React.FC<{
   width: number | string;
   height?: number;
   style?: ViewStyle;
-}> = ({ width, height = 1, style }) => {
-  const { width: windowWidth } = useWindowDimensions();
-
-  const getWidth = (): number => {
-    if (typeof width === "number") {
-      return width;
-    }
-    // Convert percentage string to number
-    if (width.endsWith("%")) {
-      const percentage = parseFloat(width) / 100;
-      return windowWidth * percentage;
-    }
-    // Default to full width if invalid input
-    return windowWidth;
-  };
-
-  return (
-    <Skeleton
-      animation="pulse"
-      width={getWidth()}
-      height={height}
-      style={[styles.lineSkeleton, style]}
-    />
-  );
-};
+}> = ({ width, height = 1, style }) => (
+  <CustomSkeleton width={width} height={height} style={style} />
+);
 
 // Compound components
 const ProfileSkeleton: React.FC<{
@@ -170,9 +196,11 @@ const FlexibleSkeleton: React.FC<FlexibleSkeletonProps> = ({
       <ContentSkeleton width={itemWidth * 0.8} lines={contentLines} />
     </View>
   );
+
   const renderLineSkeleton = () => (
     <LineSkeleton width={lineWidth} height={lineHeight} />
   );
+
   const renderSearchItem = () => (
     <View style={styles.searchItem}>
       <ProfileSkeleton
@@ -214,9 +242,8 @@ const FlexibleSkeleton: React.FC<FlexibleSkeletonProps> = ({
   const renderTabsSkeleton = () => (
     <View style={styles.tabsContainer}>
       {[...Array(3)].map((_, index) => (
-        <Skeleton
+        <CustomSkeleton
           key={index}
-          animation="pulse"
           width={getWidthValue(tabWidth)}
           height={15}
           style={styles.tabSkeleton}
@@ -224,6 +251,7 @@ const FlexibleSkeleton: React.FC<FlexibleSkeletonProps> = ({
       ))}
     </View>
   );
+
   const renderItems = () => {
     switch (type) {
       case "tabs":
@@ -276,6 +304,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 15,
+  },
+  skeleton: {
+    backgroundColor: colors.darkerGray,
   },
   mainRectangle: {
     marginHorizontal: 10,
@@ -347,64 +378,3 @@ const styles = StyleSheet.create({
 });
 
 export default FlexibleSkeleton;
-
-// Usage examples:
-
-// 1. Grid layout for liked profiles
-// <FlexibleSkeleton
-//   type="grid"
-//   itemCount={4}
-//   columns={2}
-//   hasProfileImage={true}
-//   profileImagePosition="bottom"
-//   contentLines={2}
-// />
-
-// 2. List layout for products
-// <FlexibleSkeleton
-//   type="list"
-//   itemCount={5}
-//   hasProfileImage={false}
-//   contentLines={3}
-// />
-
-// 3. Search results layout
-// <FlexibleSkeleton
-//   type="search"
-//   itemCount={5}
-//   hasProfileImage={true}
-//   profileImagePosition="left"
-//   contentLines={1}
-// />
-
-// 4. Grid layout for product gallery
-// <FlexibleSkeleton
-//   type="grid"
-//   itemCount={6}
-//   columns={3}
-//   hasProfileImage={false}
-//   contentLines={1}
-// />
-
-// 5. List layout for chat messages
-// <FlexibleSkeleton
-//   type="list"
-//   itemCount={10}
-//   hasProfileImage={true}
-//   profileImagePosition="left"
-//   contentLines={2}
-// />
-
-// 6. User Info layout
-// <FlexibleSkeleton
-//   type="userInfo"
-//   itemCount={1}
-// />
-
-// 7. Line skeleton layout
-// <FlexibleSkeleton
-//   type="line"
-//   itemCount={3}
-//   lineWidth="80%"
-//   lineHeight={2}
-// />

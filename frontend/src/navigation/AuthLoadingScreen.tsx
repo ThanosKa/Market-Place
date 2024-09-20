@@ -5,6 +5,7 @@ import { getAuthToken, removeAuthToken } from "../services/authStorage";
 import { RootStackParamList } from "../interfaces/auth/navigation";
 import { QueryClient } from "react-query";
 import i18n from "../utils/i18n";
+import { colors } from "../colors/colors";
 
 type AuthLoadingScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, "AuthLoading">;
@@ -57,7 +58,7 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <ActivityIndicator size="large" />
+      <ActivityIndicator size="small" color={colors.secondary} />
     </View>
   );
 };

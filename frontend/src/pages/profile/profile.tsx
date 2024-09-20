@@ -221,7 +221,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           />
         )}
 
-        {!userLoading ? (
+        {userLoading ? (
           <FlexibleSkeleton type="tabs" tabWidth="25%" />
         ) : (
           <TabSelector

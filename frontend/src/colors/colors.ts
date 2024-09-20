@@ -2,6 +2,8 @@ export const colors = {
   primary: "black",
   secondary: "gray",
   lightGray: "#f6f6f6",
+  darkerGray: "#c5c5c5",
+
   errorColor: "red",
   searchBar: "#f1f1f1",
   danger: "#FF0000",

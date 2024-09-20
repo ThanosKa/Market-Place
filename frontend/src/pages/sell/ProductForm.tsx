@@ -217,7 +217,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator size="small" color="white" />
           ) : (
             <Text style={styles.submitButtonText}>{t("submit")}</Text>
           )}

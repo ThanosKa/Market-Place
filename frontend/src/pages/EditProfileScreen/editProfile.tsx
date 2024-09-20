@@ -194,7 +194,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   if (userLoading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="small" />
+        <ActivityIndicator size="small" color={colors.secondary} />
       </View>
     );
   }

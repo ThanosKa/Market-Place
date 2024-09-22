@@ -22,7 +22,7 @@ const UserInfo: React.FC<Props> = ({ user, totalProducts, totalLikes }) => {
       {user.profilePicture ? (
         <Image
           source={{
-            uri: `${BASE_URL}/${user.profilePicture}`,
+            uri: `${user.profilePicture}`,
           }}
           style={styles.profileImage}
         />

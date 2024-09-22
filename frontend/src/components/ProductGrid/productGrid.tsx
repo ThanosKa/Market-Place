@@ -184,7 +184,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       key={product._id}
       userImage={
         product.seller.profilePicture
-          ? `${BASE_URL}/${product.seller.profilePicture}`
+          ? `${product.seller.profilePicture}`
           : null
       }
       userName={`${product.seller.firstName} ${product.seller.lastName}`}

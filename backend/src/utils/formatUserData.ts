@@ -1,9 +1,13 @@
-export const formatUserData = (user: any) => ({
+import { filePathToUrl } from "./filterToUrl";
+
+export const formatUserData = (user: any, baseUrl: string) => ({
   id: user._id,
   email: user.email,
   firstName: user.firstName,
   lastName: user.lastName,
-  profilePicture: user.profilePicture || null,
+  profilePicture: user.profilePicture
+    ? filePathToUrl(user.profilePicture, baseUrl)
+    : null,
   bio: user.bio || null,
   likedProducts: user.likedProducts || [],
   likedUsers: user.likedUsers || [],
@@ -16,12 +20,14 @@ export const formatUserData = (user: any) => ({
   updatedAt: user.updatedAt,
 });
 
-export const formatUserProfileData = (user: any) => ({
+export const formatUserProfileData = (user: any, baseUrl: string) => ({
   id: user._id,
   email: user.email,
   firstName: user.firstName,
   lastName: user.lastName,
-  profilePicture: user.profilePicture || null,
+  profilePicture: user.profilePicture
+    ? filePathToUrl(user.profilePicture, baseUrl)
+    : null,
   bio: user.bio || null,
   averageRating: user.averageRating,
   reviewCount: user.reviewCount,

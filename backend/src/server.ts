@@ -21,7 +21,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 const BASE_URL = `${process.env.PROTOCOL}://${process.env.SERVER}:${PORT}`;
-const API_BASE_URL = `${BASE_URL}/${process.env.API_BASEPATH}`;
+export const API_BASE_URL = `${BASE_URL}/${process.env.API_BASEPATH}`;
 
 // Enable CORS for all routes
 app.use(cors());
@@ -29,8 +29,10 @@ app.use(cors());
 app.use(express.json());
 
 // Serve uploaded files
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-
+app.use(
+  `/${process.env.API_BASEPATH}/uploads`,
+  express.static(path.join(__dirname, "../uploads"))
+);
 // Connect to MongoDB
 connectDatabase();
 
@@ -48,6 +50,10 @@ app.use(`/${process.env.API_BASEPATH}/recent`, recentSearchRoutes);
 app.use(`/${process.env.API_BASEPATH}/activities`, activityRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+app.use((req, res, next) => {
+  res.locals.BASE_URL = BASE_URL;
+  next();
+});
 
 // Route to get a list of uploaded image URLs
 app.get(`/${process.env.API_BASEPATH}/uploaded-images`, (req, res) => {
@@ -63,11 +69,12 @@ app.get(`/${process.env.API_BASEPATH}/uploaded-images`, (req, res) => {
         path.extname(file).toLowerCase()
       )
     );
-    const imageUrls = imageFiles.map((file) => `${BASE_URL}/uploads/${file}`);
+    const imageUrls = imageFiles.map(
+      (file) => `${API_BASE_URL}/uploads/${file}`
+    );
     res.json(imageUrls);
   });
 });
-
 // Route to serve a simple image browser
 app.get("/image-browser", (req, res) => {
   res.send(`
@@ -103,3 +110,5 @@ app.listen(PORT, () => {
   console.log(`BASE_URL is set to: ${BASE_URL}`);
   console.log(`API_BASE_URL is set to: ${API_BASE_URL}`);
 });
+
+export default app;

@@ -5,9 +5,12 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import { emailSchema } from "../utils/email";
 import Activity from "../models/Activity";
+import path from "path";
 
 import Review from "../models/Review";
 import { formatUserData, formatUserProfileData } from "../utils/formatUserData";
+import { filePathToUrl } from "../utils/filterToUrl";
+import { API_BASE_URL } from "../server";
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -63,7 +66,9 @@ export const getAllUsers = async (req: Request, res: Response) => {
       })
     );
 
-    const formattedUsers = usersWithReviewsAndActivities.map(formatUserData);
+    const formattedUsers = usersWithReviewsAndActivities.map((user) =>
+      formatUserData(user, API_BASE_URL)
+    );
 
     res.json({
       success: 1,
@@ -181,7 +186,10 @@ export const getLoggedInUser = async (req: Request, res: Response) => {
         unseenCount: unseenActivitiesCount,
       },
     };
-    const formattedUser = formatUserData(userWithReviewsAndActivities);
+    const formattedUser = formatUserData(
+      userWithReviewsAndActivities,
+      API_BASE_URL
+    );
 
     const totalProducts = await Product.countDocuments({
       seller: userId,
@@ -260,7 +268,12 @@ export const editUser = async (req: Request, res: Response) => {
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
     if (bio) user.bio = bio;
-    if (profilePicture) user.profilePicture = profilePicture.path;
+    if (profilePicture) {
+      user.profilePicture = path.relative(
+        path.join(__dirname, "../../"),
+        profilePicture.path
+      );
+    }
 
     // Update password if provided
     if (newPassword) {
@@ -308,7 +321,9 @@ export const editUser = async (req: Request, res: Response) => {
           firstName: user.firstName,
           lastName: user.lastName,
           bio: user.bio,
-          profilePicture: user.profilePicture,
+          profilePicture: user.profilePicture
+            ? filePathToUrl(user.profilePicture, API_BASE_URL)
+            : null,
         },
       },
     });
@@ -362,17 +377,13 @@ export const getUserDetails = async (req: Request, res: Response) => {
       });
     }
 
-    const formattedUser = formatUserProfileData(user);
-
-    // Get total products count
-    const totalProducts = await Product.countDocuments({ seller: userId });
+    const formattedUser = formatUserProfileData(user, API_BASE_URL);
 
     res.json({
       success: 1,
       message: "User details retrieved successfully",
       data: {
         user: formattedUser,
-        totalProducts,
       },
     });
   } catch (err) {
@@ -384,7 +395,6 @@ export const getUserDetails = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -397,7 +407,7 @@ export const getUserById = async (req: Request, res: Response) => {
       });
     }
 
-    const formattedUser = formatUserProfileData(user);
+    const formattedUser = formatUserProfileData(user, API_BASE_URL);
 
     // Get total products count
     const totalProducts = await Product.countDocuments({ seller: user._id });
@@ -463,14 +473,15 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          profilePicture: user.profilePicture,
+          profilePicture: user.profilePicture
+            ? filePathToUrl(user.profilePicture, API_BASE_URL)
+            : null,
           bio: user.bio,
           reviewCount,
           averageRating: parseFloat(averageRating.toFixed(1)),
         };
       })
     );
-
     res.json({
       success: 1,
       message: "Users info retrieved successfully",

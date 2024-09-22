@@ -54,7 +54,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isProfileChanged, setIsProfileChanged] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-
   const [initialUserData, setInitialUserData] = useState({
     firstName: "",
     lastName: "",
@@ -94,6 +93,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     updateNavigationOptions();
   }, [updateNavigationOptions]);
+  console.log("Asd", BASE_URL, userData?.data.user.profilePicture);
 
   useEffect(() => {
     if (userData?.data.user) {
@@ -101,17 +101,13 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       setFirstName(user.firstName || "");
       setLastName(user.lastName || "");
       setBio(user.bio || "");
-      setProfilePicture(
-        user.profilePicture ? `${BASE_URL}/${user.profilePicture}` : null
-      );
+      setProfilePicture(user.profilePicture ? `${user.profilePicture}` : null);
 
       setInitialUserData({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         bio: user.bio || "",
-        profilePicture: user.profilePicture
-          ? `${BASE_URL}/${user.profilePicture}`
-          : null,
+        profilePicture: user.profilePicture ? `${user.profilePicture}` : null,
       });
     }
   }, [userData]);

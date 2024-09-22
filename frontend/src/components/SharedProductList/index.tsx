@@ -53,7 +53,7 @@ const SharedProductList: React.FC<SharedProductListProps> = ({
     <View style={styles.productItem}>
       <TouchableOpacity onPress={() => onProductPress(item._id)}>
         <Image
-          source={{ uri: `${BASE_URL}${item.images[0]}` }}
+          source={{ uri: `${item.images[0]}` }}
           style={styles.productImage}
         />
       </TouchableOpacity>

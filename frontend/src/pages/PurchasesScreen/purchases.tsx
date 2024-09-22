@@ -61,7 +61,7 @@ const PurchasesScreen: React.FC = () => {
       >
         {item.seller.profilePicture ? (
           <Image
-            source={{ uri: `${BASE_URL}/${item.seller.profilePicture}` }}
+            source={{ uri: `${item.seller.profilePicture}` }}
             style={styles.sellerImage}
           />
         ) : (

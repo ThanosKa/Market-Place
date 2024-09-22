@@ -153,7 +153,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
                   onPress={() => handleProductPress(product._id)}
                 >
                   <Image
-                    source={{ uri: `${BASE_URL}${product.images[0]}` }}
+                    source={{ uri: `${product.images[0]}` }}
                     style={styles.gridImage}
                   />
                   {index === 3 && productCount > 4 && (
@@ -177,7 +177,7 @@ const RenderLikedProfiles: React.FC<Props> = ({
               <View style={styles.profileNameContainer}>
                 <View style={styles.profileImageNameContainer}>
                   <Image
-                    source={{ uri: `${BASE_URL}/${item.profilePicture}` }}
+                    source={{ uri: `${item.profilePicture}` }}
                     style={styles.profileImage}
                   />
                   <Text

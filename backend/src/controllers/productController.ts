@@ -8,6 +8,8 @@ import Product, {
 } from "../models/Product";
 import User from "../models/User";
 import { createActivity } from "./activityController";
+import { formatProductData } from "../utils/formatImagesUrl";
+import path from "path";
 
 // Create a new product
 
@@ -64,8 +66,9 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
 
-    const images: string[] = files.map((file) => `/uploads/${file.filename}`);
-
+    const images: string[] = files.map((file) =>
+      path.relative(path.join(__dirname, "../../uploads"), file.path)
+    );
     // Create new product
     const newProduct: IProduct = new Product({
       title,
@@ -75,7 +78,7 @@ export const createProduct = async (req: Request, res: Response) => {
       condition,
       seller: sellerId,
       description,
-      sold: null, // Initialize sold to null
+      sold: null,
     });
 
     await newProduct.save();
@@ -84,11 +87,12 @@ export const createProduct = async (req: Request, res: Response) => {
     await User.findByIdAndUpdate(sellerId, {
       $push: { products: newProduct._id },
     });
+    const formattedProduct = formatProductData(newProduct);
 
     res.status(201).json({
       success: true,
       message: "Product created successfully",
-      data: { product: newProduct },
+      data: { product: formattedProduct },
     });
   } catch (err) {
     console.error("Error in createProduct:", err);
@@ -160,18 +164,18 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (description !== undefined) product.description = description;
 
     if (req.files && Array.isArray(req.files)) {
-      const newImages = (req.files as Express.Multer.File[]).map(
-        (file) => `/uploads/${file.filename}`
+      const newImages = (req.files as Express.Multer.File[]).map((file) =>
+        path.relative(path.join(__dirname, "../../uploads"), file.path)
       );
       product.images = [...product.images, ...newImages];
     }
-
     await product.save();
+    const formattedProduct = formatProductData(product);
 
     res.json({
       success: 1,
       message: "Product updated successfully",
-      data: { product },
+      data: { product: formattedProduct },
     });
   } catch (err) {
     console.error(err);
@@ -312,12 +316,13 @@ export const getProducts = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .populate("seller", "firstName lastName email profilePicture");
+    const formattedProducts = formatProductData(products);
 
     res.json({
       success: 1,
       message: "Products retrieved successfully",
       data: {
-        products,
+        products: formattedProducts,
         total,
         page: Number(page),
         limit: Number(limit),
@@ -436,12 +441,12 @@ export const getUserProducts = async (req: Request, res: Response) => {
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
-
+    const formattedProducts = formatProductData(products);
     res.json({
       success: 1,
       message: "User products retrieved successfully",
       data: {
-        products,
+        products: formattedProducts,
         total,
         page: Number(page),
         limit: Number(limit),
@@ -561,11 +566,13 @@ export const getUserByIdProducts = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
 
+    const formattedProducts = formatProductData(products);
+
     res.json({
       success: 1,
       message: "User products retrieved successfully",
       data: {
-        products,
+        products: formattedProducts,
         total,
         page: Number(page),
         limit: Number(limit),
@@ -591,11 +598,12 @@ export const getProductById = async (req: Request, res: Response) => {
         .status(404)
         .json({ success: 0, message: "Product not found", data: null });
     }
+    const formattedProduct = formatProductData(product);
 
     res.json({
       success: 1,
       message: "Product retrieved successfully",
-      data: { product },
+      data: { product: formattedProduct },
     });
   } catch (err) {
     console.error(err);
@@ -747,11 +755,14 @@ export const getSoldUserProducts = async (req: Request, res: Response) => {
         path: "sold.to",
         select: "firstName lastName profilePicture _id",
       });
+    const formattedProducts = formatProductData(products);
+
     res.json({
       success: 1,
       message: "User sold products retrieved successfully",
       data: {
-        products,
+        products: formattedProducts,
+
         page: Number(page),
         limit: Number(limit),
         totalSoldProducts,
@@ -820,12 +831,14 @@ export const getSoldUserByIdProducts = async (req: Request, res: Response) => {
         path: "sold.to",
         select: "firstName lastName profilePicture _id",
       });
+    const formattedProducts = formatProductData(products);
 
     res.json({
       success: 1,
       message: "Sold products retrieved successfully",
       data: {
-        products,
+        products: formattedProducts,
+
         page: Number(page),
         limit: Number(limit),
         totalSoldProducts,
@@ -893,12 +906,13 @@ export const getPurchasedProducts = async (req: Request, res: Response) => {
         path: "sold.to",
         select: "firstName lastName profilePicture _id",
       });
+    const formattedProducts = formatProductData(products);
 
     res.json({
       success: 1,
       message: "Purchased products retrieved successfully",
       data: {
-        products,
+        products: formattedProducts,
         page: Number(page),
         limit: Number(limit),
         totalPurchasedProducts,
@@ -969,12 +983,14 @@ export const getPurchasedProductsByUserId = async (
         path: "sold.to",
         select: "firstName lastName profilePicture _id",
       });
+    const formattedProducts = formatProductData(products);
 
     res.json({
       success: 1,
       message: "Purchased products retrieved successfully",
       data: {
-        products,
+        products: formattedProducts,
+
         page: Number(page),
         limit: Number(limit),
         totalPurchasedProducts,

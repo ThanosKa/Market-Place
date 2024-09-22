@@ -32,7 +32,7 @@ const ProductItem: React.FC<Props> = ({
   }, [initialIsLiked]);
 
   const imageUrl =
-    product.images.length > 0 ? `${BASE_URL}${product.images[0]}` : undefined;
+    product.images.length > 0 ? `${product.images[0]}` : undefined;
 
   const handleLikeToggle = async () => {
     setIsLoading(true);

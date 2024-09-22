@@ -20,7 +20,6 @@ import {
   GetProductsParams,
 } from "../../interfaces/product";
 import ProductCard from "../ProductCard/productCard";
-import { BASE_URL } from "../../services/axiosConfig";
 import { getProducts } from "../../services/product";
 import { getLikedProducts, toggleLikeProduct } from "../../services/likes";
 import { colors } from "../../colors/colors";
@@ -189,9 +188,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       }
       userName={`${product.seller.firstName} ${product.seller.lastName}`}
       userId={product.seller._id}
-      productImage={
-        product.images.length > 0 ? `${BASE_URL}${product.images[0]}` : null
-      }
+      productImage={product.images.length > 0 ? `${product.images[0]}` : null}
       title={product.title}
       price={`$${product.price}`}
       condition={t(product.condition)}

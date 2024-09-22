@@ -88,7 +88,7 @@ const RenderLikedProducts: React.FC<Props> = ({
         >
           <TouchableOpacity onPress={() => handleProductPress(item._id)}>
             <Image
-              source={{ uri: `${BASE_URL}${item.images[0]}` }}
+              source={{ uri: `${item.images[0]}` }}
               style={styles.productImage}
             />
           </TouchableOpacity>

@@ -332,7 +332,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
                   onPress={() => handleImagePress(index)}
                 >
                   <Image
-                    source={{ uri: `${BASE_URL}${image}` }}
+                    source={{ uri: `${image}` }}
                     style={styles.productImage}
                   />
                 </TouchableOpacity>

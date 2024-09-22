@@ -70,7 +70,7 @@ const SalesScreen: React.FC = () => {
         >
           {item.sold.to.profilePicture ? (
             <Image
-              source={{ uri: `${BASE_URL}/${item.sold.to.profilePicture}` }}
+              source={{ uri: `${item.sold.to.profilePicture}` }}
               style={styles.buyerImage}
             />
           ) : (

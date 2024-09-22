@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { API_BASE_URL } from "../server";
 import { filePathToUrl } from "./filterToUrl";
 
@@ -12,31 +13,39 @@ export const formatProductImages = (product: any) => {
 
 export const formatUser = (user: any) => {
   if (!user) return null;
+  if (typeof user === "string" || user instanceof mongoose.Types.ObjectId) {
+    return user.toString(); // Return the ID if the user field is not populated
+  }
+  const userObject = user.toObject ? user.toObject() : user;
   return {
-    ...user.toObject(),
-    profilePicture: user.profilePicture
-      ? filePathToUrl(user.profilePicture, API_BASE_URL)
+    _id: userObject._id,
+    firstName: userObject.firstName,
+    lastName: userObject.lastName,
+    email: userObject.email,
+    profilePicture: userObject.profilePicture
+      ? filePathToUrl(userObject.profilePicture, API_BASE_URL)
       : null,
   };
 };
 
 export const formatProductData = (productOrProducts: any) => {
   const formatSingleProduct = (product: any) => {
+    const productObject = product.toObject ? product.toObject() : product;
     const formattedProduct = {
-      ...product.toObject(),
-      images: product.images.map((image: string) =>
+      ...productObject,
+      images: productObject.images.map((image: string) =>
         filePathToUrl(image, API_BASE_URL)
       ),
     };
 
-    if (product.seller) {
-      formattedProduct.seller = formatUser(product.seller);
+    if (productObject.seller) {
+      formattedProduct.seller = formatUser(productObject.seller);
     }
 
-    if (product.sold && product.sold.to) {
+    if (productObject.sold && productObject.sold.to) {
       formattedProduct.sold = {
-        ...product.sold,
-        to: formatUser(product.sold.to),
+        ...productObject.sold,
+        to: formatUser(productObject.sold.to),
       };
     }
 

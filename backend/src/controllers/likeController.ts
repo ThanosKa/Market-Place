@@ -6,6 +6,7 @@ import Product from "../models/Product";
 import { createActivity } from "./activityController";
 import Activity from "../models/Activity";
 import { formatUserData } from "../utils/formatUserData";
+import { formatProductData, formatUser } from "../utils/formatImagesUrl";
 
 export const toggleLikeProduct = async (req: Request, res: Response) => {
   try {
@@ -73,7 +74,7 @@ export const toggleLikeProduct = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "Product like toggled successfully",
-      data: { liked },
+      data: { liked, product: formatProductData(product) },
     });
   } catch (err) {
     console.error(err);
@@ -135,7 +136,7 @@ export const toggleLikeUser = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "User like toggled successfully",
-      data: { liked },
+      data: { liked, likedUser: formatUser(likedUser) },
     });
   } catch (err) {
     console.error(err);
@@ -168,10 +169,26 @@ export const getLikedProducts = async (req: Request, res: Response) => {
       });
     }
 
+    const formattedLikedProducts = formatProductData(user.likedProducts);
+
+    // Additional check to ensure seller data is properly formatted
+    const finalFormattedProducts = formattedLikedProducts.map(
+      (product: any) => {
+        if (product.seller && typeof product.seller === "object") {
+          const formattedSeller = formatUser(product.seller);
+          return {
+            ...product,
+            seller: formattedSeller || product.seller, // Fall back to original seller if formatUser returns null
+          };
+        }
+        return product;
+      }
+    );
+
     res.json({
       success: 1,
       message: "Liked products retrieved successfully",
-      data: { likedProducts: user.likedProducts },
+      data: { likedProducts: finalFormattedProducts },
     });
   } catch (err) {
     console.error(err);
@@ -203,18 +220,44 @@ export const getLikedProfiles = async (req: Request, res: Response) => {
       });
     }
 
-    const formattedLikedUsers = user.likedUsers.map((likedUser: any) => ({
-      _id: likedUser._id,
-      firstName: likedUser.firstName,
-      lastName: likedUser.lastName,
-      profilePicture: likedUser.profilePicture,
-      averageRating: likedUser.averageRating,
-      reviewCount: likedUser.reviewCount,
-      products: likedUser.products.map((product: any) => ({
-        _id: product._id,
-        images: product.images,
-      })),
-    }));
+    const formattedLikedUsers = user.likedUsers.map((likedUser: any) => {
+      const formattedUser = formatUser(likedUser);
+
+      if (typeof formattedUser === "string") {
+        // If formatUser returned a string (user ID), use the original likedUser data
+        return {
+          _id: formattedUser,
+          firstName: likedUser.firstName,
+          lastName: likedUser.lastName,
+          profilePicture: likedUser.profilePicture,
+          averageRating: likedUser.averageRating,
+          reviewCount: likedUser.reviewCount,
+          products: formatProductData(likedUser.products),
+        };
+      } else if (formattedUser) {
+        // If formatUser returned an object, use its properties
+        return {
+          _id: formattedUser._id,
+          firstName: formattedUser.firstName,
+          lastName: formattedUser.lastName,
+          profilePicture: formattedUser.profilePicture,
+          averageRating: likedUser.averageRating,
+          reviewCount: likedUser.reviewCount,
+          products: formatProductData(likedUser.products),
+        };
+      } else {
+        // If formatUser returned null, use the original likedUser data
+        return {
+          _id: likedUser._id,
+          firstName: likedUser.firstName,
+          lastName: likedUser.lastName,
+          profilePicture: likedUser.profilePicture,
+          averageRating: likedUser.averageRating,
+          reviewCount: likedUser.reviewCount,
+          products: formatProductData(likedUser.products),
+        };
+      }
+    });
 
     res.json({
       success: 1,

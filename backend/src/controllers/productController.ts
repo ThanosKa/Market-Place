@@ -66,8 +66,8 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
 
-    const images: string[] = files.map((file) =>
-      path.relative(path.join(__dirname, "../../uploads"), file.path)
+    const images: string[] = files.map(
+      (file) => path.join("uploads", file.filename) // Store path as 'uploads/filename.jpg'
     );
     // Create new product
     const newProduct: IProduct = new Product({
@@ -164,8 +164,8 @@ export const updateProduct = async (req: Request, res: Response) => {
     if (description !== undefined) product.description = description;
 
     if (req.files && Array.isArray(req.files)) {
-      const newImages = (req.files as Express.Multer.File[]).map((file) =>
-        path.relative(path.join(__dirname, "../../uploads"), file.path)
+      const newImages = (req.files as Express.Multer.File[]).map(
+        (file) => path.join("uploads", file.filename) // Store path as 'uploads/filename.jpg'
       );
       product.images = [...product.images, ...newImages];
     }
@@ -440,8 +440,11 @@ export const getUserProducts = async (req: Request, res: Response) => {
     const products = await Product.find(filter)
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate("seller", "firstName lastName email profilePicture"); // Add this line
+
     const formattedProducts = formatProductData(products);
+
     res.json({
       success: 1,
       message: "User products retrieved successfully",

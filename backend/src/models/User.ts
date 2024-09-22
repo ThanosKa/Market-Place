@@ -1,5 +1,4 @@
 import mongoose, { Document, Schema } from "mongoose";
-import path from "path";
 
 export interface IUser extends Document {
   email: string;
@@ -23,12 +22,7 @@ const UserSchema: Schema = new Schema(
     password: { type: String, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
-    profilePicture: {
-      type: String,
-      default: null,
-      set: (v: string | null) =>
-        v ? path.normalize(v).replace(/^(\.\.[\/\\])+/, "") : null,
-    },
+    profilePicture: { type: String, default: null },
     bio: { type: String },
     likedProducts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     likedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

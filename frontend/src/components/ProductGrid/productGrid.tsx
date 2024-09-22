@@ -167,7 +167,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         />
       </ScrollView>
     );
-    return <ActivityIndicator size="small" />;
   }
 
   if (error) {

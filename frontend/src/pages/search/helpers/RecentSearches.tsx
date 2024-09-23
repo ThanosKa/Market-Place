@@ -52,7 +52,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
         source={{
           uri:
             item.product.images.length > 0
-              ? `${BASE_URL}${item.product.images[0]}`
+              ? `${item.product.images[0]}`
               : undefined,
         }}
         style={styles.recentSearchImage}

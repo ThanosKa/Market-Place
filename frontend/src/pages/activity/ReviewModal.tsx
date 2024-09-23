@@ -26,7 +26,7 @@ interface ReviewModalProps {
   productId?: string;
   productName?: string;
   productImage?: string;
-  revieweeId?: string; // Add this prop for the seller's ID
+  revieweeId?: string;
 }
 
 const ReviewModal: React.FC<ReviewModalProps> = ({
@@ -41,6 +41,10 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   const [review, setReview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useTranslation();
+
+  const handleRatingPress = (star: number) => {
+    setRating((prevRating) => (prevRating === star ? 0 : star));
+  };
 
   const handleSubmit = async () => {
     if (!productId || !revieweeId) {
@@ -80,7 +84,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           </TouchableOpacity>
 
           <Image
-            source={{ uri: `${BASE_URL}${productImage}` }}
+            source={{ uri: `${productImage}` }}
             style={styles.productImage}
           />
 
@@ -89,7 +93,10 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           <Text style={styles.ratingLabel}>{t("your-rating")}</Text>
           <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity key={star} onPress={() => setRating(star)}>
+              <TouchableOpacity
+                key={star}
+                onPress={() => handleRatingPress(star)}
+              >
                 <Ionicons
                   name={rating >= star ? "star" : "star-outline"}
                   size={32}
@@ -196,7 +203,11 @@ const styles = StyleSheet.create({
     width: MODAL_WIDTH * 0.8,
   },
   submitButtonDisabled: {
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.customBlue,
+    padding: 15,
+    borderRadius: 25,
+    width: MODAL_WIDTH * 0.8,
+    opacity: 0.5,
   },
   submitButtonText: {
     color: "white",

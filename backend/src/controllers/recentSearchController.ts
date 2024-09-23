@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import RecentSearch, { IRecentSearch } from "../models/RecentSearch";
 import mongoose from "mongoose";
-import Product from "../models/Product"; // Import the Product model
+import Product from "../models/Product";
+import { formatProductData } from "../utils/formatImagesUrl";
+
 export const addRecentSearch = async (req: Request, res: Response) => {
   try {
     const { query, productId } = req.body;
@@ -23,7 +25,6 @@ export const addRecentSearch = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if the product exists
     if (productId) {
       const product = await Product.findById(productId);
       if (!product) {
@@ -34,19 +35,17 @@ export const addRecentSearch = async (req: Request, res: Response) => {
         });
       }
 
-      // Check if a recent search for this product already exists
-      const existingSearch = await RecentSearch.findOne({
-        user: userId,
-        product: productId,
-      });
+      const existingSearch = await RecentSearch.findOneAndUpdate(
+        { user: userId, product: productId },
+        { $set: { query, createdAt: new Date() } },
+        { new: true, upsert: true }
+      );
 
-      if (existingSearch) {
-        return res.status(200).json({
-          success: 1,
-          message: "Recent search for this product already exists",
-          data: { recentSearch: existingSearch },
-        });
-      }
+      return res.status(200).json({
+        success: 1,
+        message: "Recent search updated successfully",
+        data: { recentSearch: existingSearch },
+      });
     }
 
     const newRecentSearch: IRecentSearch = new RecentSearch({
@@ -69,6 +68,7 @@ export const addRecentSearch = async (req: Request, res: Response) => {
       .json({ success: 0, message: "Failed to add recent search", data: null });
   }
 };
+
 export const getRecentSearches = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
@@ -83,13 +83,18 @@ export const getRecentSearches = async (req: Request, res: Response) => {
       .limit(limit)
       .populate("product", "title price condition images");
 
+    const formattedSearches = recentSearches.map((search) => ({
+      ...search.toObject(),
+      product: search.product ? formatProductData(search.product) : null,
+    }));
+
     const total = await RecentSearch.countDocuments({ user: userId });
 
     res.json({
       success: 1,
       message: "Recent searches retrieved successfully",
       data: {
-        recentSearches,
+        recentSearches: formattedSearches,
         page,
         limit,
         total,
@@ -160,7 +165,7 @@ export const deleteAllRecentSearches = async (req: Request, res: Response) => {
     res.json({
       success: 1,
       message: "All recent searches deleted successfully",
-      data: null,
+      data: { deletedCount: result.deletedCount },
     });
   } catch (error) {
     console.error("Error in deleteAllRecentSearches:", error);

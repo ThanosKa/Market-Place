@@ -34,8 +34,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     >
       <Image
         source={{
-          uri:
-            item.images.length > 0 ? `${BASE_URL}${item.images[0]}` : undefined,
+          uri: item.images.length > 0 ? `${item.images[0]}` : undefined,
         }}
         style={styles.resultImage}
       />

@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import Product from "../models/Product";
 import User from "../models/User";
 import Review from "../models/Review";
+import { formatProductData, formatUser } from "../utils/formatImagesUrl";
 
 export const createActivity = async (
   userId: string,
@@ -72,16 +73,27 @@ export const getActivities = async (req: Request, res: Response) => {
       read: false,
     });
 
-    // Transform the activities to include a formatted reviewStatus
-    const formattedActivities = activitiesItems.map((activity) => ({
-      ...activity.toObject(),
-      reviewStatus:
-        activity.type === "review_prompt"
-          ? activity.reviewDone
-            ? "Reviewed"
-            : "Pending"
-          : undefined,
-    }));
+    // Transform the activities to include a formatted reviewStatus and formatted user/product data
+    const formattedActivities = activitiesItems.map((activity) => {
+      const formattedActivity = {
+        ...activity.toObject(),
+        reviewStatus:
+          activity.type === "review_prompt"
+            ? activity.reviewDone
+              ? "Reviewed"
+              : "Pending"
+            : undefined,
+        sender: formatUser(activity.sender),
+      };
+
+      if (formattedActivity.product) {
+        formattedActivity.product = formatProductData(
+          formattedActivity.product
+        );
+      }
+
+      return formattedActivity;
+    });
 
     res.json({
       success: 1,
@@ -328,17 +340,19 @@ export const createReviewPromptActivity = async (
       sellerId,
       "firstName lastName profilePicture"
     );
+    const formattedActivity = {
+      ...populatedActivity!.toObject(),
+      buyer: formatUser(populatedActivity!.user),
+      seller: formatUser(seller),
+      product: formatProductData(populatedActivity!.product),
+      user: undefined,
+    };
 
     res.status(201).json({
       success: 1,
       message: "Review prompt activity created successfully",
       data: {
-        activity: {
-          ...populatedActivity!.toObject(),
-          buyer: populatedActivity!.user,
-          seller: seller,
-          user: undefined,
-        },
+        activity: formattedActivity,
       },
     });
   } catch (error) {

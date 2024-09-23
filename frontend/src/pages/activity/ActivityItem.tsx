@@ -63,7 +63,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
     if (item.sender.profilePicture) {
       return (
         <Image
-          source={{ uri: `${BASE_URL}/${item.sender.profilePicture}` }}
+          source={{ uri: `${item.sender.profilePicture}` }}
           style={styles.profileImage}
         />
       );
@@ -140,7 +140,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
             item.type === "review") &&
             item.product && (
               <Image
-                source={{ uri: `${BASE_URL}${item.product.images[0]}` }}
+                source={{ uri: `${item.product.images[0]}` }}
                 style={styles.productImage}
               />
             )}

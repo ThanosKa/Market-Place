@@ -16,6 +16,7 @@ import { BASE_URL } from "../../services/axiosConfig";
 import { useTranslation } from "react-i18next";
 import { createReview } from "../../services/reviews";
 import { markAllActivitiesAsRead } from "../../services/activity";
+import Toast from "react-native-toast-message";
 
 const { width } = Dimensions.get("window");
 const MODAL_WIDTH = width * 0.9;
@@ -51,7 +52,6 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
       console.error("Missing productId or revieweeId");
       return;
     }
-    console.log(productId, revieweeId);
     setIsSubmitting(true);
     try {
       await createReview({
@@ -62,6 +62,13 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
       });
       onClose();
       await markAllActivitiesAsRead();
+      Toast.show({
+        type: "success",
+        text1: t("review-sent"),
+        position: "bottom",
+        visibilityTime: 3000,
+        bottomOffset: 110,
+      });
     } catch (error) {
       console.error("Error submitting review:", error);
       // You might want to show an error message to the user here

@@ -12,7 +12,6 @@ import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useMutation } from "react-query";
 import { useTranslation } from "react-i18next";
 import { toggleLikeUser } from "../../services/likes";
-import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
 import { LikedUser } from "../../interfaces/user";
 import { StackNavigationProp } from "@react-navigation/stack";

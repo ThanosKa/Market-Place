@@ -4,7 +4,6 @@ import { View, Text, Image, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
 import { User } from "../../interfaces/user";
-import { BASE_URL } from "../../services/axiosConfig";
 import { Feather } from "@expo/vector-icons";
 import { renderStars } from "../../utils/renderStars";
 

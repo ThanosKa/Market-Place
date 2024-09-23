@@ -8,7 +8,6 @@ import {
   StyleSheet,
   TextStyle,
 } from "react-native";
-import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
 import { getTranslatableTimeString } from "../activity/activityUtils";

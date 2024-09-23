@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { colors } from "../../colors/colors";
 import { Ionicons } from "@expo/vector-icons";
-import { BASE_URL } from "../../services/axiosConfig";
 import { useTranslation } from "react-i18next";
 import { createReview } from "../../services/reviews";
 import { markAllActivitiesAsRead } from "../../services/activity";

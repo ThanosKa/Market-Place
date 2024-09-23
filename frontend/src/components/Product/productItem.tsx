@@ -5,7 +5,6 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
 import { Product } from "../../interfaces/product";
-import { BASE_URL } from "../../services/axiosConfig";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";

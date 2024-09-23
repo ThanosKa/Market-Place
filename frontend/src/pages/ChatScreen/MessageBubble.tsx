@@ -13,7 +13,6 @@ import {
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { ChatMessage } from "../../interfaces/chat";
 import { colors } from "../../colors/colors";
-import { BASE_URL } from "../../services/axiosConfig";
 import { t } from "i18next";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";

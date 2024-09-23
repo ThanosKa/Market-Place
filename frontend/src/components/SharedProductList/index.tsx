@@ -8,11 +8,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Product } from "../../interfaces/product";
-import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
 import FlexibleSkeleton from "../Skeleton/FlexibleSkeleton";
 

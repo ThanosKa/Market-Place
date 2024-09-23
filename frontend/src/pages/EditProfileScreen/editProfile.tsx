@@ -15,7 +15,6 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { colors } from "../../colors/colors";
 import { editUser, getUserDetails } from "../../services/user";
-import { BASE_URL } from "../../services/axiosConfig";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import Toast from "react-native-toast-message";
@@ -93,7 +92,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     updateNavigationOptions();
   }, [updateNavigationOptions]);
-  console.log("Asd", BASE_URL, userData?.data.user.profilePicture);
 
   useEffect(() => {
     if (userData?.data.user) {

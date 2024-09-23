@@ -4,7 +4,6 @@ import { AntDesign } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../colors/colors";
 import { Review } from "../../interfaces/review";
-import { BASE_URL } from "../../services/axiosConfig";
 import UndefProfPicture from "../UndefProfPicture/UndefProfPicture";
 import { getUserId } from "../../services/authStorage";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -60,7 +59,7 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
           source={{
             uri:
               review.product.images && review.product.images.length > 0
-                ? `${BASE_URL}${review.product.images[0]}`
+                ? `${review.product.images[0]}`
                 : undefined,
           }}
           style={styles.reviewProductImage}
@@ -78,7 +77,7 @@ const ReviewItem: React.FC<Props> = ({ review }) => {
             {review.reviewer.profilePicture ? (
               <Image
                 source={{
-                  uri: `${BASE_URL}/${review.reviewer.profilePicture}`,
+                  uri: `${review.reviewer.profilePicture}`,
                 }}
                 style={styles.reviewerImage}
               />

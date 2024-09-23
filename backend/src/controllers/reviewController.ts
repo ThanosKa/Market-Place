@@ -6,6 +6,7 @@ import Product from "../models/Product"; // Assuming you have a Product model
 import { createActivity } from "./activityController";
 import mongoose from "mongoose";
 import Activity from "../models/Activity";
+import { formatProductData, formatUser } from "../utils/formatImagesUrl";
 
 export const createReview = async (req: Request, res: Response) => {
   try {
@@ -100,6 +101,20 @@ export const createReview = async (req: Request, res: Response) => {
       .populate("reviewer", "firstName lastName email username profilePicture")
       .populate("product", "title images");
 
+    if (!populatedReview) {
+      return res.status(500).json({
+        success: 0,
+        message: "Failed to retrieve the created review",
+        data: null,
+      });
+    }
+
+    const formattedReview = {
+      ...populatedReview.toObject(),
+      reviewer: formatUser(populatedReview.reviewer),
+      product: formatProductData(populatedReview.product),
+    };
+
     // Create an activity for the reviewee
     await createActivity(
       revieweeId,
@@ -114,7 +129,7 @@ export const createReview = async (req: Request, res: Response) => {
     res.status(201).json({
       success: 1,
       message: "Review created successfully",
-      data: { review: populatedReview },
+      data: { review: formattedReview },
     });
   } catch (err) {
     console.error(err);
@@ -134,13 +149,19 @@ export const getReviewsForLoggedUser = async (req: Request, res: Response) => {
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
 
+    const formattedReviews = reviews.map((review) => ({
+      ...review.toObject(),
+      reviewer: formatUser(review.reviewer),
+      product: formatProductData(review.product),
+    }));
     const totalReviews = await Review.countDocuments({ reviewee: userId });
 
     res.json({
       success: 1,
       message: "Reviews for logged user retrieved successfully",
       data: {
-        reviews,
+        reviews: formattedReviews,
+
         page: Number(page),
         limit: Number(limit),
         totalReviews,
@@ -168,14 +189,19 @@ export const getReviewsForUser = async (req: Request, res: Response) => {
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
-
+    const formattedReviews = reviews.map((review) => ({
+      ...review.toObject(),
+      reviewer: formatUser(review.reviewer),
+      product: formatProductData(review.product),
+    }));
     const totalReviews = await Review.countDocuments({ reviewee: userId });
 
     res.json({
       success: 1,
       message: "Reviews for user retrieved successfully",
       data: {
-        reviews,
+        reviews: formattedReviews,
+
         page: Number(page),
         limit: Number(limit),
         totalReviews,
@@ -206,11 +232,24 @@ export const getReviewsDoneByUser = async (req: Request, res: Response) => {
 
     const totalReviews = await Review.countDocuments({ reviewer: userId });
 
+    const formattedReviews = reviews.map((review) => {
+      const reviewObject = review.toObject();
+      return {
+        ...reviewObject,
+        reviewee: reviewObject.reviewee
+          ? formatUser(reviewObject.reviewee)
+          : null,
+        product: reviewObject.product
+          ? formatProductData(reviewObject.product)
+          : null,
+      };
+    });
+
     res.json({
       success: 1,
       message: "Reviews done by user retrieved successfully",
       data: {
-        reviews,
+        reviews: formattedReviews,
         page: Number(page),
         limit: Number(limit),
         totalReviews,
@@ -226,7 +265,6 @@ export const getReviewsDoneByUser = async (req: Request, res: Response) => {
     });
   }
 };
-
 // Keep existing updateReview and deleteReview functions...
 export const updateReview = async (req: Request, res: Response) => {
   try {

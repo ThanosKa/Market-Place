@@ -11,7 +11,6 @@ import {
 import { useTranslation } from "react-i18next";
 import { EvilIcons } from "@expo/vector-icons";
 import { RecentSearch } from "../../../interfaces/recentSearch";
-import { BASE_URL } from "../../../services/axiosConfig";
 import { colors } from "../../../colors/colors";
 
 interface RecentSearchesProps {

@@ -105,7 +105,7 @@ export const renderChatItem = ({
         {item.otherParticipant?.profilePicture ? (
           <Image
             source={{
-              uri: `${BASE_URL}/${item.otherParticipant.profilePicture}`,
+              uri: `${item.otherParticipant.profilePicture}`,
             }}
             style={styles.avatar}
           />
@@ -182,7 +182,7 @@ export const renderUserItem = ({
       {item.profilePicture ? (
         <Image
           source={{
-            uri: `${BASE_URL}/${item.profilePicture}`,
+            uri: `${item.profilePicture}`,
           }}
           style={styles.userImage}
         />

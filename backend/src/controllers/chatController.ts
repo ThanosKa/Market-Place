@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Chat, { IMessage } from "../models/Chat";
 import User from "../models/User";
 import { createActivity } from "./activityController";
+import { formatChatMessage, formatUser } from "../utils/formatImagesUrl";
 export const createChat = async (req: Request, res: Response) => {
   try {
     const { participantId } = req.body;
@@ -146,15 +147,9 @@ export const getUserChats = async (req: Request, res: Response) => {
     // Process the chats to format the last message
     const formattedChats = chats.map((chat) => ({
       ...chat,
+      otherParticipant: formatUser(chat.otherParticipant),
       lastMessage: chat.lastMessage
-        ? {
-            ...chat.lastMessage,
-            content:
-              chat.lastMessage.content ||
-              (chat.lastMessage.images && chat.lastMessage.images.length > 0
-                ? "Sent an image"
-                : ""),
-          }
+        ? formatChatMessage(chat.lastMessage)
         : null,
     }));
 
@@ -323,11 +318,17 @@ export const getChatMessages = async (req: Request, res: Response) => {
     const totalMessages = chat[0].totalMessages;
     const totalPages = Math.ceil(totalMessages / limit);
 
+    const formattedChat = {
+      ...chat[0],
+      otherParticipant: formatUser(chat[0].otherParticipant),
+      messages: chat[0].messages.map(formatChatMessage),
+    };
+
     res.json({
       success: 1,
       message: "Chat messages retrieved successfully",
       data: {
-        ...chat[0],
+        ...formattedChat,
         currentPage: page,
         totalPages: totalPages,
         hasNextPage: page < totalPages,
@@ -420,10 +421,12 @@ export const sendMessage = async (req: Request, res: Response) => {
       select: "firstName lastName email username",
     });
 
+    const formattedMessage = formatChatMessage(populatedMessage);
+
     res.json({
       success: 1,
       message: "Message sent successfully",
-      data: { message: populatedMessage },
+      data: { message: formattedMessage },
     });
   } catch (err) {
     console.error(err);
@@ -607,10 +610,12 @@ export const editMessage = async (req: Request, res: Response) => {
     message.edited = true;
     await chat.save();
 
+    const formattedMessage = formatChatMessage(message);
+
     res.json({
       success: 1,
       message: "Message edited successfully",
-      data: { message },
+      data: { message: formattedMessage },
     });
   } catch (err) {
     console.error(err);

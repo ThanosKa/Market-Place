@@ -129,7 +129,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           style={styles.imageContainer}
         >
           <Image
-            source={{ uri: `${BASE_URL}${message.images[0]}` }}
+            source={{ uri: `${message.images[0]}` }}
             style={styles.image}
           />
           {message.images.length > 1 && (

@@ -11,7 +11,6 @@ import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { Activity } from "../../interfaces/user";
 import { colors } from "../../colors/colors";
-import { BASE_URL } from "../../services/axiosConfig";
 import { getActivityMessage } from "./helper";
 import { getTranslatableTimeString } from "./activityUtils";
 import { useTranslation } from "react-i18next";

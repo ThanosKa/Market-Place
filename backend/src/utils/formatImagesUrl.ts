@@ -58,3 +58,28 @@ export const formatProductData = (productOrProducts: any) => {
     return formatSingleProduct(productOrProducts);
   }
 };
+
+export const formatChatMessage = (message: any) => {
+  if (!message) return null;
+  const messageObject = message.toObject ? message.toObject() : message;
+  return {
+    ...messageObject,
+    images: messageObject.images
+      ? messageObject.images.map((image: string) =>
+          filePathToUrl(image, API_BASE_URL)
+        )
+      : [],
+    sender: formatUser(messageObject.sender),
+  };
+};
+
+export const formatChat = (chat: any) => {
+  if (!chat) return null;
+  const chatObject = chat.toObject ? chat.toObject() : chat;
+  return {
+    ...chatObject,
+    participants: chatObject.participants.map(formatUser),
+    messages: chatObject.messages.map(formatChatMessage),
+    otherParticipant: formatUser(chatObject.otherParticipant),
+  };
+};

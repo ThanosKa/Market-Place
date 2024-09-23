@@ -16,7 +16,6 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
-import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
 import { getUserId } from "../../services/authStorage";
 import {
@@ -386,7 +385,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
                     {product.seller.profilePicture ? (
                       <Image
                         source={{
-                          uri: `${BASE_URL}/${product.seller.profilePicture}`,
+                          uri: `${product.seller.profilePicture}`,
                         }}
                         style={styles.sellerImage}
                       />

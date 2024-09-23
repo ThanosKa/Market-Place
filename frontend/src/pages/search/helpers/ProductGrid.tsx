@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 import { Product } from "../../../interfaces/product";
-import { BASE_URL } from "../../../services/axiosConfig";
 import { colors } from "../../../colors/colors";
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";

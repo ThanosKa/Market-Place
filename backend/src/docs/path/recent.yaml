@@ -26,7 +26,7 @@
             schema:
               $ref: "#/components/schemas/RecentSearchResponse"
       "200":
-        description: Recent search for this product already exists
+        description: Recent search for this product updated successfully
         content:
           application/json:
             schema:
@@ -84,7 +84,7 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SuccessResponse"
+              $ref: "#/components/schemas/DeleteAllRecentSearchesResponse"
       "401":
         $ref: "#/components/responses/Unauthorized"
       "500":
@@ -196,6 +196,20 @@ components:
             deletedSearch:
               $ref: "#/components/schemas/RecentSearch"
 
+    DeleteAllRecentSearchesResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            deletedCount:
+              type: integer
+
     Product:
       type: object
       properties:
@@ -218,17 +232,6 @@ components:
         success:
           type: number
           enum: [0]
-        message:
-          type: string
-        data:
-          type: null
-
-    SuccessResponse:
-      type: object
-      properties:
-        success:
-          type: number
-          enum: [1]
         message:
           type: string
         data:

@@ -17,7 +17,7 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LikeResponse"
+              $ref: "#/components/schemas/LikeProductResponse"
       "401":
         $ref: "#/components/responses/Unauthorized"
       "404":
@@ -48,7 +48,7 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LikeResponse"
+              $ref: "#/components/schemas/LikeUserResponse"
       "400":
         description: Cannot like yourself
         content:
@@ -79,20 +79,7 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                  enum: [1]
-                message:
-                  type: string
-                data:
-                  type: object
-                  properties:
-                    likedProducts:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/Product"
+              $ref: "#/components/schemas/LikedProductsResponse"
       "401":
         $ref: "#/components/responses/Unauthorized"
       "404":
@@ -117,20 +104,7 @@
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                success:
-                  type: number
-                  enum: [1]
-                message:
-                  type: string
-                data:
-                  type: object
-                  properties:
-                    likedUsers:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/LikedUser"
+              $ref: "#/components/schemas/LikedProfilesResponse"
       "401":
         $ref: "#/components/responses/Unauthorized"
       "404":
@@ -144,7 +118,7 @@
 
 components:
   schemas:
-    LikeResponse:
+    LikeProductResponse:
       type: object
       properties:
         success:
@@ -157,6 +131,56 @@ components:
           properties:
             liked:
               type: boolean
+            product:
+              $ref: "#/components/schemas/Product"
+
+    LikeUserResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            liked:
+              type: boolean
+            likedUser:
+              $ref: "#/components/schemas/UserBasic"
+
+    LikedProductsResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            likedProducts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Product"
+
+    LikedProfilesResponse:
+      type: object
+      properties:
+        success:
+          type: number
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            likedUsers:
+              type: array
+              items:
+                $ref: "#/components/schemas/LikedUser"
 
     Product:
       type: object

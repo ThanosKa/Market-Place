@@ -1,169 +1,178 @@
-paths:
-  /activities:
-    get:
-      summary: Get user activities
-      description: Retrieves a list of activities for the authenticated user
-      tags:
-        - Activities
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: Successfully retrieved activities
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: integer
-                    example: 1
-                  message:
-                    type: string
-                    example: Activities retrieved successfully
-                  data:
-                    type: object
-                    properties:
-                      activities:
-                        type: object
-                        properties:
+/api/activities:
+  get:
+    summary: Get user activities
+    tags:
+      - Activities
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+        description: Page number for pagination
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Number of items per page
+    responses:
+      "200":
+        description: Successfully retrieved activities
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: integer
+                  enum: [1]
+                message:
+                  type: string
+                data:
+                  type: object
+                  properties:
+                    activities:
+                      type: object
+                      properties:
+                        items:
+                          type: array
                           items:
-                            type: array
-                            items:
-                              $ref: "#/components/schemas/Activity"
-                          unseenCount:
-                            type: integer
-                            example: 5
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                            $ref: "#/components/schemas/Activity"
+                        unseenCount:
+                          type: integer
+                        pagination:
+                          type: object
+                          properties:
+                            currentPage:
+                              type: integer
+                            totalPages:
+                              type: integer
+                            totalItems:
+                              type: integer
+                            itemsPerPage:
+                              type: integer
+      "500":
+        $ref: "#/components/responses/ServerError"
 
-  /activities/{id}/read:
-    put:
-      summary: Mark an activity as read
-      description: Marks a specific activity as read for the authenticated user
-      tags:
-        - Activities
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
+  post:
+    summary: Create a review prompt activity
+    tags:
+      - Activities
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
           schema:
-            type: string
-      responses:
-        "200":
-          description: Successfully marked activity as read
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: integer
-                    example: 1
-                  message:
-                    type: string
-                    example: Activity marked as read
-                  data:
-                    type: object
-                    properties:
-                      activity:
-                        $ref: "#/components/schemas/Activity"
-        "404":
-          description: Activity not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+    responses:
+      "201":
+        description: Review prompt activity created successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityResponse"
+      "200":
+        description: Buyer has already reviewed or activity already sent
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityResponse"
+      "400":
+        $ref: "#/components/responses/BadRequest"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
 
-  /activities/{id}:
-    delete:
-      summary: Delete an activity
-      description: Deletes a specific activity for the authenticated user
-      tags:
-        - Activities
-      security:
-        - BearerAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Successfully deleted activity
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: integer
-                    example: 1
-                  message:
-                    type: string
-                    example: Activity deleted successfully
-                  data:
-                    type: null
-        "404":
-          description: Activity not found or user doesn't have permission
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+/api/activities/{id}/read:
+  put:
+    summary: Mark an activity as read
+    tags:
+      - Activities
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: Successfully marked activity as read
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityResponse"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
 
-  /activities/mark-all-read:
-    put:
-      summary: Mark all activities as read
-      description: Marks all unread activities as read for the authenticated user
-      tags:
-        - Activities
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: Successfully marked all activities as read
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: integer
-                    example: 1
-                  message:
-                    type: string
-                    example: All activities marked as read
-                  data:
-                    type: object
-                    properties:
-                      modifiedCount:
-                        type: integer
-                        example: 5
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+/api/activities/{id}:
+  delete:
+    summary: Delete an activity
+    tags:
+      - Activities
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: Successfully deleted activity
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuccessResponse"
+      "404":
+        description: Activity not found or user doesn't have permission
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/activities/mark-all-read:
+  put:
+    summary: Mark all activities as read
+    tags:
+      - Activities
+    security:
+      - BearerAuth: []
+    responses:
+      "200":
+        description: Successfully marked all activities as read
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: integer
+                  enum: [1]
+                message:
+                  type: string
+                data:
+                  type: object
+                  properties:
+                    modifiedCount:
+                      type: integer
+      "500":
+        $ref: "#/components/responses/ServerError"
 
 components:
   schemas:
@@ -176,7 +185,14 @@ components:
           type: string
         type:
           type: string
-          enum: [message, product_like, profile_like, review]
+          enum:
+            [
+              product_like,
+              profile_like,
+              review,
+              review_prompt,
+              product_purchased,
+            ]
         sender:
           $ref: "#/components/schemas/User"
         content:
@@ -188,6 +204,12 @@ components:
         createdAt:
           type: string
           format: date-time
+        lastSentAt:
+          type: string
+          format: date-time
+        reviewStatus:
+          type: string
+          enum: [Reviewed, Pending]
 
     User:
       type: object
@@ -208,21 +230,83 @@ components:
           type: string
         title:
           type: string
+        price:
+          type: number
         images:
           type: array
           items:
             type: string
+        category:
+          type: string
+        condition:
+          type: string
+        seller:
+          $ref: "#/components/schemas/User"
+
+    ActivityResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            activity:
+              $ref: "#/components/schemas/Activity"
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          enum: [1]
+        message:
+          type: string
+        data:
+          type: null
 
     ErrorResponse:
       type: object
       properties:
         success:
           type: integer
-          example: 0
+          enum: [0]
         message:
           type: string
         data:
           type: null
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
 
   securitySchemes:
     BearerAuth:

@@ -6,7 +6,6 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { View, Text, Image, StyleSheet, ActivityIndicator } from "react-native";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
-import { BASE_URL } from "../../services/axiosConfig";
 import { colors } from "../../colors/colors";
 import React from "react";
 import { t } from "i18next";
@@ -99,7 +98,7 @@ export const setupNavigationOptions = (
         {otherParticipant.profilePicture ? (
           <Image
             source={{
-              uri: `${BASE_URL}/${otherParticipant.profilePicture}`,
+              uri: `${otherParticipant.profilePicture}`,
             }}
             style={styles.headerAvatar}
           />
@@ -184,7 +183,7 @@ export const renderMessageAvatar = (
       return (
         <Image
           source={{
-            uri: `${BASE_URL}/${sender.profilePicture}`,
+            uri: `${sender.profilePicture}`,
           }}
           style={styles.messageAvatar}
         />

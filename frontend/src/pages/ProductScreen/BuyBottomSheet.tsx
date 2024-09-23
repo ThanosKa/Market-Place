@@ -12,7 +12,6 @@ import { BottomSheet } from "@rneui/themed";
 import { TabView, SceneMap, TabBar } from "react-native-tab-view";
 import { colors } from "../../colors/colors";
 import { Product } from "../../interfaces/product";
-import { BASE_URL } from "../../services/axiosConfig";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useMutation, useQueryClient } from "react-query";
@@ -231,7 +230,7 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
         />
         <View style={styles.productSummary}>
           <Image
-            source={{ uri: `${BASE_URL}${product.images[0]}` }}
+            source={{ uri: `${product.images[0]}` }}
             style={styles.productImage}
           />
           <View style={styles.productInfo}>

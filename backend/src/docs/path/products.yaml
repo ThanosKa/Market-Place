@@ -38,6 +38,8 @@
                 type: string
                 enum:
                   [brandNew, newOpenBox, refurbished, used, partsOnly, openBox]
+              description:
+                type: string
               images:
                 type: array
                 items:
@@ -54,67 +56,11 @@
         $ref: "#/components/responses/ServerError"
 
   get:
-    summary: Get all products with filters
+    summary: Get all products (unsold)
     tags:
       - Products
     parameters:
-      - in: query
-        name: search
-        schema:
-          type: string
-      - in: query
-        name: category
-        schema:
-          type: array
-          items:
-            type: string
-            enum:
-              [
-                womenFashion,
-                travel,
-                mobile,
-                healthANDbeauty,
-                luxury,
-                homeServices,
-                menFashion,
-                furniture,
-              ]
-        style: form
-        explode: false
-      - in: query
-        name: condition
-        schema:
-          type: string
-          enum: [brandNew, newOpenBox, refurbished, used, partsOnly, openBox]
-      - in: query
-        name: minPrice
-        schema:
-          type: number
-      - in: query
-        name: maxPrice
-        schema:
-          type: number
-      - in: query
-        name: sort
-        schema:
-          type: string
-        default: createdAt
-      - in: query
-        name: order
-        schema:
-          type: string
-        enum: [asc, desc]
-        default: desc
-      - in: query
-        name: page
-        schema:
-          type: integer
-        default: 1
-      - in: query
-        name: limit
-        schema:
-          type: integer
-        default: 10
+      - $ref: "#/components/parameters/ProductFilterParams"
     responses:
       "200":
         $ref: "#/components/responses/ProductsListResponse"
@@ -123,76 +69,118 @@
 
 /api/products/user:
   get:
-    summary: Get authenticated user's products
+    summary: Get authenticated user's products (unsold)
     tags:
       - Products
     security:
       - BearerAuth: []
     parameters:
-      - in: query
-        name: search
-        schema:
-          type: string
-      - in: query
-        name: category
-        schema:
-          type: array
-          items:
-            type: string
-            enum:
-              [
-                womenFashion,
-                travel,
-                mobile,
-                healthANDbeauty,
-                luxury,
-                homeServices,
-                menFashion,
-                furniture,
-              ]
-        style: form
-        explode: false
-      - in: query
-        name: condition
-        schema:
-          type: string
-          enum: [brandNew, newOpenBox, refurbished, used, partsOnly, openBox]
-      - in: query
-        name: minPrice
-        schema:
-          type: number
-      - in: query
-        name: maxPrice
-        schema:
-          type: number
-      - in: query
-        name: sort
-        schema:
-          type: string
-        default: createdAt
-      - in: query
-        name: order
-        schema:
-          type: string
-        enum: [asc, desc]
-        default: desc
-      - in: query
-        name: page
-        schema:
-          type: integer
-        default: 1
-      - in: query
-        name: limit
-        schema:
-          type: integer
-        default: 10
+      - $ref: "#/components/parameters/ProductFilterParams"
     responses:
       "200":
         $ref: "#/components/responses/UserProductsResponse"
       "401":
         $ref: "#/components/responses/Unauthorized"
-      "404":
-        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/products/user/sold:
+  get:
+    summary: Get authenticated user's sold products
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/ProductFilterParams"
+    responses:
+      "200":
+        $ref: "#/components/responses/UserProductsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/products/user/purchased:
+  get:
+    summary: Get authenticated user's purchased products
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: "#/components/parameters/ProductFilterParams"
+    responses:
+      "200":
+        $ref: "#/components/responses/UserProductsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/products/user/{id}:
+  get:
+    summary: Get products of a specific user (unsold)
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - $ref: "#/components/parameters/ProductFilterParams"
+    responses:
+      "200":
+        $ref: "#/components/responses/UserProductsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/products/user/{id}/sold:
+  get:
+    summary: Get sold products of a specific user
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - $ref: "#/components/parameters/ProductFilterParams"
+    responses:
+      "200":
+        $ref: "#/components/responses/UserProductsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+/api/products/user/{id}/purchased:
+  get:
+    summary: Get purchased products of a specific user
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - $ref: "#/components/parameters/ProductFilterParams"
+    responses:
+      "200":
+        $ref: "#/components/responses/UserProductsResponse"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
       "500":
         $ref: "#/components/responses/ServerError"
 
@@ -254,6 +242,8 @@
                 type: string
                 enum:
                   [brandNew, newOpenBox, refurbished, used, partsOnly, openBox]
+              description:
+                type: string
               images:
                 type: array
                 items:
@@ -293,19 +283,34 @@
       "500":
         $ref: "#/components/responses/ServerError"
 
-/api/products/user/{id}:
-  get:
-    summary: Get products of a specific user
+/api/products/{productId}/purchase:
+  post:
+    summary: Purchase a product
     tags:
       - Products
     security:
       - BearerAuth: []
     parameters:
       - in: path
-        name: id
+        name: productId
         required: true
         schema:
           type: string
+    responses:
+      "200":
+        $ref: "#/components/responses/ProductResponse"
+      "400":
+        $ref: "#/components/responses/BadRequest"
+      "401":
+        $ref: "#/components/responses/Unauthorized"
+      "404":
+        $ref: "#/components/responses/NotFound"
+      "500":
+        $ref: "#/components/responses/ServerError"
+
+components:
+  parameters:
+    ProductFilterParams:
       - in: query
         name: search
         schema:
@@ -363,15 +368,7 @@
         schema:
           type: integer
         default: 10
-    responses:
-      "200":
-        $ref: "#/components/responses/UserProductsResponse"
-      "401":
-        $ref: "#/components/responses/Unauthorized"
-      "500":
-        $ref: "#/components/responses/ServerError"
 
-components:
   schemas:
     Product:
       type: object
@@ -402,8 +399,18 @@ components:
         condition:
           type: string
           enum: [brandNew, newOpenBox, refurbished, used, partsOnly, openBox]
+        description:
+          type: string
         seller:
           $ref: "#/components/schemas/User"
+        sold:
+          type: object
+          properties:
+            to:
+              $ref: "#/components/schemas/User"
+            date:
+              type: string
+              format: date-time
         createdAt:
           type: string
           format: date-time
@@ -469,6 +476,10 @@ components:
                     type: number
                   limit:
                     type: number
+                  sort:
+                    type: string
+                  order:
+                    type: string
 
     UserProductsResponse:
       description: Successful response with user's products
@@ -493,10 +504,14 @@ components:
                     type: number
                   limit:
                     type: number
-                  totalProducts:
+                  total:
                     type: number
                   totalPages:
                     type: number
+                  sort:
+                    type: string
+                  order:
+                    type: string
 
     SuccessResponse:
       description: Generic success response

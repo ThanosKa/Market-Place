@@ -10,7 +10,6 @@ import {
   SafeAreaView,
   Text,
 } from "react-native";
-import { BASE_URL } from "../services/axiosConfig";
 import { Feather } from "@expo/vector-icons";
 
 interface ImageViewerModalProps {
@@ -41,7 +40,7 @@ const ImageViewerModal: React.FC<ImageViewerModalProps> = ({
   const renderImageViewerItem = ({ item }: { item: string }) => (
     <View style={styles.imageViewerItem}>
       <Image
-        source={{ uri: `${BASE_URL}${item}` }}
+        source={{ uri: `${item}` }}
         style={styles.fullScreenImage}
         resizeMode="contain"
       />

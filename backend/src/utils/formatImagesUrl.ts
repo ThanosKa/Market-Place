@@ -3,11 +3,14 @@ import { API_BASE_URL } from "../server";
 import { filePathToUrl } from "./filterToUrl";
 
 export const formatProductImages = (product: any) => {
+  if (!product) return null;
+  const productObject = product.toObject ? product.toObject() : product;
   return {
-    ...product.toObject(),
-    images: product.images.map((image: string) =>
-      filePathToUrl(image, API_BASE_URL)
-    ),
+    ...productObject,
+    images:
+      productObject.images?.map((image: string | null) =>
+        image ? filePathToUrl(image, API_BASE_URL) : null
+      ) || [],
   };
 };
 
@@ -19,9 +22,9 @@ export const formatUser = (user: any) => {
   const userObject = user.toObject ? user.toObject() : user;
   return {
     _id: userObject._id,
-    firstName: userObject.firstName,
-    lastName: userObject.lastName,
-    email: userObject.email,
+    firstName: userObject.firstName || null,
+    lastName: userObject.lastName || null,
+    email: userObject.email || null,
     profilePicture: userObject.profilePicture
       ? filePathToUrl(userObject.profilePicture, API_BASE_URL)
       : null,
@@ -29,13 +32,17 @@ export const formatUser = (user: any) => {
 };
 
 export const formatProductData = (productOrProducts: any) => {
+  if (!productOrProducts) return null;
+
   const formatSingleProduct = (product: any) => {
+    if (!product) return null;
     const productObject = product.toObject ? product.toObject() : product;
-    const formattedProduct = {
+    const formattedProduct: any = {
       ...productObject,
-      images: productObject.images.map((image: string) =>
-        filePathToUrl(image, API_BASE_URL)
-      ),
+      images:
+        productObject.images?.map((image: string | null) =>
+          image ? filePathToUrl(image, API_BASE_URL) : null
+        ) || [],
     };
 
     if (productObject.seller) {
@@ -53,7 +60,7 @@ export const formatProductData = (productOrProducts: any) => {
   };
 
   if (Array.isArray(productOrProducts)) {
-    return productOrProducts.map(formatSingleProduct);
+    return productOrProducts.map(formatSingleProduct).filter(Boolean);
   } else {
     return formatSingleProduct(productOrProducts);
   }
@@ -65,8 +72,8 @@ export const formatChatMessage = (message: any) => {
   return {
     ...messageObject,
     images: messageObject.images
-      ? messageObject.images.map((image: string) =>
-          filePathToUrl(image, API_BASE_URL)
+      ? messageObject.images.map((image: string | null) =>
+          image ? filePathToUrl(image, API_BASE_URL) : null
         )
       : [],
     sender: formatUser(messageObject.sender),
@@ -78,8 +85,9 @@ export const formatChat = (chat: any) => {
   const chatObject = chat.toObject ? chat.toObject() : chat;
   return {
     ...chatObject,
-    participants: chatObject.participants.map(formatUser),
-    messages: chatObject.messages.map(formatChatMessage),
+    participants:
+      chatObject.participants?.map(formatUser).filter(Boolean) || [],
+    messages: chatObject.messages?.map(formatChatMessage).filter(Boolean) || [],
     otherParticipant: formatUser(chatObject.otherParticipant),
   };
 };

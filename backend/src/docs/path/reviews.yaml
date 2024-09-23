@@ -35,7 +35,7 @@
             schema:
               $ref: "#/components/schemas/ReviewResponse"
       "400":
-        description: Bad request (e.g., self-review or duplicate review)
+        description: Bad request (e.g., self-review, duplicate review, or missing fields)
         content:
           application/json:
             schema:

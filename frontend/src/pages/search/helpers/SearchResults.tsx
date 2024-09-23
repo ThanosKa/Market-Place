@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Product } from "../../../interfaces/product";
-import { BASE_URL } from "../../../services/axiosConfig";
 import { colors } from "../../../colors/colors";
 
 interface SearchResultsProps {

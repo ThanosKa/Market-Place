@@ -5,7 +5,6 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Product } from "../../interfaces/product";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-import { BASE_URL } from "../../services/axiosConfig";
 import { getPurchasedProducts } from "../../services/product";
 import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";

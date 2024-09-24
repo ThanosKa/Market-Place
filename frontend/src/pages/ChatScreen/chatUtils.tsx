@@ -4,7 +4,14 @@ import { InfiniteData, QueryClient } from "react-query";
 import { ChatMessage, PaginatedChatDetails, User } from "../../interfaces/chat";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-import { View, Text, Image, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import UndefProfPicture from "../../components/UndefProfPicture/UndefProfPicture";
 import { colors } from "../../colors/colors";
 import React from "react";
@@ -94,7 +101,12 @@ export const setupNavigationOptions = (
 ) => {
   navigation.setOptions({
     headerTitle: () => (
-      <View style={styles.headerTitle}>
+      <TouchableOpacity
+        style={styles.headerTitle}
+        onPress={() =>
+          navigation.navigate("UserProfile", { userId: otherParticipant._id })
+        }
+      >
         {otherParticipant.profilePicture ? (
           <Image
             source={{
@@ -110,7 +122,7 @@ export const setupNavigationOptions = (
         <Text style={styles.headerName}>
           {otherParticipant.firstName} {otherParticipant.lastName}
         </Text>
-      </View>
+      </TouchableOpacity>
     ),
   });
 };

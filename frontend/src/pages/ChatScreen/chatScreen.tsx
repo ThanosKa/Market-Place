@@ -136,7 +136,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     },
     [deleteMessageMutation]
   );
-
+  const otherParticipantId = data?.pages[0]?.otherParticipant._id;
   const renderListEmptyComponent = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
@@ -146,6 +146,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
           color={colors.secondary}
         />
         <Text style={styles.emptyText}>{t("start-chatting")}</Text>
+        <TouchableOpacity
+          style={styles.viewProfileButton}
+          onPress={() =>
+            navigation.navigate("UserProfile", {
+              userId: otherParticipantId || "",
+            })
+          }
+          activeOpacity={0.7}
+        >
+          <Text style={styles.viewProfileText}>{t("view-profile")}</Text>
+        </TouchableOpacity>
       </View>
     );
   }, []);
@@ -370,6 +381,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 10,
     color: colors.secondary,
+  },
+  viewProfileButton: {
+    backgroundColor: colors.lightGray,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.darkerGray,
+  },
+  viewProfileText: {
+    color: colors.secondary,
+    fontSize: 16,
   },
 });
 

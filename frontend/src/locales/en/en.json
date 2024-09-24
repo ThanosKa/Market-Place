@@ -1,7 +1,7 @@
 {
+  "view-profile": "View profile",
   "max": "Max",
   "max-price-must-be-greater": "Max price must be greater than min price",
-
   "processing-images": "Processing images",
   "review-sent": "Review sent",
   "nothing-sale": "Nothing for sale",

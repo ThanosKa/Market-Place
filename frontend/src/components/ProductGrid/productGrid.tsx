@@ -4,8 +4,7 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  TouchableOpacity,
-  ScrollView,
+  FlatList,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import {
@@ -46,7 +45,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  // Inside your ProductGrid component
   const queryParams: GetProductsParams = useMemo(() => {
     const params: GetProductsParams = {
       page: 1,
@@ -95,6 +93,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch,
   } = useInfiniteQuery<ProductsResponse, Error>(
     ["products", queryParams],
     ({ pageParam = 1 }) => getProducts({ ...queryParams, page: pageParam }),
@@ -151,11 +150,48 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     [toggleLikeMutation]
   );
 
+  const renderProduct = ({ item: product }: { item: Product }) => (
+    <View style={styles.productWrapper}>
+      <ProductCard
+        key={product._id}
+        userImage={
+          product.seller.profilePicture
+            ? `${product.seller.profilePicture}`
+            : null
+        }
+        userName={`${product.seller.firstName} ${product.seller.lastName}`}
+        userId={product.seller._id}
+        productImage={product.images.length > 0 ? `${product.images[0]}` : null}
+        title={product.title}
+        price={`$${product.price}`}
+        condition={t(product.condition)}
+        isLiked={localLikedProducts.has(product._id)}
+        onLikeToggle={() => toggleLike(product._id)}
+        isDisabled={disabledButtons.has(product._id)}
+        productId={product._id}
+      />
+    </View>
+  );
+
+  const renderFooter = () => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color={colors.secondary} />
+      </View>
+    );
+  };
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
   if (isLoading || likedProductsLoading) {
     return (
-      <ScrollView>
+      <View>
         <Text style={styles.containerLoading}>{t("your-daily-picks")}</Text>
-
         <FlexibleSkeleton
           type="grid"
           itemCount={4}
@@ -164,12 +200,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
           profileImagePosition="top"
           contentLines={3}
         />
-      </ScrollView>
+      </View>
     );
   }
 
   if (error) {
-    return <Text>{t("error-fetching-products")}</Text>;
+    return <Text>{t("errorLoadingData")}</Text>;
   }
 
   const products = data?.pages.flatMap((page) => page.data.products) || [];
@@ -178,62 +214,26 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return <Text style={styles.noProductsText}>{t("no-products-found")}</Text>;
   }
 
-  const renderProduct = (product: Product) => (
-    <ProductCard
-      key={product._id}
-      userImage={
-        product.seller.profilePicture
-          ? `${product.seller.profilePicture}`
-          : null
-      }
-      userName={`${product.seller.firstName} ${product.seller.lastName}`}
-      userId={product.seller._id}
-      productImage={product.images.length > 0 ? `${product.images[0]}` : null}
-      title={product.title}
-      price={`$${product.price}`}
-      condition={t(product.condition)}
-      isLiked={localLikedProducts.has(product._id)}
-      onLikeToggle={() => toggleLike(product._id)}
-      isDisabled={disabledButtons.has(product._id)}
-      productId={product._id}
-    />
-  );
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t("your-daily-picks")}</Text>
-      <View style={styles.gridContainer}>
-        {products.map((product) => (
-          <View key={product._id} style={styles.productWrapper}>
-            {renderProduct(product)}
-          </View>
-        ))}
-      </View>
-      {hasNextPage && (
-        <View style={styles.loadMoreContainer}>
-          <View style={styles.separatorLine} />
-          <View style={styles.loadMoreButtonContainer}>
-            <TouchableOpacity
-              style={styles.loadMoreButton}
-              onPress={() => fetchNextPage()}
-              disabled={isFetchingNextPage}
-            >
-              {isFetchingNextPage ? (
-                <ActivityIndicator size="small" color={colors.secondary} />
-              ) : (
-                <Text style={styles.loadMoreText}>{t("load-more")}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-          <View style={styles.separatorLine} />
-        </View>
-      )}
+      <FlatList
+        data={products}
+        renderItem={renderProduct}
+        keyExtractor={(item) => item._id}
+        numColumns={2}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={renderFooter}
+        contentContainerStyle={styles.gridContainer}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 10,
   },
   containerLoading: {
@@ -248,40 +248,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   gridContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    paddingBottom: 20,
   },
   productWrapper: {
     width: "48%",
     marginBottom: 10,
+    marginHorizontal: "1%",
   },
   noProductsText: {
     fontSize: 16,
     textAlign: "center",
     marginTop: 20,
   },
-  loadMoreContainer: {
-    flexDirection: "row",
+  loadingFooter: {
+    paddingVertical: 20,
     alignItems: "center",
-    marginVertical: 20,
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.secondary,
-  },
-  loadMoreButtonContainer: {
-    paddingHorizontal: 15,
-  },
-  loadMoreButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-  },
-  loadMoreText: {
-    color: colors.secondary,
-    fontSize: 16,
   },
 });
 

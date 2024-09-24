@@ -2,12 +2,12 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableWithoutFeedback,
   Keyboard,
   RefreshControl,
   TouchableOpacity,
+  FlatList,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQueryClient, useQuery } from "react-query";
@@ -60,8 +60,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
-  useScrollToTop(scrollViewRef);
+  const flatListRef = useRef<FlatList>(null);
+  useScrollToTop(flatListRef);
   const [filters, setFilters] = useState<Filters>({
     minPrice: "",
     maxPrice: "",
@@ -77,6 +77,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
       { id: "createdAt", label: "date" },
     ] as SortOption[],
   };
+
   const { refetch: refetchUnreadChatsCount } = useQuery(
     "unreadChatsCount",
     getUnreadChatsCount,
@@ -133,7 +134,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     });
     refetchUnreadChatsCount();
     refetchActivities();
-    setTimeout(() => setRefreshing(false), 1000);
   }, [queryClient, refetchUnreadChatsCount, refetchActivities]);
 
   const selectedCategoryValues = selectedCategories
@@ -199,44 +199,52 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     </View>
   );
 
+  const renderHeader = () => (
+    <>
+      <DummySearchBar placeholder={searchQuery || t("search")} />
+      <View style={styles.headerRow}>
+        <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setFilterModalVisible(true)}
+        >
+          <Text style={styles.filterButtonText}>{t("filters")}</Text>
+        </TouchableOpacity>
+      </View>
+      {renderFilterChips()}
+      <View style={styles.categoriesContainer}>
+        {categories.map((category, index) => (
+          <CategoryIcon
+            key={index}
+            label={t(category.label)}
+            iconName={category.id}
+            isSelected={selectedCategories.includes(category.id)}
+            onPress={() => toggleCategory(category.id)}
+          />
+        ))}
+      </View>
+    </>
+  );
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
-        <ScrollView
-          ref={scrollViewRef}
+        <FlatList
+          ref={flatListRef}
+          ListHeaderComponent={renderHeader}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-        >
-          <DummySearchBar placeholder={searchQuery || t("search")} />
-          <View style={styles.headerRow}>
-            <Text style={styles.sectionTitle}>{t("explore-categories")}</Text>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setFilterModalVisible(true)}
-            >
-              <Text style={styles.filterButtonText}>{t("filters")}</Text>
-            </TouchableOpacity>
-          </View>
-          {renderFilterChips()}
-
-          <View style={styles.categoriesContainer}>
-            {categories.map((category, index) => (
-              <CategoryIcon
-                key={index}
-                label={t(category.label)}
-                iconName={category.id}
-                isSelected={selectedCategories.includes(category.id)}
-                onPress={() => toggleCategory(category.id)}
-              />
-            ))}
-          </View>
-          <ProductGrid
-            onRefreshComplete={handleRefreshComplete}
-            selectedCategories={selectedCategoryValues}
-            filters={filters}
-          />
-        </ScrollView>
+          data={[{ key: "productGrid" }]}
+          renderItem={() => (
+            <ProductGrid
+              onRefreshComplete={handleRefreshComplete}
+              selectedCategories={selectedCategoryValues}
+              filters={filters}
+            />
+          )}
+          keyExtractor={(item) => item.key}
+        />
         <FilterModal
           visible={isFilterModalVisible}
           onClose={() => setFilterModalVisible(false)}
@@ -251,6 +259,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     </TouchableWithoutFeedback>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -260,6 +269,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
+    marginBottom: 10,
   },
   headerRow: {
     flexDirection: "row",

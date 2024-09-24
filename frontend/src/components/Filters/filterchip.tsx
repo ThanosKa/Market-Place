@@ -10,6 +10,8 @@ interface FilterChipProps {
   type: "price" | "sort" | "condition";
   sortType?: "price" | "createdAt";
   sortOrder?: "asc" | "desc" | null;
+  minPrice?: string;
+  maxPrice?: string;
 }
 
 const FilterChip: React.FC<FilterChipProps> = ({
@@ -18,13 +20,30 @@ const FilterChip: React.FC<FilterChipProps> = ({
   type,
   sortType,
   sortOrder,
+  minPrice,
+  maxPrice,
 }) => {
   const { t } = useTranslation();
+
+  const formatPrice = (price: string) => {
+    return `${price}$`;
+  };
+
+  const getPriceLabel = () => {
+    if (minPrice && maxPrice) {
+      return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    } else if (minPrice) {
+      return t("from") + " " + formatPrice(minPrice);
+    } else if (maxPrice) {
+      return t("max") + " " + formatPrice(maxPrice);
+    }
+    return "";
+  };
 
   const getChipLabel = () => {
     switch (type) {
       case "price":
-        return `${t("price")}: ${label}`;
+        return `${t("price")}: ${getPriceLabel()}`;
       case "sort":
         if (sortType === "price") {
           return `${t("sort-by")}: ${

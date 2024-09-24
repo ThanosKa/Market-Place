@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -62,12 +63,18 @@ const FilterModal: React.FC<FilterModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<Filters>(initialFilters);
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   useEffect(() => {
     setFilters(initialFilters);
+    setPriceError(null);
   }, [initialFilters]);
 
   const handleApply = () => {
+    if (priceError) {
+      Alert.alert(t("error"), priceError);
+      return;
+    }
     onApply(filters);
     onClose();
   };
@@ -99,11 +106,27 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const handlePriceInput = (type: "minPrice" | "maxPrice", value: string) => {
     const numericValue = value.replace(/[^0-9]/g, "");
     const numberValue = Number(numericValue);
+
     if (numberValue >= 0) {
-      setFilters((prevFilters) => ({
-        ...prevFilters,
-        [type]: numericValue,
-      }));
+      setFilters((prevFilters) => {
+        const updatedFilters = { ...prevFilters, [type]: numericValue };
+
+        // Check if both min and max prices are set
+        if (updatedFilters.minPrice && updatedFilters.maxPrice) {
+          const minPrice = Number(updatedFilters.minPrice);
+          const maxPrice = Number(updatedFilters.maxPrice);
+
+          if (maxPrice <= minPrice) {
+            setPriceError(t("max-price-must-be-greater"));
+          } else {
+            setPriceError(null);
+          }
+        } else {
+          setPriceError(null);
+        }
+
+        return updatedFilters;
+      });
     }
   };
 
@@ -138,6 +161,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   onChangeText={(text) => handlePriceInput("maxPrice", text)}
                 />
               </View>
+              {priceError && <Text style={styles.errorText}>{priceError}</Text>}
             </View>
           )}
 
@@ -292,6 +316,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     color: "#333",
   },
+  errorText: {
+    color: "red",
+    marginTop: 8,
+  },
   sortContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -378,4 +406,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
 export default FilterModal;

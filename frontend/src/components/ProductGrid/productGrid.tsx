@@ -22,8 +22,8 @@ import ProductCard from "../ProductCard/productCard";
 import { getProducts } from "../../services/product";
 import { getLikedProducts, toggleLikeProduct } from "../../services/likes";
 import { colors } from "../../colors/colors";
-import { Filters } from "../../pages/home/home";
 import FlexibleSkeleton from "../Skeleton/FlexibleSkeleton";
+import { Filters } from "../Filters/filtermodal";
 
 interface ProductGridProps {
   onRefreshComplete: () => void;

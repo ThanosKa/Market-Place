@@ -33,6 +33,7 @@ import { getActivities } from "../../services/activity";
 import FilterModal, {
   FilterOption,
   FilterOptions,
+  Filters,
   SortOption,
 } from "../../components/Filters/filtermodal";
 import FilterChip from "../../components/Filters/filterchip";
@@ -41,14 +42,6 @@ type HomeScreenRouteProp = RouteProp<MainStackParamList, "Home">;
 
 interface HomeScreenProps {
   route: HomeScreenRouteProp;
-}
-
-export interface Filters {
-  minPrice: string;
-  maxPrice: string;
-  sort: "price" | "createdAt" | null;
-  order: "asc" | "desc" | null;
-  conditions: string[];
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
@@ -146,34 +139,49 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     queryClient.invalidateQueries(["products"]);
   };
 
-  const removeFilter = (filterKey: keyof Filters, value?: string) => {
-    if (filterKey === "conditions" && value) {
-      setFilters((prev) => ({
-        ...prev,
-        conditions: prev.conditions.filter((c) => c !== value),
-      }));
-    } else if (filterKey === "sort" || filterKey === "order") {
-      setFilters((prev) => ({ ...prev, [filterKey]: null }));
-    } else {
-      setFilters((prev) => ({ ...prev, [filterKey]: "" }));
-    }
+  const removeFilter = (filterKey: keyof Filters | "price", value?: string) => {
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+
+      switch (filterKey) {
+        case "price":
+          newFilters.minPrice = "";
+          newFilters.maxPrice = "";
+          break;
+        case "conditions":
+          if (value) {
+            newFilters.conditions = prev.conditions.filter((c) => c !== value);
+          }
+          break;
+        case "sort":
+        case "order":
+          newFilters[filterKey] = null;
+          break;
+        case "minPrice":
+        case "maxPrice":
+          newFilters[filterKey] = "";
+          break;
+        default:
+          // This should never happen, but TypeScript requires it
+          const exhaustiveCheck: never = filterKey;
+          throw new Error(`Unhandled filter key: ${exhaustiveCheck}`);
+      }
+
+      return newFilters;
+    });
+
     queryClient.invalidateQueries(["products"]);
   };
 
   const renderFilterChips = () => (
     <View style={styles.filterChipsContainer}>
-      {filters.minPrice && (
+      {(filters.minPrice || filters.maxPrice) && (
         <FilterChip
-          label={`${filters.minPrice}`}
-          onRemove={() => removeFilter("minPrice")}
+          label=""
+          onRemove={() => removeFilter("price")}
           type="price"
-        />
-      )}
-      {filters.maxPrice && (
-        <FilterChip
-          label={`${filters.maxPrice}`}
-          onRemove={() => removeFilter("maxPrice")}
-          type="price"
+          minPrice={filters.minPrice}
+          maxPrice={filters.maxPrice}
         />
       )}
       {filters.sort && (

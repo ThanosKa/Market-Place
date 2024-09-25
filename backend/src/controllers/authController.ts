@@ -43,6 +43,7 @@ export const register = async (req: Request, res: Response) => {
       password: hashedPassword,
       firstName,
       lastName,
+      balance: 0, // Initialize balance to 0
     });
 
     await user.save();
@@ -63,6 +64,7 @@ export const register = async (req: Request, res: Response) => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          balance: user.balance,
           createdAt: user.createdAt,
         },
       },
@@ -76,6 +78,8 @@ export const register = async (req: Request, res: Response) => {
     });
   }
 };
+
+// ... rest of the auth controller code remains unchanged
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;

@@ -16,6 +16,7 @@ export const formatUserData = (user: any, baseUrl: string) => ({
   reviewCount: user.reviewCount,
   reviews: user.reviews || [],
   activities: user.activities || [],
+  balance: user.balance || 0,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
@@ -31,6 +32,7 @@ export const formatUserProfileData = (user: any, baseUrl: string) => ({
   bio: user.bio || null,
   averageRating: user.averageRating,
   reviewCount: user.reviewCount,
+  balance: user.balance || 0,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });

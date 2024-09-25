@@ -93,7 +93,6 @@ export const getAllUsers = async (req: Request, res: Response) => {
 export const editUser = async (req: Request, res: Response) => {
   try {
     const userId = new mongoose.Types.ObjectId((req as any).userId);
-
     const {
       email,
       firstName,
@@ -181,7 +180,6 @@ export const editUser = async (req: Request, res: Response) => {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(newPassword, salt);
     }
-
     await user.save();
 
     res.json({
@@ -194,6 +192,7 @@ export const editUser = async (req: Request, res: Response) => {
           firstName: user.firstName,
           lastName: user.lastName,
           bio: user.bio,
+          balance: user.balance,
           profilePicture: user.profilePicture
             ? filePathToUrl(user.profilePicture, API_BASE_URL)
             : null,
@@ -325,7 +324,7 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
     }
 
     const users = await User.find(filter)
-      .select("email firstName lastName profilePicture bio")
+      .select("email firstName lastName profilePicture bio balance")
       .skip(skip)
       .limit(limit);
 
@@ -350,6 +349,7 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
             ? filePathToUrl(user.profilePicture, API_BASE_URL)
             : null,
           bio: user.bio,
+          balance: user.balance,
           reviewCount,
           averageRating: parseFloat(averageRating.toFixed(1)),
         };

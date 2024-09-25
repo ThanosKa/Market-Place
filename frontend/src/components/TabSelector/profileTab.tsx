@@ -78,14 +78,20 @@ const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
     onPress: () => void;
     isDanger?: boolean;
     isLast?: boolean;
-  }> = ({ label, onPress, isDanger = false, isLast = false }) => (
+    balance?: number;
+  }> = ({ label, onPress, isDanger = false, isLast = false, balance }) => (
     <TouchableOpacity
       style={[styles.item, isLast && styles.lastItem]}
       onPress={onPress}
     >
-      <Text style={[styles.itemText, isDanger && styles.dangerText]}>
-        {label}
-      </Text>
+      <View style={styles.labelContainer}>
+        <Text style={[styles.itemText, isDanger && styles.dangerText]}>
+          {label}
+        </Text>
+        {balance !== undefined && (
+          <Text style={styles.balanceText}>{` ${balance.toFixed(2)} $`}</Text>
+        )}
+      </View>
       <Ionicons
         name={isDanger ? "trash-outline" : "chevron-forward"}
         size={20}
@@ -108,6 +114,7 @@ const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
       <SectionItem
         label={t("balance")}
         onPress={() => console.log("Balance")}
+        balance={user.balance}
         isLast
       />
     </View>
@@ -199,6 +206,16 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     color: colors.danger,
+  },
+  labelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  balanceText: {
+    fontSize: 16,
+    color: colors.primary,
+    marginLeft: 15,
+    fontWeight: "bold",
   },
 });
 

@@ -12,6 +12,7 @@ export interface IUser extends Document {
   products: mongoose.Types.ObjectId[];
   averageRating: number;
   reviewCount: number;
+  balance: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +30,7 @@ const UserSchema: Schema = new Schema(
     products: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     averageRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
+    balance: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

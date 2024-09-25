@@ -70,6 +70,7 @@ export interface User {
   activities: Activities;
   updatedAt: string;
   createdAt: string;
+  balance: number;
 }
 
 export interface UserResponse {

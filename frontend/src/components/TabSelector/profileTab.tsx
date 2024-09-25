@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   balanceText: {
     fontSize: 16,
     color: colors.primary,
-    marginLeft: 15,
+    marginLeft: 14,
     fontWeight: "bold",
   },
 });

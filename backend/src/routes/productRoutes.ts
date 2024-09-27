@@ -14,6 +14,9 @@ import {
   purchaseProduct,
   getPurchasedProducts,
   getPurchasedProductsByUserId,
+  purchaseInPersonRequest,
+  acceptPurchaseRequest,
+  cancelPurchaseRequest,
 } from "../controllers/productController";
 
 const router = express.Router();
@@ -54,4 +57,10 @@ router.delete("/:productId", auth, deleteProduct);
 // Purchase a product
 router.post("/:productId/purchase", auth, purchaseProduct);
 
+// New route: Request in-person purchase
+router.post("/:productId/purchase-request", auth, purchaseInPersonRequest);
+
+// New route: Accept purchase request
+router.post("/:productId/accept-purchase-request", auth, acceptPurchaseRequest);
+router.post("/:productId/cancel-purchase-request", auth, cancelPurchaseRequest);
 export default router;

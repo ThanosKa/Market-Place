@@ -1,3 +1,4 @@
+// ActivityScreen.tsx
 import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -91,6 +92,7 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
                       key={activity._id}
                       item={activity}
                       onDelete={handleDeleteItem}
+                      onActivityUpdate={onRefresh}
                     />
                   ))
                 )}

@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
@@ -67,7 +68,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   const deleteProductMutation = useMutation(deleteProduct);
   const updateProductMutation = useMutation(updateProduct);
   const createReviewPromptMutation = useMutation(createReviewPromptActivity);
-
+  const [refreshing, setRefreshing] = useState(false);
   const {
     data: product,
     isLoading,
@@ -285,7 +286,10 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
       }
     );
   };
-
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    refetch().then(() => setRefreshing(false));
+  }, [refetch]);
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
@@ -315,7 +319,11 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.imageContainer}>
           <Swiper
             style={styles.imageSwiper}
@@ -419,9 +427,18 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
 
       {!isCurrentUserSeller && !isEditing && !isSold && (
         <View style={styles.buyButtonContainer}>
-          <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
-            <Text style={styles.buyButtonText}>{t("buy")}</Text>
-          </TouchableOpacity>
+          {product.purchaseRequest ? (
+            <TouchableOpacity
+              style={[styles.buyButton, styles.purchaseRequestButton]}
+              disabled={true}
+            >
+              <Text style={styles.buyButtonText}>{t("purchase-request")}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
+              <Text style={styles.buyButtonText}>{t("buy")}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -495,6 +512,9 @@ const styles = StyleSheet.create({
   },
   pagination: {
     bottom: -30,
+  },
+  purchaseRequestButton: {
+    opacity: 0.5,
   },
   moreButton: {
     position: "absolute",

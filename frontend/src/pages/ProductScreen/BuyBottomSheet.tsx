@@ -15,7 +15,10 @@ import { Product } from "../../interfaces/product";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useMutation, useQueryClient } from "react-query";
-import { purchaseProduct } from "../../services/payment";
+import {
+  purchaseInPersonRequest,
+  purchaseProduct,
+} from "../../services/payment";
 
 interface BuyBottomSheetProps {
   isVisible: boolean;
@@ -181,9 +184,8 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
         visibilityTime: 3000,
       });
       queryClient.invalidateQueries(["product", product._id]);
-      onContinue("inPerson", selectedOption);
+      onContinue(index === 0 ? "inPerson" : "card", selectedOption);
     },
-
     onError: (error) => {
       console.error("Purchase failed:", error);
       Toast.show({
@@ -197,8 +199,38 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
     },
   });
 
+  const purchaseInPersonMutation = useMutation(
+    () => purchaseInPersonRequest(product._id),
+    {
+      onSuccess: () => {
+        onClose();
+        Toast.show({
+          type: "success",
+          text1: t("purchase-request-sent"),
+          position: "bottom",
+          visibilityTime: 3000,
+        });
+        queryClient.invalidateQueries(["product", product._id]);
+        onContinue("inPerson", "meet");
+      },
+      onError: (error) => {
+        console.error("In-person purchase request failed:", error);
+        Toast.show({
+          type: "error",
+          text1: t("purchase-request-failed"),
+          text2: t("please-try-again"),
+          position: "bottom",
+          bottomOffset: 130,
+          visibilityTime: 3000,
+        });
+      },
+    }
+  );
+
   const handleContinue = () => {
     if (index === 0 && selectedOption === "meet") {
+      purchaseInPersonMutation.mutate();
+    } else if (index === 0 && selectedOption === "balance") {
       purchaseMutation.mutate();
     } else {
       onClose();
@@ -245,12 +277,16 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
         <TouchableOpacity
           style={[
             styles.continueButton,
-            purchaseMutation.isLoading && styles.continueButtonDisabled,
+            (purchaseMutation.isLoading ||
+              purchaseInPersonMutation.isLoading) &&
+              styles.continueButtonDisabled,
           ]}
           onPress={handleContinue}
-          disabled={purchaseMutation.isLoading}
+          disabled={
+            purchaseMutation.isLoading || purchaseInPersonMutation.isLoading
+          }
         >
-          {purchaseMutation.isLoading ? (
+          {purchaseMutation.isLoading || purchaseInPersonMutation.isLoading ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
             <Text style={styles.continueButtonText}>{t("continue")}</Text>

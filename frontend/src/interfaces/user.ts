@@ -16,23 +16,38 @@ export interface LikedUser {
   reviewCount: number;
   profilePicture: string;
 }
+
 export interface ActivityProduct {
   _id: string;
   title: string;
   images: string[];
   price: number;
+  purchaseRequest?: {
+    buyer: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+      profilePicture: string;
+    };
+    date: string;
+    status: "pending" | "accepted" | "rejected";
+  };
 }
+export type ActivityType =
+  | "message"
+  | "product_like"
+  | "profile_like"
+  | "review_prompt"
+  | "review"
+  | "product_purchased"
+  | "purchase_request"
+  | "purchase_request_accepted"
+  | "purchase_request_cancelled";
 
 export interface Activity {
   _id: string;
   user: string;
-  type:
-    | "message"
-    | "product_like"
-    | "profile_like"
-    | "review_prompt"
-    | "review"
-    | "product_purchased";
+  type: ActivityType;
   sender: {
     _id: string;
     firstName: string;

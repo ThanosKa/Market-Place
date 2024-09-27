@@ -1,5 +1,9 @@
 import { Request, Response } from "express";
-import Activity, { IActivity } from "../models/Activity";
+import Activity, {
+  ActivityType,
+  ActivityTypes,
+  IActivity,
+} from "../models/Activity";
 import mongoose from "mongoose";
 import Product from "../models/Product";
 import User from "../models/User";
@@ -8,12 +12,7 @@ import { formatProductData, formatUser } from "../utils/formatImagesUrl";
 
 export const createActivity = async (
   userId: string,
-  type:
-    | "product_like"
-    | "profile_like"
-    | "review"
-    | "review_prompt"
-    | "product_purchased",
+  type: ActivityType,
   senderId: string,
   content: string,
   productId?: string
@@ -65,7 +64,14 @@ export const getActivities = async (req: Request, res: Response) => {
       .skip(skip)
       .limit(limit)
       .populate("sender", "firstName lastName profilePicture")
-      .populate("product", "title images");
+      .populate({
+        path: "product",
+        select: "title images purchaseRequest",
+        populate: {
+          path: "purchaseRequest.buyer",
+          select: "firstName lastName profilePicture",
+        },
+      });
 
     const totalActivities = await Activity.countDocuments({ user: userId });
     const unseenCount = await Activity.countDocuments({
@@ -73,12 +79,11 @@ export const getActivities = async (req: Request, res: Response) => {
       read: false,
     });
 
-    // Transform the activities to include a formatted reviewStatus and formatted user/product data
     const formattedActivities = activitiesItems.map((activity) => {
-      const formattedActivity = {
+      const formattedActivity: any = {
         ...activity.toObject(),
         reviewStatus:
-          activity.type === "review_prompt"
+          activity.type === ActivityTypes.REVIEW_PROMPT
             ? activity.reviewDone
               ? "Reviewed"
               : "Pending"
@@ -86,10 +91,16 @@ export const getActivities = async (req: Request, res: Response) => {
         sender: formatUser(activity.sender),
       };
 
-      if (formattedActivity.product) {
-        formattedActivity.product = formatProductData(
-          formattedActivity.product
-        );
+      if (activity.product) {
+        formattedActivity.product = formatProductData(activity.product);
+        if (
+          formattedActivity.product &&
+          formattedActivity.product.purchaseRequest
+        ) {
+          formattedActivity.product.purchaseRequest.buyer = formatUser(
+            formattedActivity.product.purchaseRequest.buyer
+          );
+        }
       }
 
       return formattedActivity;
@@ -120,7 +131,6 @@ export const getActivities = async (req: Request, res: Response) => {
     });
   }
 };
-
 export const markActivityAsRead = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

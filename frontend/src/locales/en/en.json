@@ -1,4 +1,7 @@
 {
+  "purchase_request_cancelled": "Purchase request cancelled",
+  "purchase_request": "Sent a purchase request",
+  "purchase_request_accepted": "Purchase request accepted",
   "view-profile": "View profile",
   "max": "Max",
   "max-price-must-be-greater": "Max price must be greater than min price",

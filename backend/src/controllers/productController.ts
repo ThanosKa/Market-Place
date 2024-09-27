@@ -10,6 +10,7 @@ import User from "../models/User";
 import { createActivity } from "./activityController";
 import { formatProductData } from "../utils/formatImagesUrl";
 import path from "path";
+import { ActivityTypes } from "../models/Activity";
 
 // Create a new product
 
@@ -614,98 +615,6 @@ export const getProductById = async (req: Request, res: Response) => {
   }
 };
 
-export const purchaseProduct = async (req: Request, res: Response) => {
-  try {
-    const productId = req.params.productId;
-    const buyerId = new mongoose.Types.ObjectId((req as any).userId);
-
-    // Fetch the product along with limited seller information
-    const product = await Product.findById(productId)
-      .populate({
-        path: "seller",
-        select: "firstName lastName profilePicture _id",
-      })
-      .select("title price images category condition sold seller");
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-        data: null,
-      });
-    }
-
-    // Check if the product has already been sold
-    if (product.sold) {
-      return res.status(400).json({
-        success: false,
-        message: "This product has already been sold",
-        data: null,
-      });
-    }
-
-    // Check if the buyer is the owner of the product
-    if (product.seller._id.toString() === buyerId.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot purchase your own product",
-        data: null,
-      });
-    }
-
-    // Update the sold information in the product
-    product.sold = {
-      to: buyerId,
-      date: new Date(),
-    };
-
-    await product.save();
-
-    // Populate buyer information before sending the response
-    await product.populate({
-      path: "sold.to",
-      select: "firstName lastName profilePicture",
-    });
-
-    // Create an activity for the seller
-    const buyer = await User.findById(buyerId).select("firstName lastName");
-    const activityContent = `${buyer!.firstName} ${
-      buyer!.lastName
-    } has purchased your product "${product.title}".`;
-    await createActivity(
-      product.seller._id.toString(),
-      "product_purchased",
-      buyerId.toString(),
-      activityContent,
-      productId
-    );
-
-    res.json({
-      success: true,
-      message: "Product purchased successfully",
-      data: {
-        product: {
-          _id: product._id,
-          title: product.title,
-          price: product.price,
-          images: product.images,
-          category: product.category,
-          condition: product.condition,
-          seller: product.seller,
-          sold: product.sold,
-        },
-      },
-    });
-  } catch (err) {
-    console.error("Error in purchaseProduct:", err);
-    res.status(500).json({
-      success: false,
-      message: "An error occurred while purchasing the product",
-      data: null,
-    });
-  }
-};
-
 export const getSoldUserProducts = async (req: Request, res: Response) => {
   try {
     const {
@@ -1005,6 +914,367 @@ export const getPurchasedProductsByUserId = async (
     res.status(500).json({
       success: 0,
       message: "Server error",
+      data: null,
+    });
+  }
+};
+
+export const purchaseInPersonRequest = async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.productId;
+    const buyerId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const product = await Product.findById(productId)
+      .populate({
+        path: "seller",
+        select: "firstName lastName profilePicture _id",
+      })
+      .select(
+        "title price images category condition sold seller purchaseRequest"
+      );
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+        data: null,
+      });
+    }
+
+    if (product.sold) {
+      return res.status(400).json({
+        success: false,
+        message: "This product has already been sold",
+        data: null,
+      });
+    }
+
+    if (product.purchaseRequest) {
+      return res.status(400).json({
+        success: false,
+        message: "A purchase request is already pending for this product",
+        data: null,
+      });
+    }
+
+    if (product.seller._id.toString() === buyerId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot request to purchase your own product",
+        data: null,
+      });
+    }
+
+    // Update the product with the purchase request
+    product.purchaseRequest = {
+      buyer: buyerId,
+      date: new Date(),
+      status: "pending",
+    };
+
+    await product.save();
+
+    // Create an activity for the seller
+    const buyer = await User.findById(buyerId).select("firstName lastName");
+    const activityContent = `${buyer!.firstName} ${
+      buyer!.lastName
+    } has requested to purchase your product "${product.title}" in person.`;
+    await createActivity(
+      product.seller._id.toString(),
+      "purchase_request",
+      buyerId.toString(),
+      activityContent,
+      productId
+    );
+
+    res.json({
+      success: true,
+      message: "Purchase request sent successfully",
+      data: {
+        product: {
+          _id: product._id,
+          title: product.title,
+          price: product.price,
+          images: product.images,
+          category: product.category,
+          condition: product.condition,
+          seller: product.seller,
+          purchaseRequest: product.purchaseRequest,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Error in purchaseInPersonRequest:", err);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while sending the purchase request",
+      data: null,
+    });
+  }
+};
+
+export const purchaseProduct = async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.productId;
+    const buyerId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const product = await Product.findById(productId)
+      .populate({
+        path: "seller",
+        select: "firstName lastName profilePicture _id",
+      })
+      .select(
+        "title price images category condition sold seller purchaseRequest"
+      );
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+        data: null,
+      });
+    }
+
+    if (product.sold) {
+      return res.status(400).json({
+        success: false,
+        message: "This product has already been sold",
+        data: null,
+      });
+    }
+
+    if (
+      product.purchaseRequest &&
+      product.purchaseRequest.status === "pending"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "A purchase request is pending for this product",
+        data: null,
+      });
+    }
+
+    if (product.seller._id.toString() === buyerId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot purchase your own product",
+        data: null,
+      });
+    }
+
+    // Update the sold information in the product
+    product.sold = {
+      to: buyerId,
+      date: new Date(),
+    };
+
+    // Clear the purchase request if it exists
+    product.purchaseRequest = undefined;
+
+    await product.save();
+
+    // Populate buyer information before sending the response
+    await product.populate({
+      path: "sold.to",
+      select: "firstName lastName profilePicture",
+    });
+
+    // Create an activity for the seller
+    const buyer = await User.findById(buyerId).select("firstName lastName");
+    const activityContent = `${buyer!.firstName} ${
+      buyer!.lastName
+    } has purchased your product "${product.title}".`;
+    await createActivity(
+      product.seller._id.toString(),
+      "product_purchased",
+      buyerId.toString(),
+      activityContent,
+      productId
+    );
+
+    res.json({
+      success: true,
+      message: "Product purchased successfully",
+      data: {
+        product: {
+          _id: product._id,
+          title: product.title,
+          price: product.price,
+          images: product.images,
+          category: product.category,
+          condition: product.condition,
+          seller: product.seller,
+          sold: product.sold,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("Error in purchaseProduct:", err);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while purchasing the product",
+      data: null,
+    });
+  }
+};
+
+// New endpoint: acceptPurchaseRequest
+
+export const acceptPurchaseRequest = async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.productId;
+    const sellerId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const product = await Product.findById(productId)
+      .populate({
+        path: "seller",
+        select: "_id",
+      })
+      .select("title sold seller purchaseRequest");
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+        data: null,
+      });
+    }
+
+    if (product.seller._id.toString() !== sellerId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to accept this purchase request",
+        data: null,
+      });
+    }
+
+    if (
+      !product.purchaseRequest ||
+      product.purchaseRequest.status !== "pending"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "There is no pending purchase request for this product",
+        data: null,
+      });
+    }
+
+    // Update the sold information in the product
+    product.sold = {
+      to: product.purchaseRequest.buyer,
+      date: new Date(),
+    };
+
+    // Clear the purchase request
+    product.purchaseRequest = undefined;
+
+    await product.save();
+
+    // Create an activity for the buyer
+    const activityContent = `Your purchase request for "${product.title}" has been accepted.`;
+    await createActivity(
+      product.sold.to.toString(),
+      ActivityTypes.PURCHASE_REQUEST_ACCEPTED,
+      sellerId.toString(),
+      activityContent,
+      productId
+    );
+
+    res.json({
+      success: true,
+      message: "Purchase request accepted successfully",
+      data: {
+        productId: product._id,
+        title: product.title,
+      },
+    });
+  } catch (err) {
+    console.error("Error in acceptPurchaseRequest:", err);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while accepting the purchase request",
+      data: null,
+    });
+  }
+};
+
+export const cancelPurchaseRequest = async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.productId;
+    const userId = new mongoose.Types.ObjectId((req as any).userId);
+
+    const product = await Product.findById(productId)
+      .populate({
+        path: "seller",
+        select: "_id",
+      })
+      .select("title seller purchaseRequest");
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+        data: null,
+      });
+    }
+
+    if (!product.purchaseRequest) {
+      return res.status(400).json({
+        success: false,
+        message: "There is no purchase request for this product",
+        data: null,
+      });
+    }
+
+    // Check if the user is either the seller or the buyer
+    const isSeller = product.seller._id.toString() === userId.toString();
+    const isBuyer =
+      product.purchaseRequest.buyer.toString() === userId.toString();
+
+    if (!isSeller && !isBuyer) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to cancel this purchase request",
+        data: null,
+      });
+    }
+
+    // Store necessary information before clearing the purchase request
+    const buyerId = product.purchaseRequest.buyer.toString();
+    const sellerId = product.seller._id.toString();
+
+    // Clear the purchase request
+    product.purchaseRequest = undefined;
+
+    await product.save();
+
+    // Create an activity for the other party
+    const activityReceiverId = isSeller ? buyerId : sellerId;
+    const activityContent = isSeller
+      ? `The seller has cancelled the purchase request for "${product.title}".`
+      : `The buyer has cancelled their purchase request for "${product.title}".`;
+
+    await createActivity(
+      activityReceiverId,
+      ActivityTypes.PURCHASE_REQUEST_CANCELLED,
+      userId.toString(),
+      activityContent,
+      productId
+    );
+
+    res.json({
+      success: true,
+      message: "Purchase request cancelled successfully",
+      data: {
+        productId: product._id,
+        title: product.title,
+      },
+    });
+  } catch (err) {
+    console.error("Error in cancelPurchaseRequest:", err);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while cancelling the purchase request",
       data: null,
     });
   }

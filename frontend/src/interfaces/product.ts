@@ -26,6 +26,11 @@ export interface Product {
     };
     date: string;
   } | null; // Using null to indicate that the product might not be sold
+  purchaseRequest?: {
+    buyer: string;
+    date: string;
+    status: string;
+  };
 }
 
 export interface ProductsResponse {

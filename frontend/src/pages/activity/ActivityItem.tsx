@@ -20,14 +20,21 @@ import { MainStackParamList } from "../../interfaces/auth/navigation";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import ReviewModal from "./ReviewModal";
+import RequestModal from "./RequestModal";
 
 interface ActivityItemProps {
   item: Activity;
   onDelete: (id: string) => void;
+  onActivityUpdate: () => void;
 }
 
-const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
+const ActivityItem: React.FC<ActivityItemProps> = ({
+  item,
+  onDelete,
+  onActivityUpdate,
+}) => {
   const [isReviewModalVisible, setReviewModalVisible] = useState(false);
+  const [isRequestModalVisible, setRequestModalVisible] = useState(false);
   const { t } = useTranslation();
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
 
@@ -78,7 +85,43 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
   const handleActivityPress = () => {
     console.log("Activity type:", item.type);
 
-    if (item.type === "review_prompt") {
+    if (item.type === "purchase_request") {
+      if (item.product?.purchaseRequest === null) {
+        Toast.show({
+          type: "info",
+          text1: t("purchase-request-changed"),
+          position: "bottom",
+          visibilityTime: 3000,
+          bottomOffset: 110,
+        });
+      } else if (item.product?.purchaseRequest?.status === "pending") {
+        setRequestModalVisible(true);
+      } else {
+        Toast.show({
+          type: "info",
+          text1: t("purchase-request-changed"),
+          position: "bottom",
+          visibilityTime: 3000,
+          bottomOffset: 110,
+        });
+      }
+    } else if (item.type === "purchase_request_accepted") {
+      Toast.show({
+        type: "success",
+        text1: t("purchase-request-accepted"),
+        position: "bottom",
+        visibilityTime: 3000,
+        bottomOffset: 110,
+      });
+    } else if (item.type === "purchase_request_cancelled") {
+      Toast.show({
+        type: "info",
+        text1: t("purchase-request-cancelled"),
+        position: "bottom",
+        visibilityTime: 3000,
+        bottomOffset: 110,
+      });
+    } else if (item.type === "review_prompt") {
       if (item.reviewDone) {
         Toast.show({
           type: "info",
@@ -136,6 +179,9 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
           {(item.type === "product_like" ||
             item.type === "review_prompt" ||
             item.type === "product_purchased" ||
+            item.type === "purchase_request" ||
+            item.type === "purchase_request_accepted" ||
+            item.type === "purchase_request_cancelled" ||
             item.type === "review") &&
             item.product && (
               <Image
@@ -151,7 +197,35 @@ const ActivityItem: React.FC<ActivityItemProps> = ({ item, onDelete }) => {
         productId={item.product?._id}
         productName={item.product?.title}
         productImage={item.product?.images[0]}
-        revieweeId={item.sender._id} // Add this line to pass the seller's ID
+        revieweeId={item.sender._id}
+      />
+      <RequestModal
+        isVisible={isRequestModalVisible}
+        onClose={() => setRequestModalVisible(false)}
+        buyer={item.sender}
+        product={item.product!}
+        onAccept={() => {
+          setRequestModalVisible(false);
+          Toast.show({
+            type: "success",
+            text1: t("purchase-request-accepted"),
+            position: "bottom",
+            visibilityTime: 3000,
+            bottomOffset: 110,
+          });
+          onActivityUpdate();
+        }}
+        onDecline={() => {
+          setRequestModalVisible(false);
+          Toast.show({
+            type: "info",
+            text1: t("purchase-request-cancelled"),
+            position: "bottom",
+            visibilityTime: 3000,
+            bottomOffset: 110,
+          });
+          onActivityUpdate();
+        }}
       />
     </Swipeable>
   );

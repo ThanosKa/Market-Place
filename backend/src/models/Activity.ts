@@ -1,13 +1,21 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export const ActivityTypes = {
+  PRODUCT_LIKE: "product_like",
+  PROFILE_LIKE: "profile_like",
+  REVIEW: "review",
+  REVIEW_PROMPT: "review_prompt",
+  PRODUCT_PURCHASED: "product_purchased",
+  PURCHASE_REQUEST: "purchase_request",
+  PURCHASE_REQUEST_ACCEPTED: "purchase_request_accepted",
+  PURCHASE_REQUEST_CANCELLED: "purchase_request_cancelled",
+} as const;
+
+export type ActivityType = (typeof ActivityTypes)[keyof typeof ActivityTypes];
+
 export interface IActivity extends Document {
   user: mongoose.Types.ObjectId;
-  type:
-    | "product_like"
-    | "profile_like"
-    | "review"
-    | "review_prompt"
-    | "product_purchased";
+  type: ActivityType;
   sender: mongoose.Types.ObjectId;
   content: string;
   product?: mongoose.Types.ObjectId;
@@ -22,13 +30,7 @@ const ActivitySchema: Schema = new Schema({
   type: {
     type: String,
     required: true,
-    enum: [
-      "product_like",
-      "profile_like",
-      "review",
-      "review_prompt",
-      "product_purchased",
-    ],
+    enum: Object.values(ActivityTypes),
   },
   sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
   content: { type: String, required: true },
@@ -48,3 +50,13 @@ ActivitySchema.index({
 });
 
 export default mongoose.model<IActivity>("Activity", ActivitySchema);
+
+export interface ActivityStrings {
+  [ActivityTypes.PRODUCT_LIKE]: string;
+  [ActivityTypes.PROFILE_LIKE]: string;
+  [ActivityTypes.REVIEW]: string;
+  [ActivityTypes.REVIEW_PROMPT]: string;
+  [ActivityTypes.PRODUCT_PURCHASED]: string;
+  [ActivityTypes.PURCHASE_REQUEST]: string;
+  [ActivityTypes.PURCHASE_REQUEST_ACCEPTED]: string;
+}

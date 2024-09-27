@@ -24,6 +24,11 @@ interface SoldInfo {
   to: mongoose.Types.ObjectId; // Reference to User
   date: Date;
 }
+interface PurchaseRequest {
+  buyer: mongoose.Types.ObjectId;
+  date: Date;
+  status: "pending" | "accepted" | "rejected";
+}
 
 export interface IProduct extends Document {
   title: string;
@@ -35,6 +40,7 @@ export interface IProduct extends Document {
   seller: mongoose.Types.ObjectId;
   likes: mongoose.Types.ObjectId[];
   sold: SoldInfo | null;
+  purchaseRequest?: PurchaseRequest;
 }
 
 const ProductSchema: Schema = new Schema(
@@ -58,6 +64,19 @@ const ProductSchema: Schema = new Schema(
         _id: false,
       },
       default: null, // Ensure that 'sold' is set to null by default
+    },
+    purchaseRequest: {
+      type: {
+        buyer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        date: Date,
+        status: {
+          type: String,
+          enum: ["pending", "accepted", "rejected"],
+        },
+      },
+      default: null, // Ensure that 'sold' is set to null by default
+
+      _id: false,
     },
   },
   { timestamps: true }

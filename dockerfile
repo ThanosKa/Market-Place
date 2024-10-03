@@ -1,5 +1,5 @@
 # Stage 1: Set up the backend
-FROM node:14 AS backend-build
+FROM node:18 AS backend-build
 
 WORKDIR /app/backend
 
@@ -16,7 +16,7 @@ COPY backend ./
 RUN npx tsc
 
 # Stage 2: Create the final image
-FROM node:14
+FROM node:18
 
 WORKDIR /app
 
@@ -39,7 +39,7 @@ COPY --from=backend-build /app/backend ./
 RUN npm install --only=production
 
 # Expose the port your app runs on
-EXPOSE 5000
+EXPOSE 5001
 
 # Set the working directory back to the root
 WORKDIR /app

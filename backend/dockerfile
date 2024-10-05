@@ -1,0 +1,33 @@
+FROM node:18
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the backend code
+COPY . .
+
+# Compile TypeScript to JavaScript
+RUN npm run build
+
+# Copy YAML files to dist/docs (adjust the path if necessary)
+RUN mkdir -p dist/docs && find . -name "*.yaml" -exec cp {} dist/docs/ \;
+
+# Rebuild bcrypt for the current architecture
+RUN npm rebuild bcrypt --build-from-source
+
+# Expose the port the app runs on
+EXPOSE 5001
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV SERVER=host.docker.internal
+ENV PROTOCOL=http
+ENV API_BASEPATH=api
+
+# Command to run the application
+CMD ["npm", "run", "start:prod"]

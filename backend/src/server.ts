@@ -50,6 +50,7 @@ app.use(`/${process.env.API_BASEPATH}/recent`, recentSearchRoutes);
 app.use(`/${process.env.API_BASEPATH}/activities`, activityRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
 app.use((req, res, next) => {
   res.locals.BASE_URL = BASE_URL;
   next();

@@ -2,6 +2,8 @@ import swaggerJsdoc from "swagger-jsdoc";
 import path from "path";
 import fs from "fs";
 
+const API_BASEPATH = process.env.API_BASEPATH || "api";
+
 const options = {
   definition: {
     openapi: "3.0.0",
@@ -12,30 +14,44 @@ const options = {
     },
     servers: [
       {
-        url: `http://localhost:${process.env.PORT || 5001}`,
-        description: "Development server",
+        url: `{protocol}://{server}:{port}/${API_BASEPATH}`,
+        variables: {
+          protocol: {
+            enum: ["http", "https"],
+            default: process.env.PROTOCOL || "http",
+          },
+          server: {
+            default: process.env.SERVER || "localhost",
+          },
+          port: {
+            default: process.env.PORT || "5001",
+          },
+        },
       },
     ],
   },
   apis: [
-    path.resolve(__dirname, "../routes/*.ts"),
-    path.resolve(__dirname, "../models/*.ts"),
-    path.resolve(__dirname, "./path/*.yaml"),
+    path.resolve(__dirname, "./**/*.yaml"),
+    path.resolve(__dirname, "./**/*.yml"),
   ],
 };
 
-const yamlFiles = fs
-  .readdirSync(path.resolve(__dirname, "./path"))
-  .filter((file) => file.endsWith(".yaml"));
-// console.log("YAML files found:", yamlFiles);
+console.log("Swagger configuration:");
+console.log("API paths:", options.apis);
+options.apis.forEach((pattern) => {
+  console.log(`Searching for files matching: ${pattern}`);
+  try {
+    const files = fs
+      .readdirSync(path.dirname(pattern))
+      .filter((file) => file.endsWith(".yaml") || file.endsWith(".yml"));
+    console.log(`Found files: ${files.join(", ")}`);
+  } catch (error) {
+    console.error(`Error reading directory: ${error}`);
+  }
+});
+
+console.log("Server URL:", options.definition.servers[0].url);
 
 const specs = swaggerJsdoc(options);
-
-// Type assertion to avoid TypeScript error
-const specPaths = (specs as any).paths;
-// console.log(
-//   "Swagger specs generated:",
-//   specPaths ? Object.keys(specPaths) : "No paths found"
-// );
 
 export default specs;

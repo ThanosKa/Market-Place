@@ -6,13 +6,21 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy the rest of the frontend code
 COPY . .
 
-# Expose the port Expo runs on
+# Expose the ports Expo runs on
 EXPOSE 19000 19001 19002
 
-# Command to start Expo
-CMD ["npm", "run", "start"]
+# Set environment variables
+ENV REACT_NATIVE_PACKAGER_HOSTNAME="0.0.0.0"
+ENV EXPO_DEVTOOLS_LISTEN_ADDRESS="0.0.0.0"
+ENV PROTOCOL="http"
+ENV SERVER="host.docker.internal"
+ENV PORT="5001"
+ENV API_BASEPATH="api"
+
+# Command to start Expo using local CLI
+CMD ["npx", "expo", "start", "--tunnel"]

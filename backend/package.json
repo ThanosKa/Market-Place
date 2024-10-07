@@ -10,7 +10,7 @@
     "build": "tsc",
     "start:prod": "node dist/server.js",
     "docker:build": "docker build -t marketplace-backend .",
-    "docker:run": "docker run --name marketplace-backend -p 5001:5001 -e SERVER=host.docker.internal -e MONGODB_URI=\"mongodb+srv://admin:admin@applicationcluster.ph1eyjh.mongodb.net/?retryWrites=true&w=majority&appName=ApplicationCluster\" marketplace-backend",
+    "docker:run": "docker run --name marketplace-backend -p 5001:5001 -e NODE_ENV=development -e SERVER=host.docker.internal -e PROTOCOL=http -e PORT=5001 -e API_BASEPATH=api -e MONGODB_URI=\"mongodb+srv://admin:admin@applicationcluster.ph1eyjh.mongodb.net/?retryWrites=true&w=majority&appName=ApplicationCluster\" marketplace-backend",
     "docker:stop": "docker stop marketplace-backend || true",
     "docker:remove": "docker rm marketplace-backend || true",
     "docker:logs": "docker logs marketplace-backend",
@@ -47,6 +47,7 @@
     "@types/morgan": "^1.9.9",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.2"
   }
 }

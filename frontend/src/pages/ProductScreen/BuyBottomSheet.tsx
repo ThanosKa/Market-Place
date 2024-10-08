@@ -24,6 +24,7 @@ interface BuyBottomSheetProps {
   isVisible: boolean;
   onClose: () => void;
   product: Product;
+  balance?: number;
   onContinue: (paymentMethod: "inPerson" | "card", option: string) => void;
 }
 
@@ -63,16 +64,22 @@ const PaymentOption = ({
 const PayInPersonRoute = ({
   selectedOption,
   onSelectOption,
+  balance,
+  product,
 }: {
   selectedOption: string;
   onSelectOption: (option: string) => void;
+  balance?: number;
+  product: Product;
 }) => {
   const { t } = useTranslation();
 
   return (
     <View style={styles.tabContent}>
       <PaymentOption
-        label={t("pay-with-balance")}
+        label={`${t("pay-with-balance")} (${
+          balance !== undefined ? `$${balance.toFixed(2)}` : t("unavailable")
+        })`}
         selected={selectedOption === "balance"}
         onSelect={() => onSelectOption("balance")}
       />
@@ -114,6 +121,7 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
   isVisible,
   onClose,
   product,
+  balance,
   onContinue,
 }) => {
   const [index, setIndex] = useState(0);
@@ -124,7 +132,6 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
   const [selectedOption, setSelectedOption] = useState("balance");
   const { t } = useTranslation();
 
-  // Reset state when the sheet is closed
   useEffect(() => {
     if (!isVisible) {
       setIndex(0);
@@ -141,6 +148,8 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
       <PayInPersonRoute
         selectedOption={selectedOption}
         onSelectOption={handleSelectOption}
+        balance={balance}
+        product={product}
       />
     ),
     payByCard: () => (
@@ -246,6 +255,13 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
     }
   };
 
+  const isBalanceInsufficient =
+    balance !== undefined && balance < product.price;
+  const isContinueDisabled =
+    purchaseMutation.isLoading ||
+    purchaseInPersonMutation.isLoading ||
+    (selectedOption === "balance" && isBalanceInsufficient);
+
   return (
     <BottomSheet isVisible={isVisible} onBackdropPress={onClose}>
       <View style={styles.bottomSheetContent}>
@@ -277,14 +293,10 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
         <TouchableOpacity
           style={[
             styles.continueButton,
-            (purchaseMutation.isLoading ||
-              purchaseInPersonMutation.isLoading) &&
-              styles.continueButtonDisabled,
+            isContinueDisabled && styles.continueButtonDisabled,
           ]}
           onPress={handleContinue}
-          disabled={
-            purchaseMutation.isLoading || purchaseInPersonMutation.isLoading
-          }
+          disabled={isContinueDisabled}
         >
           {purchaseMutation.isLoading || purchaseInPersonMutation.isLoading ? (
             <ActivityIndicator size="small" color="white" />
@@ -301,7 +313,7 @@ const styles = StyleSheet.create({
   bottomSheetContent: {
     backgroundColor: "white",
     padding: 20,
-    height: 550, // Increased height
+    height: 550,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
@@ -324,8 +336,8 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
-    justifyContent: "center", // Changed from flex-start to center
-    alignItems: "stretch", // Changed from flex-start to stretch
+    justifyContent: "center",
+    alignItems: "stretch",
     paddingHorizontal: 10,
   },
   paymentTitle: {
@@ -401,14 +413,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-
   radioButtonOuterSelected: {
     borderColor: colors.primary,
   },
   continueButtonDisabled: {
     opacity: 0.5,
   },
-
   paymentOptionTextSelected: {
     color: colors.primary,
   },

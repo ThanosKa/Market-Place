@@ -1,4 +1,7 @@
 {
+  "purchase-request-accepted": "Purchase request accepted",
+  "purchase-request-cancelled": "Purchase request cancelled",
+
   "purchase_request_cancelled": "Purchase request cancelled",
   "purchase_request": "Sent a purchase request",
   "purchase_request_accepted": "Purchase request accepted",

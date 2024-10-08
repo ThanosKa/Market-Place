@@ -34,6 +34,8 @@ import EditProductForm from "./EditProductForm";
 import BuyBottomSheet from "./BuyBottomSheet";
 import { createReviewPromptActivity } from "../../services/activity";
 import Toast from "react-native-toast-message";
+import { getUserDetails } from "../../services/user";
+import FlexibleSkeleton from "../../components/Skeleton/FlexibleSkeleton";
 
 type ProductScreenNavigationProp = StackNavigationProp<
   MainStackParamList,
@@ -63,7 +65,11 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showActionSheetWithOptions } = useActionSheet();
-
+  const {
+    data: userDetails,
+    isLoading: userLoading,
+    refetch: refetchUserDetails,
+  } = useQuery("userDetails", getUserDetails);
   const createChatMutation = useMutation(createChat);
   const deleteProductMutation = useMutation(deleteProduct);
   const updateProductMutation = useMutation(updateProduct);
@@ -290,11 +296,12 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
     setRefreshing(true);
     refetch().then(() => setRefreshing(false));
   }, [refetch]);
-  if (isLoading) {
+  if (isLoading || userLoading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="small" color={colors.secondary} />
-        <Text style={styles.loadingText}>{t("loading")}</Text>
+        {/* <ActivityIndicator size="small" color={colors.secondary} />
+        <Text style={styles.loadingText}>{t("loading")}</Text> */}
+        <FlexibleSkeleton type="list" itemCount={1} contentLines={5} />
       </View>
     );
   }
@@ -466,6 +473,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
         onClose={handleCloseBuyBottomSheet}
         product={product}
         onContinue={handleContinueBuy}
+        balance={userDetails?.data.user.balance}
       />
     </View>
   );

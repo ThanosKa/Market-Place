@@ -1,5 +1,8 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import path from "path";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const options = {
   definition: {
@@ -11,7 +14,7 @@ const options = {
     },
     servers: [
       {
-        url: "{protocol}://{server}:{port}/{api_basepath}",
+        url: "{protocol}://{server}:{port}",
         variables: {
           protocol: {
             enum: ["http", "https"],
@@ -22,9 +25,6 @@ const options = {
           },
           port: {
             default: process.env.PORT || "5001",
-          },
-          api_basepath: {
-            default: process.env.API_BASEPATH || "api",
           },
         },
       },

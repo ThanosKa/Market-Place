@@ -10,7 +10,7 @@
     "build": "tsc",
     "start:prod": "node dist/server.js",
     "docker:build": "docker build -t marketplace-backend .",
-    "docker:run": "docker run --name marketplace-backend -p 5001:5001 -e NODE_ENV=development -e SERVER=host.docker.internal -e PROTOCOL=http -e PORT=5001 -e API_BASEPATH=api -e MONGODB_URI=\"mongodb+srv://admin:admin@applicationcluster.ph1eyjh.mongodb.net/?retryWrites=true&w=majority&appName=ApplicationCluster\" marketplace-backend",
+    "docker:run": "docker run --name marketplace-backend -p 5001:5001 -e NODE_ENV=development -e SERVER=localhost -e PROTOCOL=http -e PORT=5001 -e API_BASEPATH=api -e SECRET_KEY=3a4fde72c09b80f983f0b78c59163754a728aa8220551c7d816247929c4bcb8ae9f84b9f719a6248d0b1d1d67717acfe954624c37f84902c51f13d7e9c8b8ecc -e MONGODB_URI=\"mongodb+srv://admin:admin@applicationcluster.ph1eyjh.mongodb.net/?retryWrites=true&w=majority&appName=ApplicationCluster\" marketplace-backend",
     "docker:stop": "docker stop marketplace-backend || true",
     "docker:remove": "docker rm marketplace-backend || true",
     "docker:logs": "docker logs marketplace-backend",

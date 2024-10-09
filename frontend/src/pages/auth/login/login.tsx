@@ -21,16 +21,12 @@ import { loginUser } from "../../../services/auth";
 import Toast from "react-native-toast-message";
 import { createLoginSchema } from "../../../schema/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { LoginFormData } from "../../../interfaces/auth/auth";
 
 type LoginScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
   "Login"
 >;
-
-interface LoginFormData {
-  email: string;
-  password: string;
-}
 
 const LoginScreen = () => {
   const { t } = useTranslation();
@@ -74,19 +70,18 @@ const LoginScreen = () => {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder={t("auth.email")}
+                placeholder={t("auth.emailOrUsername")}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
-                keyboardType="email-address"
                 autoCapitalize="none"
               />
-              {errors.email && (
-                <Text style={styles.errorText}>{errors.email.message}</Text>
+              {errors.login && (
+                <Text style={styles.errorText}>{errors.login.message}</Text>
               )}
             </View>
           )}
-          name="email"
+          name="login"
         />
 
         <Controller

@@ -6,7 +6,8 @@ import { emailSchema } from "../utils/email";
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, confirmPassword, firstName, lastName } = req.body;
+    const { email, username, password, confirmPassword, firstName, lastName } =
+      req.body;
 
     try {
       await emailSchema.validate(email);
@@ -26,11 +27,11 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    let user = await User.findOne({ email });
-    if (user) {
+    let existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
       return res.status(400).json({
         success: 0,
-        message: "User already exists",
+        message: "User with this email or username already exists",
         data: null,
       });
     }
@@ -38,8 +39,9 @@ export const register = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    user = new User({
+    const user = new User({
       email,
+      username,
       password: hashedPassword,
       firstName,
       lastName,
@@ -62,6 +64,7 @@ export const register = async (req: Request, res: Response) => {
         user: {
           id: user.id,
           email: user.email,
+          username: user.username,
           firstName: user.firstName,
           lastName: user.lastName,
           balance: user.balance,
@@ -79,22 +82,34 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-// ... rest of the auth controller code remains unchanged
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { login, password } = req.body;
 
-    try {
-      await emailSchema.validate(email);
-    } catch (error) {
+    if (!login || !password) {
       return res.status(400).json({
         success: 0,
-        message: "Invalid email address",
+        message: "Login and password are required",
         data: null,
       });
     }
 
-    let user = await User.findOne({ email });
+    let user;
+    if (login.includes("@")) {
+      try {
+        await emailSchema.validate(login);
+      } catch (error) {
+        return res.status(400).json({
+          success: 0,
+          message: "Invalid email address",
+          data: null,
+        });
+      }
+      user = await User.findOne({ email: login });
+    } else {
+      user = await User.findOne({ username: login });
+    }
+
     if (!user) {
       return res.status(400).json({
         success: 0,
@@ -126,6 +141,7 @@ export const login = async (req: Request, res: Response) => {
         user: {
           id: user.id,
           email: user.email,
+          username: user.username,
           firstName: user.firstName,
           lastName: user.lastName,
         },
@@ -140,6 +156,8 @@ export const login = async (req: Request, res: Response) => {
     });
   }
 };
+
+// The forgotPassword function remains unchanged
 
 export const forgotPassword = async (req: Request, res: Response) => {
   try {

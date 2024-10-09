@@ -293,7 +293,15 @@
     "resetPasswordFailed": "Failed to reset password",
     "changePassword": "Change Password",
     "changePasswordSuccess": "Password changed successfully",
-    "changePasswordFailed": "Failed to change password"
+    "changePasswordFailed": "Failed to change password",
+    "loginRequired": "Email or username is required",
+    "invalidLoginFormat": "Invalid email or username format",
+    "emailOrUsername": "Email or Username",
+    "username": "Username",
+    "usernameRequired": "Username is required",
+    "usernameTooShort": "Username must be at least 3 characters",
+    "usernameTooLong": "Username must not exceed 20 characters",
+    "usernameInvalidCharacters": "Username can only contain letters, numbers, and underscores"
   },
   "resetPasswordEmailSent": "Password reset email sent"
 }

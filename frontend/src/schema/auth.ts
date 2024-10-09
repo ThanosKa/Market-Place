@@ -10,9 +10,7 @@ export const createForgotPasswordSchema = (t: TFunction) =>
 
 export const createLoginSchema = (t: TFunction) =>
   Yup.object().shape({
-    email: Yup.string()
-      .email(t("auth.invalidEmail"))
-      .required(t("auth.emailRequired")),
+    login: Yup.string().required(t("auth.loginRequired")),
     password: Yup.string().required(t("auth.passwordRequired")),
   });
 
@@ -21,6 +19,11 @@ export const createRegisterSchema = (t: TFunction) =>
     email: Yup.string()
       .email(t("auth.invalidEmail"))
       .required(t("auth.emailRequired")),
+    username: Yup.string()
+      .required(t("auth.usernameRequired"))
+      .min(3, t("auth.usernameTooShort"))
+      .max(20, t("auth.usernameTooLong"))
+      .matches(/^[a-zA-Z0-9_]+$/, t("auth.usernameInvalidCharacters")),
     firstName: Yup.string().required(t("auth.firstNameRequired")),
     lastName: Yup.string().required(t("auth.lastNameRequired")),
     password: Yup.string().required(t("auth.passwordRequired")),

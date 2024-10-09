@@ -101,6 +101,27 @@ const RegisterScreen = () => {
         )}
       </View>
 
+      <View style={styles.inputContainer}>
+        <Controller
+          control={control}
+          name="username"
+          defaultValue=""
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder={t("auth.username")}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              autoCapitalize="none"
+            />
+          )}
+        />
+        {errors.username && (
+          <Text style={styles.errorText}>{errors.username.message}</Text>
+        )}
+      </View>
+
       <View style={styles.row}>
         <View style={styles.halfInputContainer}>
           <Controller
@@ -222,6 +243,7 @@ const RegisterScreen = () => {
     </ScrollView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -63,13 +63,13 @@ export const getActivities = async (req: Request, res: Response) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("sender", "firstName lastName profilePicture")
+      .populate("sender", "firstName lastName profilePicture username")
       .populate({
         path: "product",
         select: "title images purchaseRequest",
         populate: {
           path: "purchaseRequest.buyer",
-          select: "firstName lastName profilePicture",
+          select: "firstName lastName profilePicture username",
         },
       });
 
@@ -241,7 +241,7 @@ export const createReviewPromptActivity = async (
       _id: productId,
       seller: sellerId,
       "sold.to": { $ne: null },
-    }).populate("sold.to", "firstName lastName profilePicture");
+    }).populate("sold.to", "firstName lastName profilePicture username");
 
     if (!product) {
       return res.status(404).json({
@@ -298,13 +298,13 @@ export const createReviewPromptActivity = async (
         await existingActivity.save();
 
         const populatedActivity = await Activity.findById(existingActivity._id)
-          .populate("user", "firstName lastName profilePicture")
+          .populate("user", "firstName lastName profilePicture username")
           .populate({
             path: "product",
             select: "title price images category condition",
             populate: {
               path: "seller",
-              select: "firstName lastName profilePicture",
+              select: "firstName lastName profilePicture username",
             },
           });
 
@@ -336,19 +336,19 @@ export const createReviewPromptActivity = async (
     const activity = await Activity.create(activityData);
 
     const populatedActivity = await Activity.findById(activity._id)
-      .populate("user", "firstName lastName profilePicture")
+      .populate("user", "firstName lastName profilePicture username")
       .populate({
         path: "product",
         select: "title price images category condition",
         populate: {
           path: "seller",
-          select: "firstName lastName profilePicture",
+          select: "firstName lastName profilePicture username",
         },
       });
 
     const seller = await User.findById(
       sellerId,
-      "firstName lastName profilePicture"
+      "firstName lastName profilePicture username"
     );
     const formattedActivity = {
       ...populatedActivity!.toObject(),

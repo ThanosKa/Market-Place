@@ -143,7 +143,7 @@ export const getReviewsForLoggedUser = async (req: Request, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
 
     const reviews = await Review.find({ reviewee: userId })
-      .populate("reviewer", "firstName lastName profilePicture")
+      .populate("reviewer", "firstName lastName profilePicture username")
       .populate("product", "title images")
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
@@ -184,7 +184,7 @@ export const getReviewsForUser = async (req: Request, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
 
     const reviews = await Review.find({ reviewee: userId })
-      .populate("reviewer", "firstName lastName profilePicture")
+      .populate("reviewer", "firstName lastName profilePicture username")
       .populate("product", "title images")
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
@@ -224,7 +224,7 @@ export const getReviewsDoneByUser = async (req: Request, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
 
     const reviews = await Review.find({ reviewer: userId })
-      .populate("reviewee", "firstName lastName profilePicture")
+      .populate("reviewee", "firstName lastName profilePicture username")
       .populate("product", "title images")
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))

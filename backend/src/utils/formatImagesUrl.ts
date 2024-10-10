@@ -25,6 +25,7 @@ export const formatUser = (user: any) => {
     firstName: userObject.firstName || null,
     lastName: userObject.lastName || null,
     email: userObject.email || null,
+    username: userObject.username || null,
     profilePicture: userObject.profilePicture
       ? filePathToUrl(userObject.profilePicture, API_BASE_URL)
       : null,

@@ -63,7 +63,7 @@ export const toggleLikeProduct = async (req: Request, res: Response) => {
           product.seller._id.toString(),
           "product_like",
           userId.toString(),
-          `${user.firstName} ${user.lastName} liked your product: ${product.title}`,
+          `${user.firstName} ${user.lastName}  ${user.username} liked your product: ${product.title}`,
           productId.toString()
         );
       }
@@ -128,7 +128,7 @@ export const toggleLikeUser = async (req: Request, res: Response) => {
         likedUserId.toString(),
         "profile_like",
         userId.toString(),
-        `${user.firstName} ${user.lastName} liked your profile`
+        `${user.firstName} ${user.lastName} ${user.username} liked your profile`
       );
     }
     await user.save();
@@ -157,7 +157,7 @@ export const getLikedProducts = async (req: Request, res: Response) => {
         populate: {
           path: "seller",
           model: User,
-          select: "firstName lastName profilePicture",
+          select: "firstName lastName profilePicture username",
         },
       });
 
@@ -204,7 +204,8 @@ export const getLikedProfiles = async (req: Request, res: Response) => {
       .populate({
         path: "likedUsers",
         model: User,
-        select: "firstName lastName profilePicture averageRating reviewCount",
+        select:
+          "firstName lastName username profilePicture averageRating reviewCount",
         populate: {
           path: "products",
           model: Product,
@@ -228,6 +229,7 @@ export const getLikedProfiles = async (req: Request, res: Response) => {
         return {
           _id: formattedUser,
           firstName: likedUser.firstName,
+          username: likedUser.username,
           lastName: likedUser.lastName,
           profilePicture: likedUser.profilePicture,
           averageRating: likedUser.averageRating,
@@ -240,6 +242,7 @@ export const getLikedProfiles = async (req: Request, res: Response) => {
           _id: formattedUser._id,
           firstName: formattedUser.firstName,
           lastName: formattedUser.lastName,
+          username: formattedUser.username,
           profilePicture: formattedUser.profilePicture,
           averageRating: likedUser.averageRating,
           reviewCount: likedUser.reviewCount,
@@ -251,6 +254,7 @@ export const getLikedProfiles = async (req: Request, res: Response) => {
           _id: likedUser._id,
           firstName: likedUser.firstName,
           lastName: likedUser.lastName,
+          username: likedUser.username,
           profilePicture: likedUser.profilePicture,
           averageRating: likedUser.averageRating,
           reviewCount: likedUser.reviewCount,

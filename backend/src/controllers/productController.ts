@@ -316,7 +316,7 @@ export const getProducts = async (req: Request, res: Response) => {
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate("seller", "firstName lastName email profilePicture");
+      .populate("seller", "firstName lastName email profilePicture username");
     const formattedProducts = formatProductData(products);
 
     res.json({
@@ -442,7 +442,7 @@ export const getUserProducts = async (req: Request, res: Response) => {
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate("seller", "firstName lastName email profilePicture"); // Add this line
+      .populate("seller", "firstName lastName email profilePicture username"); // Add this line
 
     const formattedProducts = formatProductData(products);
 
@@ -594,8 +594,8 @@ export const getProductById = async (req: Request, res: Response) => {
   try {
     const productId = req.params.productId;
     const product = await Product.findById(productId)
-      .populate("seller", "firstName lastName email profilePicture")
-      .populate("sold.to", "firstName lastName profilePicture");
+      .populate("seller", "firstName lastName email profilePicture username")
+      .populate("sold.to", "firstName lastName profilePicture username");
 
     if (!product) {
       return res
@@ -662,10 +662,10 @@ export const getSoldUserProducts = async (req: Request, res: Response) => {
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate("seller", "firstName lastName profilePicture _id")
+      .populate("seller", "firstName lastName profilePicture _id username")
       .populate({
         path: "sold.to",
-        select: "firstName lastName profilePicture _id",
+        select: "firstName lastName profilePicture _id username",
       });
     const formattedProducts = formatProductData(products);
 
@@ -738,10 +738,10 @@ export const getSoldUserByIdProducts = async (req: Request, res: Response) => {
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate("seller", "firstName lastName profilePicture _id")
+      .populate("seller", "firstName lastName profilePicture _id username")
       .populate({
         path: "sold.to",
-        select: "firstName lastName profilePicture _id",
+        select: "firstName lastName profilePicture _id username",
       });
     const formattedProducts = formatProductData(products);
 
@@ -813,10 +813,10 @@ export const getPurchasedProducts = async (req: Request, res: Response) => {
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate("seller", "firstName lastName profilePicture _id")
+      .populate("seller", "firstName lastName profilePicture _id username")
       .populate({
         path: "sold.to",
-        select: "firstName lastName profilePicture _id",
+        select: "firstName lastName profilePicture _id username",
       });
     const formattedProducts = formatProductData(products);
 
@@ -890,10 +890,10 @@ export const getPurchasedProductsByUserId = async (
       .sort({ [sort as string]: order as mongoose.SortOrder })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .populate("seller", "firstName lastName profilePicture _id")
+      .populate("seller", "firstName lastName profilePicture _id username")
       .populate({
         path: "sold.to",
-        select: "firstName lastName profilePicture _id",
+        select: "firstName lastName profilePicture _id username",
       });
     const formattedProducts = formatProductData(products);
 
@@ -927,7 +927,7 @@ export const purchaseInPersonRequest = async (req: Request, res: Response) => {
     const product = await Product.findById(productId)
       .populate({
         path: "seller",
-        select: "firstName lastName profilePicture _id",
+        select: "firstName lastName profilePicture _id username",
       })
       .select(
         "title price images category condition sold seller purchaseRequest"
@@ -1021,7 +1021,7 @@ export const purchaseProduct = async (req: Request, res: Response) => {
     const product = await Product.findById(productId)
       .populate({
         path: "seller",
-        select: "firstName lastName profilePicture _id",
+        select: "firstName lastName profilePicture _id username",
       })
       .select(
         "title price images category condition sold seller purchaseRequest"
@@ -1076,7 +1076,7 @@ export const purchaseProduct = async (req: Request, res: Response) => {
     // Populate buyer information before sending the response
     await product.populate({
       path: "sold.to",
-      select: "firstName lastName profilePicture",
+      select: "firstName lastName profilePicture username",
     });
 
     // Create an activity for the seller

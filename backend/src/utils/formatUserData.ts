@@ -3,6 +3,7 @@ import { filePathToUrl } from "./filterToUrl";
 export const formatUserData = (user: any, baseUrl: string) => ({
   id: user._id,
   email: user.email,
+  username: user.username, // Add username field
   firstName: user.firstName,
   lastName: user.lastName,
   profilePicture: user.profilePicture
@@ -24,6 +25,7 @@ export const formatUserData = (user: any, baseUrl: string) => ({
 export const formatUserProfileData = (user: any, baseUrl: string) => ({
   id: user._id,
   email: user.email,
+  username: user.username, // Add username field
   firstName: user.firstName,
   lastName: user.lastName,
   profilePicture: user.profilePicture

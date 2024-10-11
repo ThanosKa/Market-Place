@@ -49,6 +49,7 @@ export interface Activity {
   user: string;
   type: ActivityType;
   sender: {
+    username: string;
     _id: string;
     firstName: string;
     lastName: string;

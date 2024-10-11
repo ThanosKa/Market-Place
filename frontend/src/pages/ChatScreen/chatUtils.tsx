@@ -99,6 +99,8 @@ export const setupNavigationOptions = (
   navigation: StackNavigationProp<MainStackParamList, "Chat">,
   otherParticipant: User
 ) => {
+  console.log("otherParticipant:", otherParticipant); // Add this line for debugging
+
   navigation.setOptions({
     headerTitle: () => (
       <TouchableOpacity
@@ -119,9 +121,12 @@ export const setupNavigationOptions = (
             <UndefProfPicture size={36} iconSize={18} />
           </View>
         )}
-        <Text style={styles.headerName}>
-          {otherParticipant.firstName} {otherParticipant.lastName}
-        </Text>
+        <View>
+          <Text style={styles.headerName}>
+            {otherParticipant.firstName} {otherParticipant.lastName}
+          </Text>
+          <Text style={styles.headerDetails}>{otherParticipant.username}</Text>
+        </View>
       </TouchableOpacity>
     ),
   });
@@ -235,6 +240,10 @@ const styles = StyleSheet.create({
   olderMessagesText: {
     textAlign: "center",
     padding: 10,
+    color: colors.secondary,
+  },
+  headerDetails: {
+    fontSize: 14,
     color: colors.secondary,
   },
 });

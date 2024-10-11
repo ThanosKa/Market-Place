@@ -116,6 +116,8 @@ export const getUserChats = async (req: Request, res: Response) => {
             firstName: 1,
             lastName: 1,
             profilePicture: 1,
+            email: 1,
+            username: 1,
           },
           lastMessage: {
             _id: 1,
@@ -286,6 +288,8 @@ export const getChatMessages = async (req: Request, res: Response) => {
             firstName: 1,
             lastName: 1,
             profilePicture: 1,
+            email: 1,
+            username: 1,
           },
           messages: 1,
           totalMessages: { $size: "$filteredMessages" },

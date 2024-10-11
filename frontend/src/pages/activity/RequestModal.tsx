@@ -98,7 +98,7 @@ const RequestModal: React.FC<RequestModalProps> = ({
           </Text>
 
           <Image
-            source={{ uri: product.images[0] }}
+            source={{ uri: product?.images[0] }}
             style={styles.productImage}
           />
 

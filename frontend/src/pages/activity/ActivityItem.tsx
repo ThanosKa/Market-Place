@@ -167,7 +167,8 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
           {renderProfilePicture()}
           <View style={styles.activityContent}>
             <Text style={styles.userName}>
-              {item.sender.firstName} {item.sender.lastName}
+              {/* {item.sender.firstName} {item.sender.lastName} */}
+              {item.sender.username}
             </Text>
             <Text style={styles.activityMessage}>
               {getActivityMessage(item.type)}

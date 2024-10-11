@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   TouchableOpacity,
@@ -38,7 +38,9 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
       current === CameraType.back ? CameraType.front : CameraType.back
     );
   };
-
+  useEffect(() => {
+    console.log("sell clicked");
+  }, []);
   const toggleFlash = () => {
     setFlash((current) =>
       current === FlashMode.off ? FlashMode.on : FlashMode.off
@@ -65,6 +67,8 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
   };
 
   const handlePickImages = async () => {
+    console.log("Picking images:");
+
     setIsSelectingImages(true);
     try {
       const remainingSlots = 5 - currentImageCount;
@@ -78,10 +82,12 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
 
       if (!result.canceled && result.assets) {
         const selectedUris = result.assets.map((asset) => asset.uri);
+        console.log("Selected URIs:", selectedUris);
 
         onPickImages(selectedUris.slice(0, remainingSlots));
-        onClose();
+        // Remove the onClose() call here
       } else {
+        console.log("Image selection was canceled or no assets were selected");
       }
     } catch (error) {
       console.error("CameraComponent: Error picking images:", error);

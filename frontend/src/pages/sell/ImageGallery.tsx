@@ -1,6 +1,6 @@
 // ImageGallery.tsx
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Image,
@@ -30,7 +30,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   const screenWidth = Dimensions.get("window").width;
   const imageWidth = screenWidth * 0.9;
   const imageHeight = imageWidth * 0.75;
-
+  useEffect(() => {
+    console.log("gallery clicked");
+  }, []);
   const handleRemoveImage = (index: number) => {
     Alert.alert(
       t("remove-image"),

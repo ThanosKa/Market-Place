@@ -72,7 +72,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     isLoading: userLoading,
     refetch: refetchUserDetails,
   } = useQuery(["userDetails", userId], () => getUserById(userId));
-
+  console.log("aaas", userDetails);
   const {
     data: userProducts,
     isLoading: productsLoading,
@@ -216,21 +216,30 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [likedProfiles, userId]);
 
   useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={handleToggleLike}
-          style={{ marginRight: 15 }}
-        >
-          <AntDesign
-            name={isLiked ? "heart" : "hearto"}
-            size={24}
-            color={isLiked ? "red" : colors.primary}
-          />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, isLiked, handleToggleLike]);
+    if (userDetails?.data?.user) {
+      navigation.setOptions({
+        headerTitle: () => (
+          <View>
+            <Text style={styles.headerUsername}>
+              {userDetails.data.user.username}
+            </Text>
+          </View>
+        ),
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={handleToggleLike}
+            style={{ marginRight: 15 }}
+          >
+            <AntDesign
+              name={isLiked ? "heart" : "hearto"}
+              size={24}
+              color={isLiked ? "red" : colors.primary}
+            />
+          </TouchableOpacity>
+        ),
+      });
+    }
+  }, [navigation, isLiked, handleToggleLike, userDetails]);
 
   const handleContentLayout = (event: LayoutChangeEvent) => {
     setContentHeight(event.nativeEvent.layout.height);
@@ -341,6 +350,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     justifyContent: "center",
+  },
+  headerUsername: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: colors.secondary,
   },
 });
 

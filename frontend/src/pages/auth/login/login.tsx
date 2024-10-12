@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,10 @@ import Toast from "react-native-toast-message";
 import { createLoginSchema } from "../../../schema/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { LoginFormData } from "../../../interfaces/auth/auth";
+import Google from "../../../../assets/logos/googleLogo.svg";
+import Facebook from "../../../../assets/logos/fbLogo.svg";
+import Apple from "../../../../assets/logos/appleLogo.svg";
+import { Ionicons } from "@expo/vector-icons";
 
 type LoginScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
@@ -31,6 +35,7 @@ type LoginScreenNavigationProp = StackNavigationProp<
 const LoginScreen = () => {
   const { t } = useTranslation();
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
 
   const loginSchema = React.useMemo(() => createLoginSchema(t), [t]);
 
@@ -42,7 +47,7 @@ const LoginScreen = () => {
   } = useForm<LoginFormData>({
     resolver: yupResolver(loginSchema),
   });
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -59,82 +64,158 @@ const LoginScreen = () => {
     }
   };
 
+  const handleSocialLogin = (provider: string) => {
+    console.log(`Logging in with ${provider}`);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scrollViewContent}>
       <View style={styles.container}>
         <Text style={styles.title}>{t("auth.login")}</Text>
+        <Text style={styles.text}>{t("auth.text")}</Text>
 
-        <Controller
-          control={control}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder={t("auth.emailOrUsername")}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                autoCapitalize="none"
-              />
-              {errors.login && (
-                <Text style={styles.errorText}>{errors.login.message}</Text>
-              )}
-            </View>
-          )}
-          name="login"
-        />
-
-        <Controller
-          control={control}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <View style={styles.inputContainer}>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.passwordInput}
-                  placeholder={t("auth.password")}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  secureTextEntry={!showPassword}
+        {!showEmailLogin ? (
+          <>
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => setShowEmailLogin(true)}
+            >
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  name="person-outline"
+                  size={24}
+                  color={colors.primary}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <Text style={styles.showHideText}>
-                    {showPassword ? t("auth.hide") : t("auth.show")}
-                  </Text>
-                </TouchableOpacity>
               </View>
-              {errors.password && (
-                <Text style={styles.errorText}>{errors.password.message}</Text>
+              <Text style={styles.loginButtonText}>
+                {t("auth.useEmailOrUsername")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => handleSocialLogin("Google")}
+            >
+              <View style={styles.iconContainer}>
+                <Google width={24} height={24} />
+              </View>
+              <Text style={styles.loginButtonText}>
+                {t("auth.loginWithGoogle")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => handleSocialLogin("Facebook")}
+            >
+              <View style={styles.iconContainer}>
+                <Facebook width={28} height={28} />
+              </View>
+              <Text style={styles.loginButtonText}>
+                {t("auth.loginWithFacebook")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={() => handleSocialLogin("Apple")}
+            >
+              <View style={styles.iconContainer}>
+                <Apple width={24} height={24} />
+              </View>
+              <Text style={styles.loginButtonText}>
+                {t("auth.loginWithApple")}
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <Controller
+              control={control}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t("auth.emailOrUsername")}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    autoCapitalize="none"
+                  />
+                  {errors.login && (
+                    <Text style={styles.errorText}>{errors.login.message}</Text>
+                  )}
+                </View>
               )}
-            </View>
-          )}
-          name="password"
-        />
-
-        <TouchableOpacity
-          style={[styles.button, isSubmitting && styles.disabledButton]}
-          onPress={handleSubmit(onSubmit)}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator
-              size="small"
-              color="white"
-              style={styles.activityIndicator}
+              name="login"
             />
-          ) : (
-            <Text style={styles.buttonText}>{t("auth.loginButton")}</Text>
-          )}
-        </TouchableOpacity>
+            <Controller
+              control={control}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.inputContainer}>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder={t("auth.password")}
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      value={value}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Text style={styles.showHideText}>
+                        {showPassword ? t("auth.hide") : t("auth.show")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {errors.password && (
+                    <Text style={styles.errorText}>
+                      {errors.password.message}
+                    </Text>
+                  )}
+                </View>
+              )}
+              name="password"
+            />
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                isSubmitting && styles.disabledButton,
+              ]}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator
+                  size="small"
+                  color="white"
+                  style={styles.activityIndicator}
+                />
+              ) : (
+                <Text style={styles.submitButtonText}>
+                  {t("auth.loginButton")}
+                </Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("ForgotPassword")}
+            >
+              <Text style={styles.link}>{t("auth.forgotPasswordLink")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowEmailLogin(false)}>
+              <Text style={styles.link}>{t("auth.loginWithOtherOptions")}</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
-        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.link}>{t("auth.registerLink")}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
-          <Text style={styles.link}>{t("auth.forgotPasswordLink")}</Text>
-        </TouchableOpacity>
+        <View style={styles.registerContainer}>
+          <Text style={styles.registerText}>{t("auth.dontHaveAccount")} </Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+            <Text style={styles.registerLink}>{t("auth.sign-up")}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -154,8 +235,30 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 30,
+    marginBottom: 10,
     color: colors.primary,
+  },
+  text: {
+    fontSize: 16,
+    marginBottom: 30,
+    color: colors.secondary,
+  },
+  loginButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    padding: 15,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    marginBottom: 15,
+  },
+
+  loginButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    textAlign: "center",
+    flex: 1,
   },
   inputContainer: {
     width: "100%",
@@ -190,7 +293,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     paddingRight: 15,
   },
-  button: {
+  submitButton: {
     backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 5,
@@ -201,7 +304,7 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.7,
   },
-  buttonText: {
+  submitButtonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
@@ -218,6 +321,25 @@ const styles = StyleSheet.create({
   },
   activityIndicator: {
     height: 20,
+  },
+  iconContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  registerContainer: {
+    flexDirection: "row",
+    marginTop: 20,
+    alignItems: "center",
+  },
+  registerText: {
+    fontSize: 16,
+    color: colors.secondary,
+  },
+  registerLink: {
+    fontSize: 16,
+    color: colors.customBlueDarker,
   },
 });
 

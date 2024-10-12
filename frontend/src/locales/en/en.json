@@ -262,6 +262,12 @@
   "fail-login": "Invalid credentials",
   "no-products-found": "No products found. Try adjusting your search or filters.",
   "auth": {
+    "text": "Start selling products, earn money, chat with sellers and more.",
+    "useEmailOrUsername": "Use email or username",
+    "loginWithGoogle": "Continue with Google",
+    "loginWithFacebook": "Continue with Facebook",
+    "loginWithApple": "Continue with Apple",
+    "loginWithOtherOptions": "Login with other options",
     "login": "Login",
     "register": "Register",
     "forgotPassword": "Forgot Password",
@@ -305,7 +311,9 @@
     "usernameRequired": "Username is required",
     "usernameTooShort": "Username must be at least 3 characters",
     "usernameTooLong": "Username must not exceed 20 characters",
-    "usernameInvalidCharacters": "Username can only contain letters, numbers, and underscores"
+    "usernameInvalidCharacters": "Username can only contain letters, numbers, and underscores",
+    "dontHaveAccount": "Don't have an account?",
+    "sign-up": "Sign up"
   },
   "resetPasswordEmailSent": "Password reset email sent"
 }

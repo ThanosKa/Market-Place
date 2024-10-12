@@ -105,7 +105,7 @@ const PurchasesScreen: React.FC = () => {
       onRefresh={handleRefresh}
       onProductPress={handleProductPress}
       renderUserInfo={renderSellerInfo}
-      emptyMessage={t("noPurchasedProducts")}
+      emptyMessage={t("no-purchased-products")}
       title={t("purchases")}
       dateLabel="date-bought"
     />

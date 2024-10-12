@@ -1,4 +1,8 @@
 {
+  "sold": "SOLD",
+  "purchase-request": "Purchase request",
+  "no-purchased-products": "You haven't purchased any products yet. Items you buy will appear here.",
+  "no-sold-products": "You haven't sold any products yet. Start selling and you'll see your sales history here!",
   "purchase-request-accepted": "Purchase request accepted",
   "purchase-request-cancelled": "Purchase request cancelled",
 

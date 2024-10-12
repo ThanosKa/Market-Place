@@ -109,7 +109,7 @@ const SalesScreen: React.FC = () => {
       onRefresh={handleRefresh}
       onProductPress={handleProductPress}
       renderUserInfo={renderBuyerInfo}
-      emptyMessage={t("noSoldProducts")}
+      emptyMessage={t("no-sold-products")}
       title={t("sales")}
       dateLabel="date-sold"
     />

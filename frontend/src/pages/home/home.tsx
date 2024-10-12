@@ -77,10 +77,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ route: propRoute }) => {
     {
       enabled: false,
       onSuccess: (data) => {
+        console.log("ddda", data);
         if (data.success && data.data.unreadChatsCount !== undefined) {
           dispatch(setUnreadChatsCount(data.data.unreadChatsCount));
         }
       },
+      refetchInterval: 60000, // Refetch every minute
     }
   );
 

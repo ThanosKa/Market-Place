@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import { verifyAccessToken } from "../utils/tokenUtils";
 
 interface AuthRequest extends Request {
   userId?: string;
@@ -7,6 +7,7 @@ interface AuthRequest extends Request {
 
 export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.header("Authorization");
+  console.log("Auth header:", authHeader); // Debug log
 
   if (!authHeader) {
     return res.status(401).json({
@@ -16,7 +17,6 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
     });
   }
 
-  // Check if authHeader starts with "Bearer "
   if (!authHeader.startsWith("Bearer ")) {
     return res.status(401).json({
       success: 0,
@@ -25,16 +25,19 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
     });
   }
 
-  // Extract the token
   const token = authHeader.split(" ")[1];
+  console.log("Extracted token:", token); // Debug log
 
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY as string) as {
-      userId: string;
-    };
+    const decoded = verifyAccessToken(token);
+    console.log("Decoded token:", decoded); // Debug log
+    if (!decoded) {
+      throw new Error("Invalid token");
+    }
     req.userId = decoded.userId;
     next();
   } catch (err) {
+    console.error("Auth error:", err); // Debug log
     res.status(401).json({
       success: 0,
       message: "Token is not valid",

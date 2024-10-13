@@ -1,10 +1,14 @@
 // services/axiosConfig.ts
 import axios from "axios";
-import env from "../config/env"; // Adjust the import path as necessary
-import { getAuthToken, removeAuthToken } from "./authStorage";
+import env from "../config/env";
+import {
+  getAuthToken,
+  setAuthToken,
+  getRefreshToken,
+  removeAuthToken,
+  removeRefreshToken,
+} from "./authStorage";
 import { navigate } from "../navigation/navigationRef";
-import { Alert } from "react-native";
-import i18n from "../utils/i18n";
 
 const API_URL = `${env.PROTOCOL}://${env.SERVER}:${env.PORT}/${env.API_BASEPATH}`;
 export const BASE_URL = `${env.PROTOCOL}://${env.SERVER}:${env.PORT}`;
@@ -13,66 +17,75 @@ if (!env.PROTOCOL || !env.SERVER || !env.PORT) {
   console.error("Environment variables are not set correctly");
 }
 
-const axiosInstance = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+const createAxiosInstance = (contentType: string) => {
+  const instance = axios.create({
+    baseURL: API_URL,
+    headers: {
+      "Content-Type": contentType,
+    },
+  });
 
-axiosInstance.interceptors.request.use(
-  async (config) => {
-    const { token } = await getAuthToken();
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
+  instance.interceptors.request.use(
+    async (config) => {
+      const { token, expirationTime } = await getAuthToken();
+      if (token && expirationTime && Date.now() < expirationTime) {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      } else {
+      }
+      return config;
+    },
+    (error) => {
+      console.error("Request interceptor error:", error);
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  );
 
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response && error.response.status === 401) {
-      // Token is invalid or expired
-      await removeAuthToken();
-      navigate("Auth"); // Navigate to the Auth screen
+  instance.interceptors.response.use(
+    (response) => {
+      return response;
+    },
+    async (error) => {
+      console.error(
+        `Error response from ${error.config.url}:`,
+        error.response?.status
+      );
+      console.error("Error data:", error.response?.data);
+
+      const originalRequest = error.config;
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+        try {
+          const refreshToken = await getRefreshToken();
+          if (!refreshToken) {
+            throw new Error("No refresh token available");
+          }
+
+          console.log("Attempting to refresh token");
+          const response = await axios.post(`${API_URL}/auth/refresh-token`, {
+            refresh_token: refreshToken,
+          });
+          const { access_token } = response.data.data;
+
+          console.log("Token refreshed successfully");
+          await setAuthToken(access_token);
+          originalRequest.headers["Authorization"] = `Bearer ${access_token}`;
+          return instance(originalRequest);
+        } catch (refreshError) {
+          console.error("Error refreshing token:", refreshError);
+          await removeAuthToken();
+          await removeRefreshToken();
+          navigate("Auth");
+          return Promise.reject(refreshError);
+        }
+      }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
-);
+  );
 
-export const axiosFormDataInstance = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "multipart/form-data",
-  },
-});
+  return instance;
+};
 
-axiosFormDataInstance.interceptors.request.use(
-  async (config) => {
-    const { token } = await getAuthToken();
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const axiosInstance = createAxiosInstance("application/json");
+export const axiosFormDataInstance = createAxiosInstance("multipart/form-data");
 
-// In your axios interceptor
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response && error.response.status === 401) {
-      navigate("AuthLoading");
-    }
-    return Promise.reject(error);
-  }
-);
 export default axiosInstance;

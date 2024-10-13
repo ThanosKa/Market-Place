@@ -55,6 +55,7 @@ const LoginScreen = () => {
       reset();
       navigation.navigate("Main");
     } catch (error) {
+      console.error("Login submission error:", error);
       Toast.show({
         type: "error",
         text1: t("error"),

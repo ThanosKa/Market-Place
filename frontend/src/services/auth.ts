@@ -1,6 +1,12 @@
 // services/authService.ts
 import axiosInstance, { axiosFormDataInstance } from "./axiosConfig";
-import { setAuthToken, removeAuthToken, setUserId } from "./authStorage";
+import {
+  setAuthToken,
+  removeAuthToken,
+  setUserId,
+  setRefreshToken,
+  getRefreshToken,
+} from "./authStorage";
 import { LoginFormData, RegisterFormData } from "../interfaces/auth/auth";
 
 export const registerUser = async (userData: RegisterFormData) => {
@@ -13,22 +19,18 @@ export const registerUser = async (userData: RegisterFormData) => {
 };
 
 export const loginUser = async (userData: LoginFormData) => {
+  console.log("Attempting login with:", userData);
   try {
     const response = await axiosInstance.post("/auth/login", userData);
-    const { token, user } = response.data.data;
-    await setAuthToken(token);
+    const { access_token, refresh_token, user } = response.data.data;
+    console.log("Storing tokens and user data");
+    await setAuthToken(access_token);
+    await setRefreshToken(refresh_token);
     await setUserId(user.id);
+
     return { message: response.data.message, user };
   } catch (error) {
-    throw error;
-  }
-};
-
-export const logoutUser = async () => {
-  try {
-    await axiosInstance.post("/auth/logout");
-    await removeAuthToken();
-  } catch (error) {
+    console.error("Login error:", error);
     throw error;
   }
 };
@@ -50,3 +52,27 @@ export const uploadUserAvatar = async (userId: string, avatarFile: File) => {
 };
 
 // Add other auth-related API calls here
+
+export const refreshAuthToken = async () => {
+  try {
+    const refreshToken = await getRefreshToken();
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    const response = await axiosInstance.post("/auth/refresh-token", {
+      refresh_token: refreshToken,
+    });
+    const { access_token, refresh_token } = response.data.data;
+
+    await setAuthToken(access_token);
+    if (refresh_token) {
+      await setRefreshToken(refresh_token);
+    }
+
+    return access_token;
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    throw error;
+  }
+};

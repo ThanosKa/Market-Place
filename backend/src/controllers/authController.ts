@@ -1,8 +1,14 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import User from "../models/User";
+import User, { IUser } from "../models/User";
 import { emailSchema } from "../utils/email";
+import {
+  createAccessToken,
+  createAuthorizationCode,
+  createRefreshToken,
+  verifyAuthorizationCode,
+} from "../utils/tokenUtils";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -94,23 +100,12 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    let user;
-    if (login.includes("@")) {
-      try {
-        await emailSchema.validate(login);
-      } catch (error) {
-        return res.status(400).json({
-          success: 0,
-          message: "Invalid email address",
-          data: null,
-        });
-      }
-      user = await User.findOne({ email: login });
-    } else {
-      user = await User.findOne({ username: login });
-    }
+    // Find user
+    const user: IUser | null = await User.findOne({
+      $or: [{ email: login }, { username: login }],
+    });
 
-    if (!user) {
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(400).json({
         success: 0,
         message: "Invalid credentials",
@@ -118,26 +113,21 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: 0,
-        message: "Invalid credentials",
-        data: null,
-      });
-    }
+    // Generate authorization code
+    const authCode = createAuthorizationCode(user.id);
 
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.SECRET_KEY as string,
-      { expiresIn: "1h" }
-    );
+    // Immediately exchange the code for tokens
+    const accessToken = createAccessToken(user.id);
+    const refreshToken = createRefreshToken(user.id);
 
     res.json({
       success: 1,
       message: "Login successful",
       data: {
-        token,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        token_type: "Bearer",
+        expires_in: 3600, // 1 hour
         user: {
           id: user.id,
           email: user.email,
@@ -156,8 +146,107 @@ export const login = async (req: Request, res: Response) => {
     });
   }
 };
+export const initiateLogin = async (req: Request, res: Response) => {
+  try {
+    const { login, password } = req.body;
 
-// The forgotPassword function remains unchanged
+    if (!login || !password) {
+      return res.status(400).json({
+        success: 0,
+        message: "Login and password are required",
+        data: null,
+      });
+    }
+
+    // Find user
+    const user: IUser | null = await User.findOne({
+      $or: [{ email: login }, { username: login }],
+    });
+
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(400).json({
+        success: 0,
+        message: "Invalid credentials",
+        data: null,
+      });
+    }
+
+    // Generate authorization code
+    const authCode = createAuthorizationCode(user.id);
+
+    // In a real-world scenario, you'd redirect the user back to the client
+    // with this auth code. For this example, we'll just return it.
+    res.json({
+      success: 1,
+      message: "Authorization code generated",
+      data: {
+        code: authCode,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    if (err instanceof Error) {
+      res.status(500).json({
+        success: 0,
+        message: "Server error: " + err.message,
+        data: null,
+      });
+    } else {
+      res.status(500).json({
+        success: 0,
+        message: "An unknown error occurred",
+        data: null,
+      });
+    }
+  }
+};
+
+export const exchangeToken = async (req: Request, res: Response) => {
+  try {
+    const { code } = req.body;
+
+    // Verify the authorization code
+    const userId = verifyAuthorizationCode(code);
+
+    if (!userId) {
+      return res.status(400).json({
+        success: 0,
+        message: "Invalid authorization code",
+        data: null,
+      });
+    }
+
+    // Generate access token and refresh token
+    const accessToken = createAccessToken(userId);
+    const refreshToken = createRefreshToken(userId);
+
+    res.json({
+      success: 1,
+      message: "Token exchange successful",
+      data: {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        token_type: "Bearer",
+        expires_in: 3600, // 1 hour
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    if (err instanceof Error) {
+      res.status(500).json({
+        success: 0,
+        message: "Token exchange error: " + err.message,
+        data: null,
+      });
+    } else {
+      res.status(500).json({
+        success: 0,
+        message: "An unknown error occurred during token exchange",
+        data: null,
+      });
+    }
+  }
+};
 
 export const forgotPassword = async (req: Request, res: Response) => {
   try {

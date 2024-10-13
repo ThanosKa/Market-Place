@@ -38,9 +38,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
       current === CameraType.back ? CameraType.front : CameraType.back
     );
   };
-  useEffect(() => {
-    console.log("sell clicked");
-  }, []);
+  useEffect(() => {}, []);
   const toggleFlash = () => {
     setFlash((current) =>
       current === FlashMode.off ? FlashMode.on : FlashMode.off
@@ -67,8 +65,6 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
   };
 
   const handlePickImages = async () => {
-    console.log("Picking images:");
-
     setIsSelectingImages(true);
     try {
       const remainingSlots = 5 - currentImageCount;
@@ -82,7 +78,6 @@ const CameraComponent: React.FC<CameraComponentProps> = ({
 
       if (!result.canceled && result.assets) {
         const selectedUris = result.assets.map((asset) => asset.uri);
-        console.log("Selected URIs:", selectedUris);
 
         onPickImages(selectedUris.slice(0, remainingSlots));
         // Remove the onClose() call here

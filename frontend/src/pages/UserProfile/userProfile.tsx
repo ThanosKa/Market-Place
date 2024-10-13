@@ -72,7 +72,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     isLoading: userLoading,
     refetch: refetchUserDetails,
   } = useQuery(["userDetails", userId], () => getUserById(userId));
-  console.log("aaas", userDetails);
   const {
     data: userProducts,
     isLoading: productsLoading,

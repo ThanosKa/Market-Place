@@ -99,8 +99,6 @@ export const setupNavigationOptions = (
   navigation: StackNavigationProp<MainStackParamList, "Chat">,
   otherParticipant: User
 ) => {
-  console.log("otherParticipant:", otherParticipant); // Add this line for debugging
-
   navigation.setOptions({
     headerTitle: () => (
       <TouchableOpacity

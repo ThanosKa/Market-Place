@@ -83,8 +83,6 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
   };
 
   const handleActivityPress = () => {
-    console.log("Activity type:", item.type);
-
     if (item.type === "purchase_request") {
       if (item.product?.purchaseRequest === null) {
         Toast.show({

@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../colors/colors";
 import { User } from "../../interfaces/user";
-import { removeAuthToken } from "../../services/authStorage";
+import { logout, removeAuthToken } from "../../services/authStorage";
 import { useQueryClient } from "react-query";
 import { StackNavigationProp } from "@react-navigation/stack";
 import {
@@ -32,7 +32,7 @@ const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
   const screenWidth = Dimensions.get("window").width;
   const queryClient = useQueryClient();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     Alert.alert(t("logout"), t("logout-confirmation"), [
       {
         text: t("cancel"),
@@ -42,7 +42,7 @@ const ProfileTab: React.FC<Props> = ({ user, navigation }) => {
         text: t("yes"),
         onPress: async () => {
           try {
-            await removeAuthToken();
+            await logout();
             queryClient.clear();
             navigation.reset({
               index: 0,

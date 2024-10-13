@@ -91,3 +91,19 @@ export const removeUserId = async () => {
     console.error("Error removing user ID:", error);
   }
 };
+
+export const logout = async (): Promise<void> => {
+  try {
+    const keys = [
+      ACCESS_TOKEN_KEY,
+      REFRESH_TOKEN_KEY,
+      AUTH_EXPIRATION_KEY,
+      USER_ID_KEY,
+    ];
+    await AsyncStorage.multiRemove(keys);
+    console.log("All auth-related data cleared successfully");
+  } catch (error) {
+    console.error("Error during logout:", error);
+    throw error; // Rethrow the error so the calling function can handle it if needed
+  }
+};

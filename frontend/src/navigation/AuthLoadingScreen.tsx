@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
 import { View, ActivityIndicator, Alert } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { getAuthToken, removeAuthToken } from "../services/authStorage";
+import { getAuthToken, logout } from "../services/authStorage";
 import { RootStackParamList } from "../interfaces/auth/navigation";
 import { QueryClient } from "react-query";
 import i18n from "../utils/i18n";
 import { colors } from "../colors/colors";
+import { refreshAuthToken } from "../services/auth";
 
 type AuthLoadingScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, "AuthLoading">;
@@ -18,42 +19,54 @@ const AuthLoadingScreen: React.FC<AuthLoadingScreenProps> = ({
 }) => {
   useEffect(() => {
     const checkToken = async () => {
-      const { token, expirationTime } = await getAuthToken();
-      console.log("token: ", token);
-      console.log("expirationTime: ", expirationTime);
+      try {
+        const { token, expirationTime } = await getAuthToken();
 
-      if (token && expirationTime) {
-        if (Date.now() < expirationTime) {
-          navigation.replace("Main");
+        if (token && expirationTime) {
+          if (Date.now() < expirationTime) {
+            navigation.replace("Main");
+          } else {
+            // Token is expired, attempt to refresh
+            const newToken = await refreshAuthToken();
+            if (newToken) {
+              navigation.replace("Main");
+            } else {
+              await handleLogout();
+            }
+          }
         } else {
-          // Token is expired
-          await handleExpiredToken();
+          navigation.replace("Auth");
         }
-      } else {
-        navigation.replace("Auth");
+      } catch (error) {
+        console.error("Error checking token:", error);
+        await handleLogout();
       }
     };
 
     checkToken();
   }, [navigation]);
 
-  const handleExpiredToken = async () => {
-    await removeAuthToken();
-    queryClient.clear();
-
-    Alert.alert(
-      i18n.t("sessionTimeoutTitle"),
-      i18n.t("sessionTimeoutMessage"),
-      [
-        {
-          text: i18n.t("ok"),
-          onPress: () => {
-            navigation.replace("Auth");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      queryClient.clear();
+      Alert.alert(
+        i18n.t("sessionTimeoutTitle"),
+        i18n.t("sessionTimeoutMessage"),
+        [
+          {
+            text: i18n.t("ok"),
+            onPress: () => {
+              navigation.replace("Auth");
+            },
           },
-        },
-      ],
-      { cancelable: false }
-    );
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      console.error("Error during logout:", error);
+      navigation.replace("Auth");
+    }
   };
 
   return (

@@ -15,17 +15,14 @@ export const UnseenActivitiesProvider: React.FC<
 
   const { isLoading, refetch } = useQuery("activities", getActivities, {
     onSuccess: (data) => {
-      // console.log("Received data:", data);
       if (
         data &&
         data.data &&
         data.data.activities &&
         data.data.activities.unseenCount !== undefined
       ) {
-        // console.log("Unseen count:", data.data.activities.unseenCount);
         dispatch(setUnseenActivitiesCount(data.data.activities.unseenCount));
       } else {
-        // console.log("Unseen count not found in the expected structure:", data);
       }
     },
     refetchInterval: 60000, // Refetch every minute

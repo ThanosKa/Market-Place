@@ -1,4 +1,3 @@
-// ActivityScreen.tsx
 import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -64,50 +63,51 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
   }
 
   const groupedActivities = groupActivities(localActivities);
+  const sections = getSections(groupedActivities);
 
   return (
     <View style={styles.container}>
       <Text style={styles.notificationTitle}>{t("Notifications")}</Text>
-      <FlatList
-        ref={flatListRef}
-        data={getSections(groupedActivities)}
-        renderItem={({ item }) => (
-          <>
-            {item.data.length > 0 && (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionHeaderText}>{item.title}</Text>
-                </View>
-                {isLoading ? (
-                  <FlexibleSkeleton
-                    type="search"
-                    itemCount={10}
-                    hasProfileImage={true}
-                    profileImagePosition="left"
-                    contentLines={1}
-                  />
-                ) : (
-                  item.data.map((activity) => (
+
+      {isLoading ? (
+        <FlexibleSkeleton
+          type="search"
+          itemCount={10}
+          hasProfileImage={true}
+          profileImagePosition="left"
+          contentLines={1}
+        />
+      ) : localActivities && localActivities.length === 0 ? (
+        <Text style={styles.emptyText}>{t("No activities yet")}</Text>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={sections}
+          renderItem={({ item }) => (
+            <>
+              {item.data.length > 0 && (
+                <>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionHeaderText}>{item.title}</Text>
+                  </View>
+                  {item.data.map((activity) => (
                     <ActivityItem
                       key={activity._id}
                       item={activity}
                       onDelete={handleDeleteItem}
                       onActivityUpdate={onRefresh}
                     />
-                  ))
-                )}
-              </>
-            )}
-          </>
-        )}
-        keyExtractor={(item, index) => index.toString()}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>{t("No activities yet")}</Text>
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      />
+                  ))}
+                </>
+              )}
+            </>
+          )}
+          keyExtractor={(item, index) => index.toString()}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
+      )}
     </View>
   );
 };
@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   emptyText: {
+    fontSize: 16,
     textAlign: "center",
     marginTop: 20,
     color: colors.secondary,

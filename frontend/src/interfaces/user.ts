@@ -45,9 +45,17 @@ export type ActivityType =
   | "purchase_request_cancelled";
 
 export interface Activity {
+  userCount: number;
   _id: string;
   user: string;
   type: ActivityType;
+  senders: {
+    username: string;
+    _id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture: string;
+  }[];
   sender: {
     username: string;
     _id: string;

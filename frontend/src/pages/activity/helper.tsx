@@ -1,7 +1,7 @@
 // ActivityHelper.tsx
 
 import { Activity, User } from "../../interfaces/user";
-import { t } from "i18next";
+import { t, TFunction } from "i18next";
 import {
   isToday,
   isYesterday,
@@ -50,7 +50,11 @@ export const groupActivities = (activities: Activity[]): GroupedActivities => {
   return grouped;
 };
 
-export const getActivityMessage = (type: string): string => {
+export const getActivityMessage = (
+  type: string,
+  userCount: number,
+  t: TFunction
+): string => {
   switch (type) {
     case "product_like":
       return t("liked-your-product");

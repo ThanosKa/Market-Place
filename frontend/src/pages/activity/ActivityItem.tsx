@@ -66,10 +66,11 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
   };
 
   const renderProfilePicture = () => {
-    if (item.sender.profilePicture) {
+    const latestSender = item.senders[0]; // The first sender in the array is the latest
+    if (latestSender.profilePicture) {
       return (
         <Image
-          source={{ uri: `${item.sender.profilePicture}` }}
+          source={{ uri: `${latestSender.profilePicture}` }}
           style={styles.profileImage}
         />
       );
@@ -154,7 +155,17 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       }
     }
   };
-
+  const renderActivityMessage = () => {
+    const message = getActivityMessage(item.type, item.userCount, t);
+    return (
+      <Text style={styles.activityMessage}>
+        {message}
+        {/* {item.product && item.type === "product_like" && (
+          <Text style={styles.productTitle}> {item.product.title}</Text>
+        )} */}
+      </Text>
+    );
+  };
   return (
     <Swipeable renderRightActions={renderRightActions}>
       <TouchableOpacity onPress={handleActivityPress}>
@@ -165,12 +176,11 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
           {renderProfilePicture()}
           <View style={styles.activityContent}>
             <Text style={styles.userName}>
-              {/* {item.sender.firstName} {item.sender.lastName} */}
-              {item.sender.username}
+              {item.senders[0].username}
+              {item.userCount > 1 &&
+                ` ${t("and")} ${item.userCount - 1} ${t("others")}`}
             </Text>
-            <Text style={styles.activityMessage}>
-              {getActivityMessage(item.type)}
-            </Text>
+            {renderActivityMessage()}
             <Text style={styles.timestamp}>
               {getTranslatableTimeString(new Date(item.createdAt), t)}
             </Text>
@@ -288,6 +298,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 60,
     height: 60,
+  },
+  productTitle: {
+    fontWeight: "bold",
   },
 });
 

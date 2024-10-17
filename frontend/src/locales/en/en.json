@@ -1,4 +1,10 @@
 {
+  "purchase-request-changed": "Purchase request has changed",
+
+  "and": "and",
+  "others": "others",
+  "purchase-request-sent": "Purchase request sent",
+  "wants-to-buy-your-product": "Wants to buy your product",
   "sold": "SOLD",
   "purchase-request": "Purchase request",
   "no-purchased-products": "You haven't purchased any products yet. Items you buy will appear here.",
@@ -7,7 +13,7 @@
   "purchase-request-cancelled": "Purchase request cancelled",
 
   "purchase_request_cancelled": "Purchase request cancelled",
-  "purchase_request": "Sent a purchase request",
+  "purchase_request": "sent a purchase request",
   "purchase_request_accepted": "Purchase request accepted",
   "view-profile": "View profile",
   "max": "Max",
@@ -56,8 +62,8 @@
   "purchased-your-product": "Purchased your product",
   "review-done": "Review Done",
   "you-have-already-reviewed-this-product": "You have already reviewed this product",
-  "created-a-review": "Created a review",
-  "sent-you-a-review-request": "Sent you a review request",
+  "created-a-review": "created a review",
+  "sent-you-a-review-request": "sent you a review request",
   "your-rating": "Your rating",
   "share-thoughts-placeholder": "Share your thoughts about the product...",
   "submit-review": "Submit review",

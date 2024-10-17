@@ -61,8 +61,6 @@ export const getActivities = async (req: Request, res: Response) => {
 
     const activitiesItems = await Activity.find({ user: userId })
       .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
       .populate("sender", "firstName lastName profilePicture username")
       .populate({
         path: "product",
@@ -79,32 +77,9 @@ export const getActivities = async (req: Request, res: Response) => {
       read: false,
     });
 
-    const formattedActivities = activitiesItems.map((activity) => {
-      const formattedActivity: any = {
-        ...activity.toObject(),
-        reviewStatus:
-          activity.type === ActivityTypes.REVIEW_PROMPT
-            ? activity.reviewDone
-              ? "Reviewed"
-              : "Pending"
-            : undefined,
-        sender: formatUser(activity.sender),
-      };
+    const groupedActivities = groupActivities(activitiesItems);
 
-      if (activity.product) {
-        formattedActivity.product = formatProductData(activity.product);
-        if (
-          formattedActivity.product &&
-          formattedActivity.product.purchaseRequest
-        ) {
-          formattedActivity.product.purchaseRequest.buyer = formatUser(
-            formattedActivity.product.purchaseRequest.buyer
-          );
-        }
-      }
-
-      return formattedActivity;
-    });
+    const formattedActivities = groupedActivities.map(formatGroupedActivity);
 
     res.json({
       success: 1,
@@ -131,6 +106,50 @@ export const getActivities = async (req: Request, res: Response) => {
     });
   }
 };
+
+const groupActivities = (activities: any[]): any[] => {
+  const groupedMap = new Map();
+
+  activities.forEach((activity) => {
+    const key = `${activity.type}_${activity.product?._id || "profile"}`;
+    if (!groupedMap.has(key)) {
+      groupedMap.set(key, []);
+    }
+    groupedMap.get(key).push(activity);
+  });
+
+  return Array.from(groupedMap.values());
+};
+
+const formatGroupedActivity = (group: any[]): any => {
+  const firstActivity = group[0];
+  const formattedActivity: any = {
+    ...firstActivity.toObject(),
+    type: firstActivity.type,
+    senders: group.map((a) => formatUser(a.sender)),
+    userCount: group.length,
+    createdAt: group[group.length - 1].createdAt,
+    lastSentAt: group[0].lastSentAt,
+  };
+
+  if (firstActivity.type === ActivityTypes.REVIEW_PROMPT) {
+    formattedActivity.reviewStatus = firstActivity.reviewDone
+      ? "Reviewed"
+      : "Pending";
+  }
+
+  if (firstActivity.product) {
+    formattedActivity.product = formatProductData(firstActivity.product);
+    if (formattedActivity.product?.purchaseRequest?.buyer) {
+      formattedActivity.product.purchaseRequest.buyer = formatUser(
+        formattedActivity.product.purchaseRequest.buyer
+      );
+    }
+  }
+
+  return formattedActivity;
+};
+
 export const markActivityAsRead = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

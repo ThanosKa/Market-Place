@@ -1,6 +1,6 @@
 {
+  "other": "other",
   "purchase-request-changed": "Purchase request has changed",
-
   "and": "and",
   "others": "others",
   "purchase-request-sent": "Purchase request sent",
@@ -11,7 +11,6 @@
   "no-sold-products": "You haven't sold any products yet. Start selling and you'll see your sales history here!",
   "purchase-request-accepted": "Purchase request accepted",
   "purchase-request-cancelled": "Purchase request cancelled",
-
   "purchase_request_cancelled": "Purchase request cancelled",
   "purchase_request": "sent a purchase request",
   "purchase_request_accepted": "Purchase request accepted",
@@ -268,6 +267,8 @@
   "fail-login": "Invalid credentials",
   "no-products-found": "No products found. Try adjusting your search or filters.",
   "auth": {
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in",
     "text": "Start selling products, earn money, chat with sellers and more.",
     "useEmailOrUsername": "Use email or username",
     "loginWithGoogle": "Continue with Google",

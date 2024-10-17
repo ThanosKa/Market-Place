@@ -237,9 +237,12 @@ const RegisterScreen = () => {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-        <Text style={styles.link}>{t("auth.loginLink")}</Text>
-      </TouchableOpacity>
+      <View style={styles.loginContainer}>
+        <Text style={styles.loginText}>{t("auth.alreadyHaveAccount")} </Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={styles.loginLink}>{t("auth.signIn")}</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };
@@ -328,6 +331,20 @@ const styles = StyleSheet.create({
     marginTop: 5,
     alignSelf: "flex-start",
     marginBottom: 5,
+  },
+  loginContainer: {
+    flexDirection: "row",
+    marginTop: 20,
+    alignItems: "center",
+  },
+  loginText: {
+    fontSize: 16,
+    color: colors.secondary,
+  },
+  loginLink: {
+    fontSize: 16,
+    color: colors.customBlueDarker,
+    marginLeft: 5,
   },
 });
 

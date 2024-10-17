@@ -155,6 +155,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       }
     }
   };
+
   const renderActivityMessage = () => {
     const message = getActivityMessage(item.type, item.userCount, t);
     return (
@@ -166,6 +167,26 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       </Text>
     );
   };
+  const renderUsernames = () => {
+    if (item.userCount === 1) {
+      return <Text style={styles.userName}>{item.senders[0].username}</Text>;
+    } else if (item.userCount === 2) {
+      return (
+        <Text style={styles.userName}>
+          {item.senders[0].username} {t("and")} {item.senders[1].username}
+        </Text>
+      );
+    } else {
+      const othersCount = item.userCount - 2;
+      return (
+        <Text style={styles.userName}>
+          {item.senders[0].username}, {item.senders[1].username} {t("and")}{" "}
+          {othersCount} {othersCount === 1 ? t("other") : t("others")}
+        </Text>
+      );
+    }
+  };
+
   return (
     <Swipeable renderRightActions={renderRightActions}>
       <TouchableOpacity onPress={handleActivityPress}>
@@ -175,11 +196,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
           {!item.read && <View style={styles.unseenDot} />}
           {renderProfilePicture()}
           <View style={styles.activityContent}>
-            <Text style={styles.userName}>
-              {item.senders[0].username}
-              {item.userCount > 1 &&
-                ` ${t("and")} ${item.userCount - 1} ${t("others")}`}
-            </Text>
+            {renderUsernames()}
             {renderActivityMessage()}
             <Text style={styles.timestamp}>
               {getTranslatableTimeString(new Date(item.createdAt), t)}

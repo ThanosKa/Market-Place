@@ -217,6 +217,7 @@ const BuyBottomSheet: React.FC<BuyBottomSheetProps> = ({
           type: "success",
           text1: t("purchase-request-sent"),
           position: "bottom",
+          bottomOffset: 130,
           visibilityTime: 3000,
         });
         queryClient.invalidateQueries(["product", product._id]);

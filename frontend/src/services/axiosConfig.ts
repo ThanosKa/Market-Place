@@ -12,6 +12,7 @@ import { navigate } from "../navigation/navigationRef";
 
 const API_URL = `${env.PROTOCOL}://${env.SERVER}:${env.PORT}/${env.API_BASEPATH}`;
 export const BASE_URL = `${env.PROTOCOL}://${env.SERVER}:${env.PORT}`;
+export const BASE_URL_API = `${env.PROTOCOL}://${env.SERVER}:${env.PORT}/api`;
 
 if (!env.PROTOCOL || !env.SERVER || !env.PORT) {
   console.error("Environment variables are not set correctly");

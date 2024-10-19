@@ -16,6 +16,12 @@ import { useTranslation } from "react-i18next";
 import { createReview } from "../../services/reviews";
 import { markAllActivitiesAsRead } from "../../services/activity";
 import Toast from "react-native-toast-message";
+import {
+  QueryObserverResult,
+  RefetchOptions,
+  RefetchQueryFilters,
+} from "react-query";
+import { GetActivitiesResponse } from "../../services/activity";
 
 const { width } = Dimensions.get("window");
 const MODAL_WIDTH = width * 0.9;
@@ -27,6 +33,9 @@ interface ReviewModalProps {
   productName?: string;
   productImage?: string;
   revieweeId?: string;
+  refetchActivities: <TPageData>(
+    options?: (RefetchOptions & RefetchQueryFilters<TPageData>) | undefined
+  ) => Promise<QueryObserverResult<GetActivitiesResponse, Error>>;
 }
 
 const ReviewModal: React.FC<ReviewModalProps> = ({
@@ -36,6 +45,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
   productName,
   productImage,
   revieweeId,
+  refetchActivities,
 }) => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
@@ -61,6 +71,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
       });
       onClose();
       await markAllActivitiesAsRead();
+      await refetchActivities();
       Toast.show({
         type: "success",
         text1: t("review-sent"),
@@ -75,6 +86,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const isSubmitDisabled = rating === 0 || review.trim() === "" || isSubmitting;
 
   return (
     <Modal
@@ -126,10 +139,10 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
           <TouchableOpacity
             style={[
               styles.submitButton,
-              !rating && styles.submitButtonDisabled,
+              isSubmitDisabled && styles.submitButtonDisabled,
             ]}
             onPress={handleSubmit}
-            disabled={!rating || isSubmitting}
+            disabled={isSubmitDisabled}
           >
             {isSubmitting ? (
               <ActivityIndicator color="white" />

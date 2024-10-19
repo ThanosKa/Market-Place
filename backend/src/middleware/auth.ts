@@ -7,7 +7,7 @@ interface AuthRequest extends Request {
 
 export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.header("Authorization");
-  console.log("Auth header:", authHeader); // Debug log
+  // console.log("Auth header:", authHeader); // Debug log
 
   if (!authHeader) {
     return res.status(401).json({
@@ -26,11 +26,11 @@ export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
   }
 
   const token = authHeader.split(" ")[1];
-  console.log("Extracted token:", token); // Debug log
+  // console.log("Extracted token:", token); // Debug log
 
   try {
     const decoded = verifyAccessToken(token);
-    console.log("Decoded token:", decoded); // Debug log
+    // console.log("Decoded token:", decoded); // Debug log
     if (!decoded) {
       throw new Error("Invalid token");
     }

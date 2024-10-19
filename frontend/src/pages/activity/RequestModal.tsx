@@ -16,15 +16,18 @@ import {
   acceptPurchaseRequest,
   cancelPurchaseRequest,
 } from "../../services/payment";
+import { BASE_URL_API } from "../../services/axiosConfig";
 
 interface RequestModalProps {
   isVisible: boolean;
   onClose: () => void;
+
   buyer: {
     _id: string;
     firstName: string;
     lastName: string;
     profilePicture: string;
+    username: string;
   };
   product: {
     _id: string;
@@ -82,15 +85,16 @@ const RequestModal: React.FC<RequestModalProps> = ({
           <View style={styles.buyerInfo}>
             {buyer.profilePicture ? (
               <Image
-                source={{ uri: buyer.profilePicture }}
+                source={{ uri: `${BASE_URL_API}/${buyer.profilePicture}` }}
                 style={styles.buyerImage}
               />
             ) : (
               <UndefProfPicture size={80} iconSize={40} />
             )}
-            <Text
+            {/* <Text
               style={styles.buyerName}
-            >{`${buyer.firstName} ${buyer.lastName}`}</Text>
+            >{`${buyer.firstName} ${buyer.lastName}`}</Text> */}
+            <Text style={styles.buyerName}>{`${buyer.username}`}</Text>
           </View>
 
           <Text style={styles.requestText}>
@@ -106,6 +110,21 @@ const RequestModal: React.FC<RequestModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.button,
+                styles.declineButton,
+                (isAcceptLoading || isDeclineLoading) && styles.disabledButton,
+              ]}
+              onPress={handleDecline}
+              disabled={isAcceptLoading || isDeclineLoading}
+            >
+              {isDeclineLoading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.buttonTextDecline}>{t("decline")}</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
                 styles.acceptButton,
                 (isAcceptLoading || isDeclineLoading) && styles.disabledButton,
               ]}
@@ -116,21 +135,6 @@ const RequestModal: React.FC<RequestModalProps> = ({
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.buttonText}>{t("accept")}</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.declineButton,
-                (isAcceptLoading || isDeclineLoading) && styles.disabledButton,
-              ]}
-              onPress={handleDecline}
-              disabled={isAcceptLoading || isDeclineLoading}
-            >
-              {isDeclineLoading ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={styles.buttonText}>{t("decline")}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -190,14 +194,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     width: "100%",
   },
-
   acceptButton: {
-    backgroundColor: colors.customBlue,
+    backgroundColor: colors.customBlueDarker,
   },
   declineButton: {
     backgroundColor: colors.danger,
   },
-
   disabledButton: {
     opacity: 0.5,
   },
@@ -211,7 +213,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.white,
-    fontWeight: "bold",
+    // fontWeight: "bold",
+    fontSize: 16,
+  },
+  buttonTextDecline: {
+    color: colors.white,
+    // fontWeight: "bold",
     fontSize: 16,
   },
 });

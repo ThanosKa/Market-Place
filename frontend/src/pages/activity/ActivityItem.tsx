@@ -21,17 +21,27 @@ import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import ReviewModal from "./ReviewModal";
 import RequestModal from "./RequestModal";
+import {
+  QueryObserverResult,
+  RefetchOptions,
+  RefetchQueryFilters,
+} from "react-query";
+import { GetActivitiesResponse } from "../../services/activity";
 
 interface ActivityItemProps {
   item: Activity;
   onDelete: (id: string) => void;
   onActivityUpdate: () => void;
+  refetchActivities: <TPageData>(
+    options?: (RefetchOptions & RefetchQueryFilters<TPageData>) | undefined
+  ) => Promise<QueryObserverResult<GetActivitiesResponse, Error>>;
 }
 
 const ActivityItem: React.FC<ActivityItemProps> = ({
   item,
   onDelete,
   onActivityUpdate,
+  refetchActivities,
 }) => {
   const [isReviewModalVisible, setReviewModalVisible] = useState(false);
   const [isRequestModalVisible, setRequestModalVisible] = useState(false);
@@ -86,13 +96,15 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
   const handleActivityPress = () => {
     if (item.type === "purchase_request") {
       if (item.product?.purchaseRequest === null) {
-        Toast.show({
-          type: "info",
-          text1: t("purchase-request-changed"),
-          position: "bottom",
-          visibilityTime: 3000,
-          bottomOffset: 110,
-        });
+        navigation.navigate("Product", { productId: item.product._id });
+
+        // Toast.show({
+        //   type: "info",
+        //   text1: t("purchase-request-changed"),
+        //   position: "bottom",
+        //   visibilityTime: 3000,
+        //   bottomOffset: 110,
+        // });
       } else if (item.product?.purchaseRequest?.status === "pending") {
         setRequestModalVisible(true);
       } else {
@@ -224,6 +236,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
         productName={item.product?.title}
         productImage={item.product?.images[0]}
         revieweeId={item.sender._id}
+        refetchActivities={refetchActivities}
       />
       <RequestModal
         isVisible={isRequestModalVisible}
@@ -239,7 +252,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
             visibilityTime: 3000,
             bottomOffset: 110,
           });
-          onActivityUpdate();
+          refetchActivities();
         }}
         onDecline={() => {
           setRequestModalVisible(false);
@@ -250,7 +263,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
             visibilityTime: 3000,
             bottomOffset: 110,
           });
-          onActivityUpdate();
+          refetchActivities();
         }}
       />
     </Swipeable>

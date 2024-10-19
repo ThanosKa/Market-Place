@@ -61,6 +61,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
     "inPerson" | "card"
   >("inPerson");
   const [selectedOption, setSelectedOption] = useState<string>("default");
+  const [isReviewRequestLoading, setIsReviewRequestLoading] = useState(false);
 
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -181,11 +182,16 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
       return;
     }
 
+    setIsReviewRequestLoading(true);
+
     createReviewPromptMutation.mutate(productId, {
       onSuccess: (data) => {
+        setIsReviewRequestLoading(false);
         const buyerFirstName = product?.sold?.to?.firstName ?? t("unknown");
         const buyerLastName = product?.sold?.to?.lastName ?? t("buyer");
         const buyerName = `${buyerFirstName} ${buyerLastName}`;
+
+        // const buyerFirstName = product?.sold?.to?.firstName ?? t("unknown");
 
         if (data.data === 0) {
           Toast.show({
@@ -223,6 +229,7 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
         }
       },
       onError: (error) => {
+        setIsReviewRequestLoading(false);
         Toast.show({
           type: "error",
           text1: t("failed-to-send-review-request"),
@@ -452,16 +459,23 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
       {isCurrentUserSeller && !isEditing && isSold && (
         <View style={styles.buyButtonContainer}>
           <TouchableOpacity
-            style={styles.reviewRequestButton}
+            style={[
+              styles.reviewRequestButton,
+              isReviewRequestLoading && styles.disabledButton,
+            ]}
             onPress={handleSendReviewRequest}
+            disabled={isReviewRequestLoading}
           >
-            <Text style={styles.reviewRequestButtonText}>
-              {t("send-review-request")}
-            </Text>
+            {isReviewRequestLoading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.reviewRequestButtonText}>
+                {t("send-review-request")}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
-
       <ImageViewerModal
         images={product.images}
         isVisible={isImageViewerVisible}
@@ -644,11 +658,16 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
     borderRadius: 10,
+    flexDirection: "row",
+    justifyContent: "center",
   },
   reviewRequestButtonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });
 

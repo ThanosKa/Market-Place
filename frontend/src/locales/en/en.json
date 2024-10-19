@@ -1,4 +1,6 @@
 {
+  "accept": "Accept",
+  "decline": "Decline",
   "other": "other",
   "purchase-request-changed": "Purchase request has changed",
   "and": "and",

@@ -96,6 +96,7 @@ const ActivityScreen: React.FC<ActivityScreenProps> = ({
                       item={activity}
                       onDelete={handleDeleteItem}
                       onActivityUpdate={onRefresh}
+                      refetchActivities={refetch}
                     />
                   ))}
                 </>

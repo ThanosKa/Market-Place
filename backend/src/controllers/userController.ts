@@ -324,7 +324,7 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
     }
 
     const users = await User.find(filter)
-      .select("email firstName lastName profilePicture bio balance")
+      .select("email firstName lastName profilePicture bio balance username")
       .skip(skip)
       .limit(limit);
 
@@ -342,6 +342,7 @@ export const getAllUsersInfo = async (req: Request, res: Response) => {
 
         return {
           id: user._id,
+          username: user.username,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,

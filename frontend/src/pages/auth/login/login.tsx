@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,11 +22,13 @@ import Toast from "react-native-toast-message";
 import { createLoginSchema } from "../../../schema/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { LoginFormData } from "../../../interfaces/auth/auth";
-import Google from "../../../../assets/logos/googleLogo.svg";
+import GoogleLOGO from "../../../../assets/logos/googleLogo.svg";
 import Facebook from "../../../../assets/logos/fbLogo.svg";
 import Apple from "../../../../assets/logos/appleLogo.svg";
 import { Ionicons } from "@expo/vector-icons";
-
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import { Platform } from "react-native";
 type LoginScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
   "Login"
@@ -64,9 +66,58 @@ const LoginScreen = () => {
       });
     }
   };
+  WebBrowser.maybeCompleteAuthSession();
 
-  const handleSocialLogin = (provider: string) => {
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId:
+      "120122687406-nqdrouv0kpnq0i6krrl912h1ov6uvoop.apps.googleusercontent.com",
+    iosClientId:
+      "120122687406-ncnenq5kve8fh3cm4vjoq9729hm8lov9.apps.googleusercontent.com",
+    webClientId:
+      "120122687406-894tbp08q0mq3r9mnqj20i6kppnimc0v.apps.googleusercontent.com", // Your web client ID
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { authentication } = response;
+      console.log("Google Auth Success!", authentication);
+      // You can also get user info:
+      getUserInfo(authentication?.accessToken);
+    }
+  }, [response]);
+
+  const getUserInfo = async (token: any) => {
+    try {
+      const response = await fetch(
+        "https://www.googleapis.com/userinfo/v2/me",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const user = await response.json();
+      console.log("User Info:", user);
+      // Here you can handle the login success
+      // navigation.navigate("Main"); // Navigate to main screen
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+  };
+
+  const handleSocialLogin = async (provider: string) => {
     console.log(`Logging in with ${provider}`);
+
+    if (provider === "Google") {
+      try {
+        const result = await promptAsync();
+        if (result.type === "success") {
+          console.log("Google login successful!");
+        }
+      } catch (error) {
+        console.error("Google login error:", error);
+      }
+    } else {
+      console.log(`Logging in with ${provider}`);
+    }
   };
 
   return (
@@ -98,7 +149,7 @@ const LoginScreen = () => {
               onPress={() => handleSocialLogin("Google")}
             >
               <View style={styles.iconContainer}>
-                <Google width={24} height={24} />
+                <GoogleLOGO width={24} height={24} />
               </View>
               <Text style={styles.loginButtonText}>
                 {t("auth.loginWithGoogle")}

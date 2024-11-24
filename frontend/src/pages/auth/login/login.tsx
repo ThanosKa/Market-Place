@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,15 +22,25 @@ import Toast from "react-native-toast-message";
 import { createLoginSchema } from "../../../schema/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { LoginFormData } from "../../../interfaces/auth/auth";
-import Google from "../../../../assets/logos/googleLogo.svg";
+import GoogleSVG from "../../../../assets/logos/googleLogo.svg";
 import Facebook from "../../../../assets/logos/fbLogo.svg";
 import Apple from "../../../../assets/logos/appleLogo.svg";
 import { Ionicons } from "@expo/vector-icons";
-
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
 type LoginScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
   "Login"
 >;
+
+const webClientId =
+  "120122687406-894tbp08q0mq3r9mnqj20i6kppnimc0v.apps.googleusercontent.com";
+const iosClientId =
+  "120122687406-ncnenq5kve8fh3cm4vjoq9729hm8lov9.apps.googleusercontent.com";
+const androidClientId =
+  "120122687406-nqdrouv0kpnq0i6krrl912h1ov6uvoop.apps.googleusercontent.com";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const LoginScreen = () => {
   const { t } = useTranslation();
@@ -64,9 +74,57 @@ const LoginScreen = () => {
       });
     }
   };
+  const config = {
+    webClientId,
+    iosClientId,
+    androidClientId,
+  };
+  const redirectUri = "https://localhost:8082";
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Logging in with ${provider}`);
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: androidClientId,
+    iosClientId: iosClientId,
+    webClientId: webClientId,
+    responseType: "token", // or "code" for production
+    scopes: ["profile", "email"],
+    redirectUri: redirectUri,
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      console.log("Auth Success Response:", response);
+      const { authentication } = response;
+      console.log("Access Token:", authentication?.accessToken);
+    } else if (response) {
+      console.log("Auth Response Type:", response.type);
+    }
+  }, [response]);
+
+  const handleSocialLogin = async (provider: string) => {
+    if (provider === "Google") {
+      try {
+        if (request) {
+          console.log(
+            "Redirect URI being sent to Google:",
+            request.redirectUri
+          );
+        }
+
+        if (request) {
+          console.log("Auth Request Details:", {
+            clientId: request.clientId,
+            responseType: request.responseType,
+            redirectUri: request.redirectUri,
+          });
+        }
+
+        // Simply call promptAsync without options
+        const result = await promptAsync();
+        console.log("Auth Result:", result);
+      } catch (error) {
+        console.error("Google Sign In Error:", error);
+      }
+    }
   };
 
   return (
@@ -98,7 +156,7 @@ const LoginScreen = () => {
               onPress={() => handleSocialLogin("Google")}
             >
               <View style={styles.iconContainer}>
-                <Google width={24} height={24} />
+                <GoogleSVG width={24} height={24} />
               </View>
               <Text style={styles.loginButtonText}>
                 {t("auth.loginWithGoogle")}

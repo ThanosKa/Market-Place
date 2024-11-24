@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 import {
   View,
   Text,
@@ -22,10 +23,13 @@ import Toast from "react-native-toast-message";
 import { createLoginSchema } from "../../../schema/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { LoginFormData } from "../../../interfaces/auth/auth";
-import Google from "../../../../assets/logos/googleLogo.svg";
+import GoogleSVG from "../../../../assets/logos/googleLogo.svg";
 import Facebook from "../../../../assets/logos/fbLogo.svg";
 import Apple from "../../../../assets/logos/appleLogo.svg";
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import Constants from "expo-constants";
 
 type LoginScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
@@ -38,6 +42,29 @@ const LoginScreen = () => {
   const [showEmailLogin, setShowEmailLogin] = useState(false);
 
   const loginSchema = React.useMemo(() => createLoginSchema(t), [t]);
+  WebBrowser.maybeCompleteAuthSession();
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId:
+      "120122687406-nqdrouv0kpnq0i6krrl912h1ov6uvoop.apps.googleusercontent.com",
+    iosClientId:
+      "120122687406-ncnenq5kve8fh3cm4vjoq9729hm8lov9.apps.googleusercontent.com",
+    webClientId:
+      "120122687406-894tbp08q0mq3r9mnqj20i6kppnimc0v.apps.googleusercontent.com",
+    redirectUri: "http://localhost:5001",
+  });
+
+  useEffect(() => {
+    handleGoogleSignInResponse();
+  }, [response]);
+
+  useEffect(() => {
+    if (response?.type === "error") {
+      console.error("Google Auth Error:", response.error);
+    } else if (response?.type === "success") {
+      const { authentication } = response;
+      console.log("Authentication successful:", authentication);
+    }
+  }, [response]);
 
   const {
     control,
@@ -65,10 +92,51 @@ const LoginScreen = () => {
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`Logging in with ${provider}`);
+  const handleSocialLogin = async (provider: string) => {
+    if (provider === "Google") {
+      try {
+        console.log("Authorization URL:", request?.url); // This will log the authorization URL
+        await promptAsync();
+      } catch (error) {
+        console.error("Google sign in error:", error);
+        Toast.show({
+          type: "error",
+          text1: t("error"),
+          text2: t("fail-login"),
+          position: "bottom",
+        });
+      }
+    } else {
+      console.log(`Logging in with ${provider}`);
+    }
   };
+  const handleGoogleSignInResponse = async () => {
+    if (response?.type === "success") {
+      try {
+        const { authentication } = response;
+        // Get user info using the access token
+        const userInfoResponse = await fetch(
+          "https://www.googleapis.com/userinfo/v2/me",
+          {
+            headers: { Authorization: `Bearer ${authentication?.accessToken}` },
+          }
+        );
 
+        const userInfo = await userInfoResponse.json();
+        console.log("Google User Info:", userInfo);
+
+        navigation.navigate("Main");
+      } catch (error) {
+        console.error("Error getting user info:", error);
+        Toast.show({
+          type: "error",
+          text1: t("error"),
+          text2: t("fail-login"),
+          position: "bottom",
+        });
+      }
+    }
+  };
   return (
     <ScrollView contentContainerStyle={styles.scrollViewContent}>
       <View style={styles.container}>
@@ -98,7 +166,7 @@ const LoginScreen = () => {
               onPress={() => handleSocialLogin("Google")}
             >
               <View style={styles.iconContainer}>
-                <Google width={24} height={24} />
+                <GoogleSVG width={24} height={24} />
               </View>
               <Text style={styles.loginButtonText}>
                 {t("auth.loginWithGoogle")}

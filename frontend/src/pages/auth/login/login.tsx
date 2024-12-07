@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,19 @@ import Facebook from "../../../../assets/logos/fbLogo.svg";
 import Apple from "../../../../assets/logos/appleLogo.svg";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useOAuth, useUser } from "@clerk/clerk-expo";
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+
+// Add this hook at the top of your component
+const useWarmUpBrowser = () => {
+  useEffect(() => {
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
+};
 type LoginScreenNavigationProp = StackNavigationProp<
   AuthStackParamList & RootStackParamList,
   "Login"
@@ -64,9 +77,43 @@ const LoginScreen = () => {
       });
     }
   };
-
-  const handleSocialLogin = (provider: string) => {
+  useWarmUpBrowser();
+  const { user } = useUser();
+  
+  // Add this for OAuth
+  const redirectUrl = Linking.createURL("/oauth-native-callback");
+  const { startOAuthFlow } = useOAuth({ 
+    strategy: "oauth_google",
+    redirectUrl
+  });
+ 
+  const handleSocialLogin = async (provider: string) => {
     console.log(`Logging in with ${provider}`);
+
+    if (provider === "Google") {
+      try {
+        const result = await startOAuthFlow();
+        
+        if (result?.createdSessionId) {
+          // Successfully signed in
+          console.log("Google Auth Success!");
+          
+          // Log user details
+          if (user) {
+            console.log('User Details:', {
+              id: user.id,
+              email: user.primaryEmailAddress?.emailAddress,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              profileImage: user.imageUrl,
+              fullName: `${user.firstName} ${user.lastName}`,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("OAuth error:", err);
+      }
+    }
   };
 
   return (

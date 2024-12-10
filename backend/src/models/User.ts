@@ -17,8 +17,11 @@ export interface IUser extends Document {
   balance: number;
   createdAt: Date;
   updatedAt: Date;
+  clerkId?: string;  
+  authProvider: 'local' | 'clerk';   
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
+
 
 const UserSchema: Schema = new Schema(
   {
@@ -35,6 +38,8 @@ const UserSchema: Schema = new Schema(
     averageRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
     balance: { type: Number, default: 0 },
+    clerkId: { type: String, sparse: true, unique: true },
+    authProvider: { type: String, enum: ['local', 'clerk'], default: 'local' },
   },
   { timestamps: true }
 );

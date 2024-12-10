@@ -14,6 +14,7 @@ import recentSearchRoutes from "./routes/recentSearchRoutes";
 import activityRoutes from "./routes/activityRoutes";
 import { connectDatabase } from "./config/database";
 import cors from "cors";
+import { clerkMiddleware } from '@clerk/express';
 
 dotenv.config();
 
@@ -27,6 +28,12 @@ const BASE_URL = `${PROTOCOL}://${SERVER}:${PORT}`;
 export const API_BASE_URL = `${BASE_URL}/${API_BASEPATH}`;
 
 app.use(cors());
+
+
+
+app.use(cors());
+app.use(express.json());
+app.use(clerkMiddleware());
 app.use(express.json());
 app.use(
   `/${API_BASEPATH}/uploads`,

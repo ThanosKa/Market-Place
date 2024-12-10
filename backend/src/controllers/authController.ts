@@ -9,6 +9,15 @@ import {
   createRefreshToken,
   verifyAuthorizationCode,
 } from "../utils/tokenUtils";
+import { createClerkClient } from '@clerk/backend';
+
+
+// Define interface for the request with auth
+interface AuthenticatedRequest extends Request {
+  auth?: {
+    userId?: string;
+  };
+}
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -146,6 +155,115 @@ export const login = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+// Define interface for the request with auth
+interface AuthenticatedRequest extends Request {
+  auth?: {
+    userId?: string;
+  };
+}
+
+
+ 
+
+export const handleClerkAuth = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { 
+      clerkId, 
+      email, 
+      firstName, 
+      lastName, 
+      imageUrl 
+    } = req.body;
+
+    // Create clerk client
+    const clerkClient = createClerkClient({ 
+      secretKey: process.env.CLERK_SECRET_KEY! 
+    });
+
+    // Verify the user with Clerk if you have clerkId
+    if (clerkId) {
+      try {
+        const clerkUser = await clerkClient.users.getUser(clerkId);
+        if (!clerkUser) {
+          return res.status(401).json({
+            success: 0,
+            message: "Invalid Clerk user",
+            data: null
+          });
+        }
+      } catch (error) {
+        console.error('Error verifying Clerk user:', error);
+        return res.status(401).json({
+          success: 0,
+          message: "Failed to verify Clerk user",
+          data: null
+        });
+      }
+    }
+
+    // Find or create user
+    let user = await User.findOne({ 
+      $or: [
+        { email },
+        { clerkId }
+      ]
+    });
+
+    if (!user) {
+      user = new User({
+        email,
+        clerkId,
+        firstName,
+        lastName,
+        username: email.split('@')[0],
+        authProvider: 'clerk',
+        profilePicture: imageUrl,
+        password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+      });
+
+      await user.save();
+    } else if (!user.clerkId) {
+      user.clerkId = clerkId;
+      user.authProvider = 'clerk';
+      if (imageUrl) user.profilePicture = imageUrl;
+      await user.save();
+    }
+
+    const accessToken = createAccessToken(user.id);
+    const refreshToken = createRefreshToken(user.id);
+
+    res.json({
+      success: 1,
+      message: "Authentication successful",
+      data: {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        token_type: "Bearer",
+        expires_in: 3600,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          profilePicture: user.profilePicture
+        }
+      }
+    });
+
+  } catch (err) {
+    console.error('Clerk auth error:', err);
+    res.status(500).json({
+      success: 0,
+      message: "Server error during authentication",
+      data: null
+    });
+  }
+};
+
+
 export const initiateLogin = async (req: Request, res: Response) => {
   try {
     const { login, password } = req.body;
@@ -278,3 +396,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
+

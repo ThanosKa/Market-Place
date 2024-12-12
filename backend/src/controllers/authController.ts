@@ -12,8 +12,7 @@ import {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, username, password, confirmPassword, firstName, lastName } =
-      req.body;
+    const { email, username, password, confirmPassword, firstName, lastName } = req.body;
 
     try {
       await emailSchema.validate(email);
@@ -33,7 +32,14 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    let existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    // Check existing user
+    let existingUser = await User.findOne({ 
+      $or: [
+        { email: email.toLowerCase() }, 
+        { username }
+      ] 
+    });
+    
     if (existingUser) {
       return res.status(400).json({
         success: 0,
@@ -42,25 +48,20 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+    // Create new user
     const user = new User({
-      email,
+      email: email.toLowerCase(),
       username,
-      password: hashedPassword,
+      password, // Password will be hashed by the Schema middleware
       firstName,
       lastName,
-      balance: 0, // Initialize balance to 0
+      balance: 0,
     });
 
     await user.save();
 
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.SECRET_KEY as string,
-      { expiresIn: "1h" }
-    );
+    // Generate token
+    const token = createAuthorizationCode(user.id);
 
     res.status(201).json({
       success: 1,
@@ -79,7 +80,7 @@ export const register = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.error(err);
+    console.error('Registration error:', err);
     res.status(500).json({
       success: 0,
       message: "Server error",
@@ -102,9 +103,13 @@ export const login = async (req: Request, res: Response) => {
 
     // Find user
     const user: IUser | null = await User.findOne({
-      $or: [{ email: login }, { username: login }],
+      $or: [
+        { email: login.toLowerCase() }, 
+        { username: login }
+      ]
     });
 
+    // Verify user and password
     if (!user || !(await user.comparePassword(password))) {
       return res.status(400).json({
         success: 0,
@@ -113,10 +118,8 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Generate authorization code
+    // Generate tokens
     const authCode = createAuthorizationCode(user.id);
-
-    // Immediately exchange the code for tokens
     const accessToken = createAccessToken(user.id);
     const refreshToken = createRefreshToken(user.id);
 
@@ -127,18 +130,19 @@ export const login = async (req: Request, res: Response) => {
         access_token: accessToken,
         refresh_token: refreshToken,
         token_type: "Bearer",
-        expires_in: 3600, // 1 hour
+        expires_in: 3600,
         user: {
           id: user.id,
           email: user.email,
           username: user.username,
           firstName: user.firstName,
           lastName: user.lastName,
+          balance: user.balance,
         },
       },
     });
   } catch (err) {
-    console.error(err);
+    console.error('Login error:', err);
     res.status(500).json({
       success: 0,
       message: "Server error",
@@ -146,6 +150,7 @@ export const login = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const initiateLogin = async (req: Request, res: Response) => {
   try {
     const { login, password } = req.body;

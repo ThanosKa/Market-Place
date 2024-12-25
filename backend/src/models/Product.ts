@@ -12,10 +12,10 @@ export const CONDITION_TYPES = [
 export const CATEGORY_TYPES = [
   "womenFashion",
   "travel",
-  "mobile",
+  "electronics",
   "healthANDbeauty",
   "luxury",
-  "homeServices",
+  "other",
   "menFashion",
   "furniture",
 ] as const;

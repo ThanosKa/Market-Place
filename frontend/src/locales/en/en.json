@@ -1,4 +1,7 @@
 {
+  "no-products-found-tab":"No products found",
+  "products":"Products",
+  "users":"Users",
   "accept": "Accept",
   "decline": "Decline",
   "other": "other",
@@ -149,6 +152,8 @@
   "chat": "Chat",
   "buy": "Buy",
   "homeServices": "Home services",
+  "electronics":"Electronics",
+  "otherCategory":"Other",
   "sending": "Sending...",
   "time-format": "{{value}}{{unit}} {{ago}}",
   "minute-short": "m",

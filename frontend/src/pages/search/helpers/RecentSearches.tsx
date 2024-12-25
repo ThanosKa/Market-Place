@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,15 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useTranslation } from "react-i18next";
-import { EvilIcons } from "@expo/vector-icons";
+import { EvilIcons, Ionicons } from "@expo/vector-icons";
 import { RecentSearch } from "../../../interfaces/recentSearch";
 import { colors } from "../../../colors/colors";
+import { Feather } from "@expo/vector-icons";
 
 interface RecentSearchesProps {
   recentSearches: RecentSearch[];
   isLoading: boolean;
-  onClickRecentSearch: (productId: string) => void;
+  onClickRecentSearch: (search: RecentSearch) => void;
   onDeleteRecentSearch: (id: string) => void;
   onClearAllRecentSearches: () => void;
   clearingAllRecentSearches: boolean;
@@ -37,37 +38,114 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
   isLoadingMore,
 }) => {
   const { t } = useTranslation();
+  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+  const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    const stars = [];
 
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(
+          <Ionicons key={i} name="star" size={16} color={colors.starYellow} />
+        );
+      } else if (i === fullStars && halfStar) {
+        stars.push(
+          <Ionicons
+            key={i}
+            name="star-half"
+            size={16}
+            color={colors.starYellow}
+          />
+        );
+      } else {
+        stars.push(
+          <Ionicons
+            key={i}
+            name="star-outline"
+            size={16}
+            color={colors.starYellow}
+          />
+        );
+      }
+    }
+
+    return stars;
+  };
   const renderRecentSearch = ({ item }: { item: RecentSearch }) => (
     <TouchableOpacity
       style={[
         styles.recentSearchItem,
-        clearingAllRecentSearches && styles.recentSearchItemClearing,
+        (clearingAllRecentSearches || deletingItems.has(item.id)) &&
+          styles.recentSearchItemClearing,
       ]}
-      onPress={() => onClickRecentSearch(item.product._id)}
-      disabled={clearingAllRecentSearches}
+      onPress={() => onClickRecentSearch(item)}
+      disabled={clearingAllRecentSearches || deletingItems.has(item.id)}
     >
-      <Image
-        source={{
-          uri:
-            item.product.images.length > 0
-              ? `${item.product.images[0]}`
-              : undefined,
-        }}
-        style={styles.recentSearchImage}
-      />
+      {item.type === "product" ? (
+        item.product.images.length > 0 ? (
+          <Image
+            source={{ uri: item.product.images[0] }}
+            style={styles.recentSearchImage}
+          />
+        ) : (
+          <View style={[styles.recentSearchImage, styles.defaultImage]}>
+            <Feather name="image" size={20} color={colors.secondary} />
+          </View>
+        )
+      ) : item.user.profilePicture ? (
+        <Image
+          source={{ uri: item.user.profilePicture }}
+          style={styles.recentSearchImage}
+        />
+      ) : (
+        <View style={[styles.recentSearchImage, styles.defaultImage]}>
+          <Feather name="user" size={20} color={colors.secondary} />
+        </View>
+      )}
       <View style={styles.recentSearchInfo}>
-        <Text style={styles.recentSearchTitle}>{item.product.title}</Text>
-        <Text style={styles.recentSearchDetails}>
-          {`$${item.product.price} • ${t(item.product.condition)}`}
-        </Text>
+        {item.type === "product" ? (
+          <>
+            <Text style={styles.recentSearchTitle}>{item.product.title}</Text>
+            <Text style={styles.recentSearchDetails}>
+              {`$${item.product.price} • ${t(item.product.condition)}`}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.recentSearchTitle}>
+              {`${item.user.firstName} ${item.user.lastName}`}
+            </Text>
+            <View style={styles.ratingContainer}>
+              <View style={styles.starsContainer}>
+                {item.user.reviewCount > 0 ? (
+                  <>
+                    {renderStars(item.user.averageRating)}
+                    <Text style={styles.reviewCount}>
+                      ({item.user.reviewCount})
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.noReviews}>{t("no-reviews")}</Text>
+                )}
+              </View>
+            </View>
+          </>
+        )}
       </View>
       <TouchableOpacity
         style={styles.deleteRecentSearch}
-        onPress={() => onDeleteRecentSearch(item._id)}
-        disabled={clearingAllRecentSearches}
+        onPress={() => {
+          setDeletingItems((prev) => new Set(prev).add(item.id));
+          onDeleteRecentSearch(item.id);
+        }}
+        disabled={clearingAllRecentSearches || deletingItems.has(item.id)}
       >
-        <EvilIcons name="close" size={20} />
+        {deletingItems.has(item.id) ? (
+          <ActivityIndicator size="small" color={colors.secondary} />
+        ) : (
+          <EvilIcons name="close" size={20} />
+        )}
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -86,7 +164,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
   }
 
   if (recentSearches.length === 0) {
-    return <Text style={styles.emptyMessage}>{t("search-for-products")}</Text>;
+    return <Text style={styles.emptyMessage}>{t("no-recent-searches")}</Text>;
   }
 
   return (
@@ -107,7 +185,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
       <FlatList
         data={recentSearches}
         renderItem={renderRecentSearch}
-        keyExtractor={(item) => item._id}
+        keyExtractor={(item) => item.id}
         style={styles.recentSearchesList}
         onEndReached={() => {
           if (hasMore) {
@@ -174,14 +252,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
-  deleteRecentSearch: {
-    padding: 5,
-  },
+
   emptyMessage: {
     textAlign: "center",
     marginTop: 20,
     fontSize: 14,
     color: colors.secondary,
+  },
+  defaultImage: {
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  starsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  reviewCount: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: colors.secondary,
+  },
+  noReviews: {
+    fontSize: 14,
+    color: colors.secondary,
+  },
+  deleteRecentSearch: {
+    padding: 5,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

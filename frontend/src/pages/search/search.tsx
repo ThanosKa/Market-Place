@@ -1,30 +1,20 @@
+// SearchScreen.tsx
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  Text,
-  RefreshControl,
-  ScrollView,
-} from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "react-query";
 import debounce from "lodash.debounce";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 
 import { colors } from "../../colors/colors";
 import SearchBar from "../../components/SearchBarComponenet";
 import SearchButton from "./helpers/SearchButton";
-import SearchResults from "./helpers/SearchResults";
-import RecentSearches from "./helpers/RecentSearches";
-import ProductGrid from "./helpers/ProductGrid";
+import SearchTabs from "./helpers/SearchTabs";
+import SearchContent from "./helpers/SearchContent";
 
 import { getProducts } from "../../services/product";
+import { getAllUsersInfo } from "../../services/user";
 import {
   getRecentSearches,
   addRecentSearch,
@@ -33,24 +23,27 @@ import {
 } from "../../services/recentSearch";
 
 import { MainStackParamList } from "../../interfaces/auth/navigation";
-import { StackNavigationProp } from "@react-navigation/stack";
-import FlexibleSkeleton from "../../components/Skeleton/FlexibleSkeleton";
+import { RecentSearch } from "../../interfaces/recentSearch";
 
 type SearchScreenRouteProp = RouteProp<MainStackParamList, "Search">;
 
 const SearchScreen = () => {
   const navigation = useNavigation<StackNavigationProp<MainStackParamList>>();
-
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const route = useRoute<SearchScreenRouteProp>();
+
+  // State Management
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"products" | "users">("products");
+  const [showTabs, setShowTabs] = useState(false);
 
+  // Debounce Search
   const debouncedSearch = useCallback(
     debounce((text: string) => {
       setDebouncedSearchQuery(text);
@@ -59,18 +52,20 @@ const SearchScreen = () => {
     []
   );
 
+  // Route Params Effect
   useEffect(() => {
     if (route.params?.refreshSearch) {
       onRefresh();
     }
   }, [route.params?.refreshSearch]);
 
+  // Products Query
   const {
     data: productsData,
     isLoading: productsLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
+    fetchNextPage: fetchNextProducts,
+    hasNextPage: hasNextProductsPage,
+    isFetchingNextPage: isFetchingNextProducts,
     refetch: refetchProducts,
   } = useInfiniteQuery(
     ["products", debouncedSearchQuery],
@@ -90,12 +85,33 @@ const SearchScreen = () => {
     }
   );
 
+  // Users Query
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    fetchNextPage: fetchNextUsers,
+    hasNextPage: hasNextUsersPage,
+    isFetchingNextPage: isFetchingNextUsers,
+  } = useInfiniteQuery(
+    ["users", searchQuery],
+    ({ pageParam = 1 }) => getAllUsersInfo(pageParam, 10, searchQuery),
+    {
+      enabled: showTabs && activeTab === "users",
+      getNextPageParam: (lastPage) =>
+        lastPage.data.page <
+        Math.ceil(lastPage.data.total / lastPage.data.limit)
+          ? lastPage.data.page + 1
+          : undefined,
+    }
+  );
+
+  // Recent Searches Query
   const {
     data: recentSearchesData,
     isLoading: recentSearchesLoading,
-    fetchNextPage: fetchNextRecentSearchesPage,
+    fetchNextPage: fetchNextRecentSearches,
     hasNextPage: hasNextRecentSearchesPage,
-    isFetchingNextPage: isFetchingNextRecentSearchesPage,
+    isFetchingNextPage: isFetchingNextRecentSearches,
     refetch: refetchRecentSearches,
   } = useInfiniteQuery(
     "recentSearches",
@@ -110,36 +126,44 @@ const SearchScreen = () => {
       enabled: isFocused && searchQuery.length === 0,
     }
   );
-  const recentSearches =
-    recentSearchesData?.pages?.flatMap((page) => page.data.recentSearches) ||
-    [];
 
+  // Mutations
   const addRecentSearchMutation = useMutation(addRecentSearch, {
     onSuccess: () => {
       queryClient.invalidateQueries("recentSearches");
     },
   });
 
-  const deleteRecentSearchMutation = useMutation(deleteRecentSearch, {
-    onSuccess: () => {
-      // queryClient.invalidateQueries("recentSearches");
-      refetchRecentSearches();
-    },
-  });
-
-  const deleteAllRecentSearchesMutation = useMutation(deleteAllRecentSearches, {
-    onSuccess: () => {
-      refetchRecentSearches();
-    },
-  });
-  const loadMoreRecentSearches = () => {
-    if (hasNextRecentSearchesPage && !isFetchingNextRecentSearchesPage) {
-      fetchNextRecentSearchesPage();
+  const deleteRecentSearchMutation = useMutation(
+    (id: string) => deleteRecentSearch(id),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries("recentSearches");
+      },
     }
+  );
+
+  const deleteAllRecentSearchesMutation = useMutation(
+    () => deleteAllRecentSearches(),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries("recentSearches");
+      },
+    }
+  );
+
+  // Handlers
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    setIsSearching(true);
+    debouncedSearch(text);
   };
 
-  const products =
-    productsData?.pages?.flatMap((page) => page.data.products) || [];
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      setShowTabs(true);
+    }
+  };
 
   const handleShowSearch = () => {
     setShowSearchBar(true);
@@ -151,39 +175,35 @@ const SearchScreen = () => {
     setDebouncedSearchQuery("");
     setIsFocused(false);
     setShowSearchBar(false);
-  };
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    setIsSearching(true);
-    debouncedSearch(text);
+    setShowTabs(false);
   };
 
   const clearSearch = () => {
     setSearchQuery("");
     setDebouncedSearchQuery("");
+    setShowTabs(false);
   };
 
-  const handleClickRecentSearch = (productId: string) => {
-    // console.log("Recent search product clicked:", productId);
-    navigation.navigate("Product", { productId });
+  const handleUserPress = (userId: string) => {
+    navigation.navigate("UserProfile", { userId });
+  };
+
+  const handleRecentSearchClick = (search: RecentSearch) => {
+    if (search.type === "product") {
+      // Navigate to product details
+      navigation.navigate("Product", { productId: search.product.id });
+    } else {
+      // Navigate to user profile
+      navigation.navigate("UserProfile", { userId: search.user.id });
+    }
   };
 
   const handleClickSearchedProduct = (productId: string) => {
-    // console.log("Searched product clicked:", productId);
     navigation.navigate("Product", { productId });
-
     addRecentSearchMutation.mutate({
       query: searchQuery,
       productId: productId,
     });
-  };
-
-  const handleDeleteRecentSearch = (id: string) => {
-    deleteRecentSearchMutation.mutate(id);
-  };
-
-  const handleClearAllRecentSearches = () => {
-    deleteAllRecentSearchesMutation.mutate();
   };
 
   const onRefresh = useCallback(() => {
@@ -192,16 +212,6 @@ const SearchScreen = () => {
       setRefreshing(false);
     });
   }, [refetchProducts, refetchRecentSearches]);
-
-  const loadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  };
-
-  const refreshControl = (
-    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-  );
 
   return (
     <View style={styles.container}>
@@ -213,71 +223,64 @@ const SearchScreen = () => {
           setIsFocused={setIsFocused}
           clearSearch={clearSearch}
           cancelSearch={cancelSearch}
+          onSubmitEditing={handleSearchSubmit}
         />
       ) : (
         <SearchButton onPress={handleShowSearch} />
       )}
 
-      {!isFocused && (
-        <>
-          {productsLoading ? (
-            <ActivityIndicator size="small" color={colors.secondary} />
-          ) : products.length > 0 ? (
-            <ProductGrid
-              products={products}
-              refreshControl={refreshControl}
-              loadMore={loadMore}
-              hasMore={!!hasNextPage}
-              isLoadingMore={isFetchingNextPage}
-            />
-          ) : (
-            <Text style={styles.emptyMessage}>{t("no-products-found")}</Text>
-          )}
-        </>
+      {showTabs && (
+        <SearchTabs activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
 
-      {isFocused && searchQuery.length === 0 && (
-        <RecentSearches
-          recentSearches={recentSearches}
-          isLoading={recentSearchesLoading}
-          onClickRecentSearch={handleClickRecentSearch}
-          onDeleteRecentSearch={handleDeleteRecentSearch}
-          onClearAllRecentSearches={handleClearAllRecentSearches}
-          clearingAllRecentSearches={deleteAllRecentSearchesMutation.isLoading}
-          loadMore={loadMoreRecentSearches}
-          hasMore={!!hasNextRecentSearchesPage}
-          isLoadingMore={isFetchingNextRecentSearchesPage}
-        />
-      )}
-
-      {isFocused && searchQuery.length > 0 && (
-        <>
-          {isSearching || productsLoading ? (
-            <ScrollView>
-              <FlexibleSkeleton
-                type="search"
-                itemCount={10}
-                hasProfileImage={true}
-                profileImagePosition="left"
-                contentLines={1}
-              />
-            </ScrollView>
-          ) : // <ActivityIndicator size="small" color={colors.secondary} />
-          products.length > 0 ? (
-            <SearchResults
-              products={products}
-              onClickSearchedProduct={handleClickSearchedProduct}
-              loadMore={loadMore}
-              hasMore={!!hasNextPage}
-              isLoadingMore={isFetchingNextPage}
-            />
-          ) : (
-            <Text style={styles.emptyMessage}>
-              {t("no-results-found-for")} "{searchQuery}"
-            </Text>
-          )}
-        </>
-      )}
+      <SearchContent
+        isFocused={isFocused}
+        searchQuery={searchQuery}
+        showTabs={showTabs}
+        activeTab={activeTab}
+        isSearching={isSearching}
+        products={
+          productsData?.pages?.flatMap((page) => page?.data?.products) ?? []
+        }
+        users={usersData?.pages?.flatMap((page) => page?.data?.users) ?? []}
+        recentSearches={
+          recentSearchesData?.pages?.flatMap(
+            (page) => page?.data?.recentSearches
+          ) ?? []
+        }
+        productsLoading={productsLoading}
+        usersLoading={usersLoading}
+        recentSearchesLoading={recentSearchesLoading}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        handleClickSearchedProduct={handleClickSearchedProduct}
+        handleClickRecentSearch={handleRecentSearchClick}
+        handleUserPress={handleUserPress}
+        deleteRecentSearch={(id) => deleteRecentSearchMutation.mutate(id)}
+        deleteAllRecentSearches={() => deleteAllRecentSearchesMutation.mutate()}
+        loadMoreProducts={() => {
+          if (hasNextProductsPage && !isFetchingNextProducts) {
+            fetchNextProducts();
+          }
+        }}
+        loadMoreUsers={() => {
+          if (hasNextUsersPage && !isFetchingNextUsers) {
+            fetchNextUsers();
+          }
+        }}
+        loadMoreRecentSearches={() => {
+          if (hasNextRecentSearchesPage && !isFetchingNextRecentSearches) {
+            fetchNextRecentSearches();
+          }
+        }}
+        hasMoreProducts={!!hasNextProductsPage}
+        hasMoreUsers={!!hasNextUsersPage}
+        hasMoreRecentSearches={!!hasNextRecentSearchesPage}
+        isLoadingMoreProducts={isFetchingNextProducts}
+        isLoadingMoreUsers={isFetchingNextUsers}
+        isLoadingMoreRecentSearches={isFetchingNextRecentSearches}
+        isDeletingAllRecentSearches={deleteAllRecentSearchesMutation.isLoading}
+      />
     </View>
   );
 };
@@ -287,14 +290,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     paddingTop: 10,
-  },
-  emptyMessage: {
-    textAlign: "left",
-    marginTop: 20,
-    marginLeft: 10,
-    fontSize: 16,
-    color: colors.secondary,
-    fontWeight: "bold",
   },
 });
 

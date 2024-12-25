@@ -197,9 +197,9 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           Toast.show({
             type: "info",
             text1: t("review-request-already-sent"),
-            text2: t("{{buyerName}}-has-already-received-a-review-request", {
-              buyerName,
-            }),
+            // text2: t("{{buyerName}}-has-already-received-a-review-request", {
+            //   buyerName,
+            // }),
             position: "bottom",
             visibilityTime: 3000,
             bottomOffset: 150,
@@ -208,9 +208,9 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           Toast.show({
             type: "info",
             text1: t("user-already-left-review"),
-            text2: t("{{buyerName}}-has-already-created-a-review", {
-              buyerName,
-            }),
+            // text2: t("{{buyerName}}-has-already-created-a-review", {
+            //   buyerName,
+            // }),
             position: "bottom",
             visibilityTime: 3000,
             bottomOffset: 150,
@@ -219,9 +219,9 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
           Toast.show({
             type: "success",
             text1: t("review-request-sent"),
-            text2: t("{{buyerName}}-has-received-a-review-request", {
-              buyerName,
-            }),
+            // text2: t("{{buyerName}}-has-received-a-review-request", {
+            //   buyerName,
+            // }),
             position: "bottom",
             visibilityTime: 3000,
             bottomOffset: 150,
@@ -396,9 +396,11 @@ const ProductScreen: React.FC<ProductScreenProps> = ({ navigation, route }) => {
               <Text style={styles.categoryText}>{t(product.category)}</Text>
               {isCurrentUserSeller && (
                 <View style={styles.likesContainer}>
-                  <Text style={styles.likesText}>
-                    {t("total-likes")}: {product.likes.length}
-                  </Text>
+                  {product.likes.length > 0 && (
+                    <Text style={styles.likesText}>
+                      {t("favoritites")}: {product.likes.length}
+                    </Text>
+                  )}
                 </View>
               )}
               <View style={styles.sellerContainer}>
@@ -654,7 +656,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   reviewRequestButton: {
-    backgroundColor: colors.customBlueDarker,
+    backgroundColor: colors.primary,
     padding: 15,
     alignItems: "center",
     borderRadius: 10,

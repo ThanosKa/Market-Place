@@ -79,7 +79,7 @@ const ProfileImageSection: React.FC<Props> = ({
             style={styles.actionSheetButton}
             onPress={openCamera}
           >
-            <Ionicons name="camera" size={24} color={colors.primary} />
+            <Ionicons name="camera" size={22} color={colors.customBlue} />
             <Text style={styles.actionSheetButtonText}>
               {t("take-picture")}
             </Text>
@@ -88,7 +88,7 @@ const ProfileImageSection: React.FC<Props> = ({
             style={styles.actionSheetButton}
             onPress={pickImage}
           >
-            <Ionicons name="images" size={24} color={colors.primary} />
+            <Ionicons name="images" size={22} color={colors.customBlue} />
             <Text style={styles.actionSheetButtonText}>
               {t("choose-from-gallery")}
             </Text>
@@ -101,7 +101,7 @@ const ProfileImageSection: React.FC<Props> = ({
             onPress={removePhoto}
             disabled={!profilePicture}
           >
-            <Ionicons name="trash" size={24} color={colors.danger} />
+            <Ionicons name="trash" size={22} color={colors.danger} />
             <Text style={styles.actionSheetButtonTextDEL}>
               {t("remove-photo")}
             </Text>

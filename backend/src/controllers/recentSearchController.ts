@@ -1,12 +1,22 @@
 import { Request, Response } from "express";
-import RecentSearch, { IRecentSearch } from "../models/RecentSearch";
+import RecentSearch, { IPopulatedRecentSearch, IRecentSearch } from "../models/RecentSearch";
 import mongoose from "mongoose";
-import Product from "../models/Product";
+import Product, { IProduct } from "../models/Product";
 import { formatProductData } from "../utils/formatImagesUrl";
+import User, { IUser } from "../models/User";
+import { filePathToUrl } from "../utils/filterToUrl";
+import { API_BASE_URL } from "../server";
 
-export const addRecentSearch = async (req: Request, res: Response) => {
+
+interface AddRecentSearchBody {
+  query: string;
+  productId?: string;
+  searchedUserId?: string;
+}
+
+export const addRecentSearch = async (req: Request<{}, {}, AddRecentSearchBody>, res: Response) => {
   try {
-    const { query, productId } = req.body;
+    const { query, productId, searchedUserId } = req.body;
     const userId = (req as any).userId;
 
     if (!userId) {
@@ -25,6 +35,13 @@ export const addRecentSearch = async (req: Request, res: Response) => {
       });
     }
 
+    // Initialize search data
+    const searchData: Partial<IRecentSearch> = {
+      user: new mongoose.Types.ObjectId(userId),
+      query,
+    };
+
+    // Validate and add product if provided
     if (productId) {
       const product = await Product.findById(productId);
       if (!product) {
@@ -34,38 +51,83 @@ export const addRecentSearch = async (req: Request, res: Response) => {
           data: null,
         });
       }
+      searchData.product = new mongoose.Types.ObjectId(productId);
+    }
 
-      const existingSearch = await RecentSearch.findOneAndUpdate(
-        { user: userId, product: productId },
-        { $set: { query, createdAt: new Date() } },
-        { new: true, upsert: true }
-      );
+    // Validate and add searched user if provided
+    if (searchedUserId) {
+      const searchedUser = await User.findById(searchedUserId);
+      if (!searchedUser) {
+        return res.status(400).json({
+          success: 0,
+          message: "Invalid searchedUserId",
+          data: null,
+        });
+      }
+      searchData.searchedUser = new mongoose.Types.ObjectId(searchedUserId);
+    }
 
-      return res.status(200).json({
-        success: 1,
-        message: "Recent search updated successfully",
-        data: { recentSearch: existingSearch },
+    // If neither product nor user is provided
+    if (!productId && !searchedUserId) {
+      return res.status(400).json({
+        success: 0,
+        message: "Either productId or searchedUserId must be provided",
+        data: null,
       });
     }
 
-    const newRecentSearch: IRecentSearch = new RecentSearch({
-      user: new mongoose.Types.ObjectId(userId),
-      query,
-      product: productId ? new mongoose.Types.ObjectId(productId) : null,
-    });
+    // Find and update or create new search
+    const existingSearch = await RecentSearch.findOneAndUpdate(
+      {
+        user: userId,
+        ...(productId && { product: productId }),
+        ...(searchedUserId && { searchedUser: searchedUserId }),
+      },
+      { $set: { ...searchData, createdAt: new Date() } },
+      { new: true, upsert: true }
+    ).populate([
+      {
+        path: 'product',
+        select: 'title price condition images',
+      },
+      {
+        path: 'searchedUser',
+        select: 'firstName lastName username profilePicture averageRating reviewCount',
+      }
+    ]);
 
-    await newRecentSearch.save();
+    // Format the response data
+    const formattedSearch = {
+      ...existingSearch.toObject(),
+      product: existingSearch.product ? {
+        title: (existingSearch.product as IProduct).title,
+        price: (existingSearch.product as IProduct).price,
+        condition: (existingSearch.product as IProduct).condition,
+        images: (existingSearch.product as IProduct).images,
+      } : null,
+      searchedUser: existingSearch.searchedUser ? {
+        firstName: (existingSearch.searchedUser as IUser).firstName,
+        lastName: (existingSearch.searchedUser as IUser).lastName,
+        username: (existingSearch.searchedUser as IUser).username,
+        profilePicture: (existingSearch.searchedUser as IUser).profilePicture,
+        averageRating: (existingSearch.searchedUser as IUser).averageRating,
+        reviewCount: (existingSearch.searchedUser as IUser).reviewCount,
+      } : null,
+    };
 
-    res.status(201).json({
+    return res.status(200).json({
       success: 1,
-      message: "Recent search added successfully",
-      data: { recentSearch: newRecentSearch },
+      message: "Recent search updated successfully",
+      data: { recentSearch: formattedSearch },
     });
+
   } catch (error) {
     console.error("Error in addRecentSearch:", error);
-    res
-      .status(500)
-      .json({ success: 0, message: "Failed to add recent search", data: null });
+    res.status(500).json({
+      success: 0,
+      message: "Failed to add recent search",
+      data: null,
+    });
   }
 };
 
@@ -81,12 +143,54 @@ export const getRecentSearches = async (req: Request, res: Response) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("product", "title price condition images");
+      .populate("product", "title price condition images")
+      .populate("searchedUser", "firstName lastName username profilePicture averageRating reviewCount");
 
-    const formattedSearches = recentSearches.map((search) => ({
-      ...search.toObject(),
-      product: search.product ? formatProductData(search.product) : null,
-    }));
+    const formattedSearches = recentSearches.map(search => {
+      const baseSearch = {
+        id: search._id,
+        query: search.query,
+        createdAt: search.createdAt,
+      };
+
+      // If it's a product search
+      if (search.product) {
+        return {
+          ...baseSearch,
+          type: 'product',
+          product: {
+            id: (search.product as any)._id,
+            title: (search.product as any).title,
+            price: (search.product as any).price,
+            images: (search.product as any).images.map((image: string) => 
+              filePathToUrl(image, API_BASE_URL)
+            ),
+            condition: (search.product as any).condition,
+          }
+        };
+      }
+
+      // If it's a user search
+      if (search.searchedUser) {
+        return {
+          ...baseSearch,
+          type: 'user',
+          user: {
+            id: (search.searchedUser as any)._id,
+            firstName: (search.searchedUser as any).firstName,
+            lastName: (search.searchedUser as any).lastName,
+            username: (search.searchedUser as any).username,
+            profilePicture: (search.searchedUser as any).profilePicture ? 
+              filePathToUrl((search.searchedUser as any).profilePicture, API_BASE_URL) : 
+              null,
+            averageRating: (search.searchedUser as any).averageRating,
+            reviewCount: (search.searchedUser as any).reviewCount,
+          }
+        };
+      }
+
+      return baseSearch;
+    });
 
     const total = await RecentSearch.countDocuments({ user: userId });
 
@@ -95,10 +199,12 @@ export const getRecentSearches = async (req: Request, res: Response) => {
       message: "Recent searches retrieved successfully",
       data: {
         recentSearches: formattedSearches,
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        }
       },
     });
   } catch (error) {
@@ -110,6 +216,10 @@ export const getRecentSearches = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+
+
 
 export const deleteRecentSearch = async (req: Request, res: Response) => {
   try {

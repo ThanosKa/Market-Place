@@ -216,13 +216,13 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   submitButton: {
-    backgroundColor: colors.customBlue,
+    backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 25,
     width: MODAL_WIDTH * 0.8,
   },
   submitButtonDisabled: {
-    backgroundColor: colors.customBlue,
+    backgroundColor: colors.primary,
     padding: 15,
     borderRadius: 25,
     width: MODAL_WIDTH * 0.8,

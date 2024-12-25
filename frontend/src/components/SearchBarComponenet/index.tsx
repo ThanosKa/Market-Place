@@ -1,4 +1,5 @@
 // SearchBar.tsx
+// SearchBar.tsx
 import React, { useEffect, useRef } from "react";
 import {
   View,
@@ -18,6 +19,7 @@ interface SearchBarProps {
   setIsFocused: (focused: boolean) => void;
   clearSearch: () => void;
   cancelSearch: () => void;
+  onSubmitEditing?: () => void; // Add this new optional prop
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -27,6 +29,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   setIsFocused,
   clearSearch,
   cancelSearch,
+  onSubmitEditing, // Add this to the props
 }) => {
   const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
@@ -36,6 +39,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       inputRef.current.focus();
     }
   }, []);
+
   return (
     <View style={styles.searchBarContainer}>
       <View style={styles.searchContainer}>
@@ -52,6 +56,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
           value={searchQuery}
           onChangeText={setSearchQuery}
           onFocus={() => setIsFocused(true)}
+          onSubmitEditing={onSubmitEditing} // Add this prop
+          returnKeyType="search" // Optional: changes the return key to show "Search"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>

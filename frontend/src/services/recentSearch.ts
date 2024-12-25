@@ -14,10 +14,16 @@ export const getRecentSearches = async (params?: {
   return response.data;
 };
 
-export const addRecentSearch = async (data: {
+type AddRecentSearchPayload = {
   query: string;
-  productId: string;
-}): Promise<AddRecentSearchResponse> => {
+  productId?: string;
+  searchedUserId?: string;
+};
+
+// Update the service function
+export const addRecentSearch = async (
+  data: AddRecentSearchPayload
+): Promise<AddRecentSearchResponse> => {
   const response = await axiosInstance.post("/recent", data);
   return response.data;
 };

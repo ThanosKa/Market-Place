@@ -35,6 +35,15 @@ export const addRecentSearch = async (req: Request<{}, {}, AddRecentSearchBody>,
       });
     }
 
+    // Check if user is trying to search themselves
+    if (searchedUserId && searchedUserId === userId) {
+      return res.status(400).json({
+        success: 0,
+        message: "You cannot add yourself as a recent search",
+        data: null,
+      });
+    }
+
     // Initialize search data
     const searchData: Partial<IRecentSearch> = {
       user: new mongoose.Types.ObjectId(userId),
@@ -76,7 +85,7 @@ export const addRecentSearch = async (req: Request<{}, {}, AddRecentSearchBody>,
       });
     }
 
-    // Find and update or create new search
+    // Rest of the code remains the same...
     const existingSearch = await RecentSearch.findOneAndUpdate(
       {
         user: userId,
@@ -96,7 +105,6 @@ export const addRecentSearch = async (req: Request<{}, {}, AddRecentSearchBody>,
       }
     ]);
 
-    // Format the response data
     const formattedSearch = {
       ...existingSearch.toObject(),
       product: existingSearch.product ? {
@@ -130,6 +138,7 @@ export const addRecentSearch = async (req: Request<{}, {}, AddRecentSearchBody>,
     });
   }
 };
+
 
 export const getRecentSearches = async (req: Request, res: Response) => {
   try {

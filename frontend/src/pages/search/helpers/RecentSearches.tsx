@@ -39,6 +39,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
 }) => {
   const { t } = useTranslation();
   const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+
   const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
     const halfStar = rating % 1 >= 0.5;
@@ -72,6 +73,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
 
     return stars;
   };
+
   const renderRecentSearch = ({ item }: { item: RecentSearch }) => (
     <TouchableOpacity
       style={[
@@ -164,7 +166,11 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
   }
 
   if (recentSearches.length === 0) {
-    return <Text style={styles.emptyMessage}>{t("no-recent-searches")}</Text>;
+    return (
+      <Text style={styles.emptyMessage}>
+        {t("start-searching-for-products-or-users")}
+      </Text>
+    );
   }
 
   return (
@@ -176,25 +182,32 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
           disabled={clearingAllRecentSearches}
         >
           {clearingAllRecentSearches ? (
-            <ActivityIndicator size="small" color={colors.primary} />
+            <ActivityIndicator size="small" color={colors.secondary} />
           ) : (
             <Text style={styles.clearAllText}>{t("clear-all")}</Text>
           )}
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={recentSearches}
-        renderItem={renderRecentSearch}
-        keyExtractor={(item) => item.id}
-        style={styles.recentSearchesList}
-        onEndReached={() => {
-          if (hasMore) {
-            loadMore();
-          }
-        }}
-        onEndReachedThreshold={0.1}
-        ListFooterComponent={renderFooter}
-      />
+      <View
+        style={[
+          styles.listContainer,
+          clearingAllRecentSearches && styles.clearingAllContainer,
+        ]}
+      >
+        <FlatList
+          data={recentSearches}
+          renderItem={renderRecentSearch}
+          keyExtractor={(item) => item.id}
+          style={styles.recentSearchesList}
+          onEndReached={() => {
+            if (hasMore && !clearingAllRecentSearches) {
+              loadMore();
+            }
+          }}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={renderFooter}
+        />
+      </View>
     </View>
   );
 };
@@ -203,6 +216,12 @@ const styles = StyleSheet.create({
   recentSearchesContainer: {
     flex: 1,
     paddingHorizontal: 10,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  clearingAllContainer: {
+    opacity: 0.5,
   },
   footerContainer: {
     paddingVertical: 20,
@@ -252,11 +271,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
-
   emptyMessage: {
     textAlign: "center",
     marginTop: 20,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.secondary,
   },
   defaultImage: {

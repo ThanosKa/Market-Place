@@ -134,11 +134,15 @@ const SearchScreen = () => {
     },
   });
 
+  // In SearchScreen.tsx, update the mutations:
+
   const deleteRecentSearchMutation = useMutation(
     (id: string) => deleteRecentSearch(id),
     {
       onSuccess: () => {
+        // Invalidate and refetch
         queryClient.invalidateQueries("recentSearches");
+        refetchRecentSearches();
       },
     }
   );
@@ -147,7 +151,9 @@ const SearchScreen = () => {
     () => deleteAllRecentSearches(),
     {
       onSuccess: () => {
+        // Invalidate and refetch
         queryClient.invalidateQueries("recentSearches");
+        refetchRecentSearches();
       },
     }
   );
@@ -184,8 +190,24 @@ const SearchScreen = () => {
     setShowTabs(false);
   };
 
+  // Update the handleUserPress function
   const handleUserPress = (userId: string) => {
     navigation.navigate("UserProfile", { userId });
+    // Add the user search to recent searches
+    addRecentSearchMutation.mutate({
+      query: searchQuery,
+      searchedUserId: userId,
+    });
+  };
+
+  // Update the handleClickSearchedProduct function to be more explicit
+  const handleClickSearchedProduct = (productId: string) => {
+    navigation.navigate("Product", { productId });
+    // Add the product search to recent searches
+    addRecentSearchMutation.mutate({
+      query: searchQuery,
+      productId: productId,
+    });
   };
 
   const handleRecentSearchClick = (search: RecentSearch) => {
@@ -196,14 +218,6 @@ const SearchScreen = () => {
       // Navigate to user profile
       navigation.navigate("UserProfile", { userId: search.user.id });
     }
-  };
-
-  const handleClickSearchedProduct = (productId: string) => {
-    navigation.navigate("Product", { productId });
-    addRecentSearchMutation.mutate({
-      query: searchQuery,
-      productId: productId,
-    });
   };
 
   const onRefresh = useCallback(() => {

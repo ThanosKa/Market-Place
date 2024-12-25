@@ -111,7 +111,7 @@ const SearchContent: React.FC<SearchContentProps> = ({
             isLoadingMore={isLoadingMoreProducts}
           />
         ) : (
-          <Text style={styles.emptyMessage}>{t("no-productss-found")}</Text>
+          <Text style={styles.emptyMessage}>{t("no-products-found")}</Text>
         );
       } else {
         return (

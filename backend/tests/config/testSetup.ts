@@ -1,20 +1,14 @@
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
 
 let mongoServer: MongoMemoryServer;
 
 beforeAll(async () => {
   // Close any existing connections
   await mongoose.disconnect();
-  
+
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
-  
-  // Set the mongoose connection options
-  const mongooseOpts = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  };
 
   await mongoose.connect(mongoUri);
 });

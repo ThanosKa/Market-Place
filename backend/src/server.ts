@@ -1,3 +1,4 @@
+// src/server.ts
 import express from "express";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes";
@@ -18,12 +19,12 @@ import cors from "cors";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
-const SERVER = process.env.SERVER || "localhost";
-const PROTOCOL = process.env.PROTOCOL || "http";
-const API_BASEPATH = process.env.API_BASEPATH || "api";
+export const PORT = process.env.PORT || 5001;
+export const SERVER = process.env.SERVER || "localhost";
+export const PROTOCOL = process.env.PROTOCOL || "http";
+export const API_BASEPATH = process.env.API_BASEPATH || "api";
 
-const BASE_URL = `${PROTOCOL}://${SERVER}:${PORT}`;
+export const BASE_URL = `${PROTOCOL}://${SERVER}:${PORT}`;
 export const API_BASE_URL = `${BASE_URL}/${API_BASEPATH}`;
 
 app.use(cors());
@@ -33,7 +34,10 @@ app.use(
   express.static(path.join(__dirname, "../uploads"))
 );
 
-connectDatabase();
+// Only connect to database if not in test environment
+if (process.env.NODE_ENV !== "test") {
+  connectDatabase();
+}
 
 app.use(morgan("dev"));
 
@@ -51,12 +55,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 app.use((req, res, next) => {
   res.locals.BASE_URL = BASE_URL;
   next();
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`BASE_URL is set to: ${BASE_URL}`);
-  console.log(`API_BASE_URL is set to: ${API_BASE_URL}`);
 });
 
 export default app;

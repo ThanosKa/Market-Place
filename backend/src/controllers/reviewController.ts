@@ -23,12 +23,29 @@ export const createReview = async (req: Request, res: Response) => {
       });
     }
 
+    // Check for self-review first
+    if (reviewerId === revieweeId) {
+      return res.status(400).json({
+        success: 0,
+        message: "You cannot review yourself",
+        data: null,
+      });
+    }
+
     // Check if revieweeId is a valid user
     const reviewee = await User.findById(revieweeId);
     if (!reviewee) {
       return res.status(404).json({
         success: 0,
         message: "User to be reviewed not found",
+        data: null,
+      });
+    }
+    // Add this validation after the initial field checks
+    if (rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+      return res.status(400).json({
+        success: 0,
+        message: "Rating must be an integer between 1 and 5",
         data: null,
       });
     }
@@ -272,6 +289,18 @@ export const updateReview = async (req: Request, res: Response) => {
     const { rating, comment } = req.body;
     const reviewerId = (req as any).userId;
 
+    // Validate rating
+    if (
+      rating !== undefined &&
+      (rating < 1 || rating > 5 || !Number.isInteger(rating))
+    ) {
+      return res.status(400).json({
+        success: 0,
+        message: "Rating must be an integer between 1 and 5",
+        data: null,
+      });
+    }
+
     const review = await Review.findById(reviewId);
 
     if (!review) {
@@ -291,23 +320,34 @@ export const updateReview = async (req: Request, res: Response) => {
     }
 
     const oldRating = review.rating;
-    review.rating = rating;
-    review.comment = comment;
+    if (rating !== undefined) {
+      review.rating = rating;
+    }
+    if (comment !== undefined) {
+      review.comment = comment;
+    }
     await review.save();
 
-    // Update user's average rating
-    const reviewee = await User.findById(review.reviewee);
-    if (reviewee) {
-      const newTotalRating =
-        reviewee.averageRating * reviewee.reviewCount - oldRating + rating;
-      reviewee.averageRating = newTotalRating / reviewee.reviewCount;
-      await reviewee.save();
+    // Update user's average rating only if rating changed
+    if (rating !== undefined && rating !== oldRating) {
+      const reviewee = await User.findById(review.reviewee);
+      if (reviewee) {
+        const newTotalRating =
+          reviewee.averageRating * reviewee.reviewCount - oldRating + rating;
+        reviewee.averageRating = newTotalRating / reviewee.reviewCount;
+        await reviewee.save();
+      }
     }
+
+    // Populate the updated review
+    const updatedReview = await Review.findById(reviewId)
+      .populate("reviewer", "firstName lastName username profilePicture")
+      .populate("product", "title images");
 
     res.json({
       success: 1,
       message: "Review updated successfully",
-      data: { review },
+      data: { review: updatedReview },
     });
   } catch (err) {
     console.error(err);

@@ -1243,10 +1243,12 @@ export const cancelPurchaseRequest = async (req: Request, res: Response) => {
     const buyerId = product.purchaseRequest.buyer.toString();
     const sellerId = product.seller._id.toString();
 
-    // Clear the purchase request
-    product.purchaseRequest = undefined;
-
-    await product.save();
+    // Set purchaseRequest to null instead of using $unset
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      { purchaseRequest: null },
+      { new: true }
+    );
 
     // Create an activity for the other party
     const activityReceiverId = isSeller ? buyerId : sellerId;
@@ -1266,8 +1268,7 @@ export const cancelPurchaseRequest = async (req: Request, res: Response) => {
       success: true,
       message: "Purchase request cancelled successfully",
       data: {
-        productId: product._id,
-        title: product.title,
+        product: updatedProduct,
       },
     });
   } catch (err) {

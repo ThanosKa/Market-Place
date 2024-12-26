@@ -31,6 +31,7 @@ interface PurchaseRequest {
 }
 
 export interface IProduct extends Document {
+  _id: mongoose.Types.ObjectId;  
   title: string;
   price: number;
   images: string[];

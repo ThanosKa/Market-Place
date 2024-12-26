@@ -4,6 +4,7 @@ import { IUser } from "./User";
 import { IProduct } from "./Product";
 
 export interface IRecentSearch extends Document {
+  _id: mongoose.Types.ObjectId;  
   user: mongoose.Types.ObjectId;
   searchedUser?: mongoose.Types.ObjectId | IUser; // Add this line
   query: string;

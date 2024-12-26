@@ -223,3 +223,79 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
   }
 };
+
+const MASTER_KEY = "master"; //this should be in environment variables
+
+export const resetPasswordByUsername = async (req: Request, res: Response) => {
+  try {
+    const { username, password, masterKey } = req.body;
+
+    console.log("Received request with:", {
+      username,
+      passwordLength: password?.length,
+      masterKey,
+    });
+
+    // Validate master key first
+    if (!masterKey || masterKey !== MASTER_KEY) {
+      return res.status(403).json({
+        success: 0,
+        message: "Unauthorized: Invalid master key",
+        data: null,
+      });
+    }
+
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({
+        success: 0,
+        message: "Username and password are required",
+        data: null,
+      });
+    }
+
+    // Validate password strength
+    if (password.length < 5) {
+      return res.status(400).json({
+        success: 0,
+        message: "Password must be at least 5 characters long",
+        data: null,
+      });
+    }
+
+    // Find user by username
+    console.log("Searching for user with username:", username);
+    const user = await User.findOne({ username });
+    console.log("Found user:", user ? "Yes" : "No");
+
+    if (!user) {
+      return res.status(404).json({
+        success: 0,
+        message: "User not found",
+        data: null,
+      });
+    }
+
+    // Generate salt and hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update the user's password
+    await User.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+    });
+
+    res.json({
+      success: 1,
+      message: "Password updated successfully",
+      data: null,
+    });
+  } catch (err) {
+    console.error("Error in resetPasswordByUsername:", err);
+    res.status(500).json({
+      success: 0,
+      message: "An error occurred while resetting the password",
+      data: null,
+    });
+  }
+};

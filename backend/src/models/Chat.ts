@@ -12,6 +12,7 @@ export interface IMessage {
 }
 
 export interface IChat extends Document {
+  _id: mongoose.Types.ObjectId;
   participants: mongoose.Types.ObjectId[];
   messages: IMessage[];
   createdAt: Date;

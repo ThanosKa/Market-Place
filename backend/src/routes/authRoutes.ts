@@ -2,7 +2,6 @@ import express from "express";
 import {
   register,
   forgotPassword,
-  initiateLogin,
   exchangeToken,
   login,
 } from "../controllers/authController";
@@ -15,7 +14,6 @@ router.post("/register", register);
 router.post("/login", login);
 
 router.post("/forgot-password", forgotPassword);
-router.post("/initiate-login", initiateLogin);
 router.post("/exchange-token", exchangeToken);
 router.post("/refresh-token", refreshAccessToken);
 

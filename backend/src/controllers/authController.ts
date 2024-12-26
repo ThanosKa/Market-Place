@@ -12,7 +12,8 @@ import {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, username, password, confirmPassword, firstName, lastName } = req.body;
+    const { email, username, password, confirmPassword, firstName, lastName } =
+      req.body;
 
     try {
       await emailSchema.validate(email);
@@ -33,13 +34,10 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Check existing user
-    let existingUser = await User.findOne({ 
-      $or: [
-        { email: email.toLowerCase() }, 
-        { username }
-      ] 
+    let existingUser = await User.findOne({
+      $or: [{ email: email.toLowerCase() }, { username }],
     });
-    
+
     if (existingUser) {
       return res.status(400).json({
         success: 0,
@@ -80,7 +78,7 @@ export const register = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.error('Registration error:', err);
+    console.error("Registration error:", err);
     res.status(500).json({
       success: 0,
       message: "Server error",
@@ -103,10 +101,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Find user
     const user: IUser | null = await User.findOne({
-      $or: [
-        { email: login.toLowerCase() }, 
-        { username: login }
-      ]
+      $or: [{ email: login.toLowerCase() }, { username: login }],
     });
 
     // Verify user and password
@@ -142,67 +137,12 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error("Login error:", err);
     res.status(500).json({
       success: 0,
       message: "Server error",
       data: null,
     });
-  }
-};
-
-export const initiateLogin = async (req: Request, res: Response) => {
-  try {
-    const { login, password } = req.body;
-
-    if (!login || !password) {
-      return res.status(400).json({
-        success: 0,
-        message: "Login and password are required",
-        data: null,
-      });
-    }
-
-    // Find user
-    const user: IUser | null = await User.findOne({
-      $or: [{ email: login }, { username: login }],
-    });
-
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(400).json({
-        success: 0,
-        message: "Invalid credentials",
-        data: null,
-      });
-    }
-
-    // Generate authorization code
-    const authCode = createAuthorizationCode(user.id);
-
-    // In a real-world scenario, you'd redirect the user back to the client
-    // with this auth code. For this example, we'll just return it.
-    res.json({
-      success: 1,
-      message: "Authorization code generated",
-      data: {
-        code: authCode,
-      },
-    });
-  } catch (err) {
-    console.error(err);
-    if (err instanceof Error) {
-      res.status(500).json({
-        success: 0,
-        message: "Server error: " + err.message,
-        data: null,
-      });
-    } else {
-      res.status(500).json({
-        success: 0,
-        message: "An unknown error occurred",
-        data: null,
-      });
-    }
   }
 };
 
